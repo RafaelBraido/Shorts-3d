@@ -55,6 +55,9 @@ test('HTTP download (Range), upload e chat em streaming', async () => {
   assert.equal(up.status, 201);
   assert.equal(fs.readFileSync(path.join(root, 'sub', 'novo.txt'), 'utf8'), 'oi');
   assert.equal(fs.existsSync(path.join(root, 'novo.txt')), false);
+  const again = await fetch(`${base}/upload?dir=/Downloads&name=a.txt`, { method: 'PUT', headers: H, body: 'novo' });
+  assert.equal(JSON.parse(await again.text()).name, 'a (1).txt');
+  assert.equal(fs.readFileSync(path.join(root, 'a.txt'), 'utf8'), '0123456789'); // original intacto
   const big = await fetch(`${base}/upload?dir=/Downloads&name=big`, { method: 'PUT', headers: { ...H, 'content-length': String(2 * 1024 * 1024) }, body: Buffer.alloc(2 * 1024 * 1024) }).catch(() => ({ status: 413 }));
   assert.equal(big.status, 413);
 
@@ -65,8 +68,11 @@ test('HTTP download (Range), upload e chat em streaming', async () => {
   ws.send(JSON.stringify({ id: 1, type: 'ls', path: '/Downloads' }));
   ws.send(JSON.stringify({ id: 2, type: 'chat', messages: [{ role: 'user', content: 'oi' }] }));
   for (let i = 0; i < 100 && !log.some((m) => m.type === 'chat_chunk' && m.done); i++) await new Promise((r) => setTimeout(r, 20));
-  assert.equal(log.find((m) => m.id === 1 && m.type === 'ack').entries.length, 3);
+  assert.equal(log.find((m) => m.id === 1 && m.type === 'ack').entries.length, 4);
   assert.equal(log.filter((m) => m.text).map((m) => m.text).join(''), 'Olá, mundo');
+
+  for (let i = 0; i < 5; i++) await fetch(`${base}/download?path=/Downloads/a.txt`, { headers: { 'x-pcr-token': 'x' } });
+  assert.equal((await fetch(`${base}/download?path=/Downloads/a.txt`, { headers: { 'x-pcr-token': 't' } })).status, 429); // bloqueado mesmo com token certo
 
   ws.close(); agent.close(); fake.close();
   fs.rmSync(tmp, { recursive: true, force: true });

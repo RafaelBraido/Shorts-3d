@@ -52,6 +52,16 @@ export function createAgent(cfg) {
   const files = makeFiles(cfg.fileRoots ?? []);
   const chats = new Map(); // ws -> AbortController
 
+  // 5 tokens errados = bloqueio de 60 s por IP (vale para WS e HTTP).
+  const blocked = (ip) => (fails.get(ip)?.until ?? 0) > Date.now();
+  const authed = (ip, given) => {
+    if (blocked(ip)) return false;
+    if (tokenOk(given, cfg.token)) { fails.delete(ip); return true; }
+    const n = (fails.get(ip)?.n ?? 0) + 1;
+    fails.set(ip, { n, until: n >= 5 ? Date.now() + 60_000 : 0 });
+    return false;
+  };
+
   const broadcast = (msg) => {
     const data = JSON.stringify(msg);
     for (const ws of clients) if (ws.readyState === 1) ws.send(data);
@@ -138,7 +148,8 @@ export function createAgent(cfg) {
     const url = new URL(req.url, 'http://x');
     const given = req.headers['x-pcr-token'] || url.searchParams.get('token') || '';
     if (!['/download', '/upload'].includes(url.pathname)) return res.writeHead(404).end();
-    if (!tokenOk(given, cfg.token)) return res.writeHead(401).end();
+    if (blocked(req.socket.remoteAddress)) return res.writeHead(429).end();
+    if (!authed(req.socket.remoteAddress, given)) return res.writeHead(401).end();
     const fail = (code, msg) => { if (!res.headersSent) res.writeHead(code, { 'content-type': 'text/plain' }); res.end(msg); };
     try {
       if (url.pathname === '/download' && req.method === 'GET') return download(req, res, url, fail);
@@ -169,10 +180,18 @@ export function createAgent(cfg) {
     pipeline(fs.createReadStream(file, { start, end }), res).catch(() => res.destroy());
   }
 
+  function freeName(file) {
+    const { dir, name, ext } = path.parse(file);
+    let out = file;
+    for (let i = 1; fs.existsSync(out) && i < 1000; i++) out = path.join(dir, `${name} (${i})${ext}`);
+    return out;
+  }
+
   async function upload(req, res, url, fail) {
     const limit = (cfg.maxUploadMB ?? 2048) * 1024 * 1024;
     if (Number(req.headers['content-length'] || 0) > limit) return fail(413, 'arquivo grande demais');
-    const target = files.uploadTarget(url.searchParams.get('dir'), url.searchParams.get('name'));
+    const wanted = files.uploadTarget(url.searchParams.get('dir'), url.searchParams.get('name'));
+    const target = freeName(wanted); // nunca sobrescreve: "foto.jpg" -> "foto (1).jpg"
     const tmp = `${target}.part`;
     let bytes = 0;
     req.on('data', (c) => { bytes += c.length; if (bytes > limit) req.destroy(); });
@@ -191,17 +210,13 @@ export function createAgent(cfg) {
 
   server.on('upgrade', (req, socket, head) => {
     const ip = req.socket.remoteAddress;
-    const f = fails.get(ip);
-    if (f && f.until > Date.now()) { socket.write('HTTP/1.1 429 Too Many Requests\r\n\r\n'); return socket.destroy(); }
+    if (blocked(ip)) { socket.write('HTTP/1.1 429 Too Many Requests\r\n\r\n'); return socket.destroy(); }
     const url = new URL(req.url, 'http://x');
     const given = req.headers['x-pcr-token'] || url.searchParams.get('token') || '';
-    if (!tokenOk(given, cfg.token)) {
-      const n = (f?.n ?? 0) + 1;
-      fails.set(ip, { n, until: n >= 5 ? Date.now() + 60_000 : 0 });
+    if (!authed(ip, given)) {
       socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
       return socket.destroy();
     }
-    fails.delete(ip);
     wss.handleUpgrade(req, socket, head, (ws) => {
       clients.add(ws);
       ws.send(JSON.stringify(hello()));
