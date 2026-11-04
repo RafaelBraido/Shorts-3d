@@ -1,7 +1,7 @@
 # PC Remote — arquitetura e guia
 
 App Flutter (Android Samsung, iOS, Windows, macOS) + agent Node.js no PC.
-**Foco desta versão: ligar, desligar, suspender, reiniciar e monitorar o PC.**
+**Abas: Energia (ligar/desligar/monitorar), Arquivos (explorar, baixar, enviar) e Assistente (Ollama com texto e voz).**
 
 ## Como funciona (e por que é assim)
 
@@ -72,6 +72,7 @@ flutter test
 
 ```xml
 <uses-permission android:name="android.permission.INTERNET"/>
+<uses-permission android:name="android.permission.RECORD_AUDIO"/>   <!-- voz do Assistente -->
 <application ... android:usesCleartextTraffic="true">   <!-- ws:// e HTTP da tomada na LAN -->
 ```
 
@@ -82,7 +83,7 @@ flutter install                                 # ou copie o APK para o celular 
 
 **iOS** (precisa de Mac + Xcode): em `ios/Runner/Info.plist` adicione
 `NSLocalNetworkUsageDescription` ("Encontrar e controlar seu PC na rede local") e, para HTTP da tomada,
-`NSAppTransportSecurity > NSAllowsLocalNetworking = true`. Depois `flutter build ios` e instale pelo Xcode
+`NSAppTransportSecurity > NSAllowsLocalNetworking = true`, `NSMicrophoneUsageDescription` e `NSSpeechRecognitionUsageDescription` (voz). Depois `flutter build ios` e instale pelo Xcode
 (conta Apple gratuita vale 7 dias).
 
 **Windows / macOS** (o mesmo código, para controlar de outro PC): `flutter build windows` / `flutter build macos`.
@@ -95,17 +96,23 @@ No macOS, habilite o entitlement `com.apple.security.network.client` em `macos/R
    (confira se escolheu a placa certa, a de cabo).
 3. Toque no botão central: PC ligado → desliga (com confirmação); desligado → manda o WoL.
 
-## Escopo e próximos passos (não implementado ainda)
+## 4. Arquivos e Assistente
 
-Esta versão entrega energia/rede com qualidade; os itens abaixo do briefing original são fases seguintes e
-exigem decisões próprias, por isso não foram simulados com código "de enfeite":
+**Arquivos**: só as pastas listadas em `fileRoots` no `agent/config.json` são visíveis (padrão: Downloads).
+Links simbólicos que apontam para fora são bloqueados. Baixar abre a folha de compartilhar/salvar do celular;
+o botão de seta envia um arquivo do celular para a pasta aberta. Tudo direto pela rede local (HTTP com Range).
+
+**Assistente**: instale o [Ollama](https://ollama.com) no PC, rode `ollama pull llama3` e confira o nome em
+`ollama list`; se usar outro modelo, ajuste `ollama.model` no `config.json` e reinicie o agent. O agent faz o proxy
+em streaming, então o Ollama continua escutando só em `127.0.0.1`. Para voz, toque no microfone (pt-BR).
+Modelos grandes disputam RAM/GPU com jogos: use o assistente fora do jogo ou um modelo pequeno (`llama3.2:3b`).
+
+## Escopo e próximos passos (não implementado ainda)
 
 | Fase | Item | Caminho recomendado |
 |---|---|---|
-| 2 | Gerenciador de arquivos | agent expõe `list/download` restrito a pastas liberadas em `config.json` (HTTP com Range) |
-| 3 | Assistente Ollama | agent faz proxy de `http://localhost:11434/api/chat` (stream); voz via `speech_to_text` |
-| 4 | Espelhamento + mouse/teclado | WebRTC: `flutter_webrtc` no app; no PC `node-datachannel` + captura (ffmpeg/DXGI) + `robotjs`/`nut.js` para input — é a parte mais pesada |
-| 5 | Notificações / WhatsApp | sem API oficial para uso pessoal; ponte via WhatsApp Web (risco de bloqueio da conta) ou WhatsApp Business API |
+| 3 | Espelhamento + mouse/teclado | WebRTC: `flutter_webrtc` no app; no PC `node-datachannel` + captura (ffmpeg/DXGI) + `nut.js` para input — é a parte mais pesada e consome CPU/GPU |
+| 4 | Notificações / WhatsApp | sem API oficial para uso pessoal; ponte via WhatsApp Web (risco de bloqueio da conta) ou WhatsApp Business API |
 
 Tuya/Smart Life: a assinatura da nuvem Tuya não cabe num cliente leve; use a integração Tuya do Home Assistant
 (ou Tasmota/Shelly) e aponte as URLs de ligar/desligar para um webhook local.

@@ -26,6 +26,7 @@ class AgentClient {
   Stream<Map<String, dynamic>> get events => _events.stream;
   Stream<bool> get connection => _connection.stream;
   bool get isConnected => _connected;
+  PcProfile? get profile => _profile;
 
   void connect(PcProfile p) {
     disconnect();

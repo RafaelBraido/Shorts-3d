@@ -4,9 +4,14 @@ import crypto from 'node:crypto';
 import { WebSocketServer } from 'ws';
 import { PowerManager } from './power.js';
 import { sendMagicPacket } from './wol.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import { plugSwitch } from './plug.js';
+import { makeFiles } from './files.js';
+import { streamChat, listModels } from './ollama.js';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0';
 
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest();
 export const tokenOk = (given, expected) => crypto.timingSafeEqual(sha(given), sha(expected));
@@ -44,6 +49,8 @@ export function createAgent(cfg) {
   let state = 'online';
   let pending = null;
   const sampleCpu = cpuSampler();
+  const files = makeFiles(cfg.fileRoots ?? []);
+  const chats = new Map(); // ws -> AbortController
 
   const broadcast = (msg) => {
     const data = JSON.stringify(msg);
@@ -94,6 +101,24 @@ export function createAgent(cfg) {
         case 'wol': // acorda OUTRA máquina da LAN a partir deste PC
           await sendMagicPacket(msg.mac, msg.broadcast ? { broadcast: msg.broadcast } : {});
           return reply();
+        case 'ls': return reply({ path: msg.path ?? '', entries: files.list(msg.path) });
+        case 'models': return reply({ models: await listModels(cfg.ollama.url), model: cfg.ollama.model });
+        case 'chat': {
+          chats.get(ws)?.abort();
+          const ctl = new AbortController();
+          chats.set(ws, ctl);
+          reply(); // ack imediato; o texto vem em chat_chunk
+          const send = (o) => ws.readyState === 1 && ws.send(JSON.stringify({ type: 'chat_chunk', id: msg.id, ...o }));
+          streamChat({
+            url: cfg.ollama.url,
+            model: msg.model || cfg.ollama.model,
+            messages: msg.messages,
+            signal: ctl.signal,
+            onText: (text) => send({ text }),
+          }).then(() => send({ done: true }), (e) => send({ done: true, error: ctl.signal.aborted ? undefined : e.message }));
+          return;
+        }
+        case 'chat_stop': chats.get(ws)?.abort(); return reply();
         case 'plug':
           if (!['on', 'off'].includes(msg.state)) return fail('state deve ser on|off');
           await plugSwitch(cfg.plug, msg.state);
@@ -110,8 +135,57 @@ export function createAgent(cfg) {
       res.writeHead(200, { 'content-type': 'application/json' });
       return res.end(JSON.stringify({ ok: true, name: 'pc-remote-agent', version: VERSION }));
     }
-    res.writeHead(404).end();
+    const url = new URL(req.url, 'http://x');
+    const given = req.headers['x-pcr-token'] || url.searchParams.get('token') || '';
+    if (!['/download', '/upload'].includes(url.pathname)) return res.writeHead(404).end();
+    if (!tokenOk(given, cfg.token)) return res.writeHead(401).end();
+    const fail = (code, msg) => { if (!res.headersSent) res.writeHead(code, { 'content-type': 'text/plain' }); res.end(msg); };
+    try {
+      if (url.pathname === '/download' && req.method === 'GET') return download(req, res, url, fail);
+      if (url.pathname === '/upload' && req.method === 'PUT') return upload(req, res, url, fail);
+      return fail(405, 'método não permitido');
+    } catch (e) { return fail(400, e.message); }
   });
+
+  function download(req, res, url, fail) {
+    const file = files.fileForDownload(url.searchParams.get('path'));
+    const { size } = fs.statSync(file);
+    const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    let start = 0, end = size - 1, code = 200;
+    if (range && (range[1] || range[2])) {
+      if (range[1]) { start = Number(range[1]); if (range[2]) end = Math.min(Number(range[2]), size - 1); }
+      else { start = Math.max(size - Number(range[2]), 0); }
+      if (start > end || start >= size) { res.writeHead(416, { 'content-range': `bytes */${size}` }); return res.end(); }
+      code = 206;
+    }
+    const headers = {
+      'content-type': 'application/octet-stream',
+      'content-length': end - start + 1,
+      'accept-ranges': 'bytes',
+      'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(path.basename(file))}`,
+    };
+    if (code === 206) headers['content-range'] = `bytes ${start}-${end}/${size}`;
+    res.writeHead(code, headers);
+    pipeline(fs.createReadStream(file, { start, end }), res).catch(() => res.destroy());
+  }
+
+  async function upload(req, res, url, fail) {
+    const limit = (cfg.maxUploadMB ?? 2048) * 1024 * 1024;
+    if (Number(req.headers['content-length'] || 0) > limit) return fail(413, 'arquivo grande demais');
+    const target = files.uploadTarget(url.searchParams.get('dir'), url.searchParams.get('name'));
+    const tmp = `${target}.part`;
+    let bytes = 0;
+    req.on('data', (c) => { bytes += c.length; if (bytes > limit) req.destroy(); });
+    try {
+      await pipeline(req, fs.createWriteStream(tmp, { flags: 'wx' }));
+      fs.renameSync(tmp, target);
+      res.writeHead(201, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, name: path.basename(target), bytes }));
+    } catch (e) {
+      fs.rmSync(tmp, { force: true });
+      fail(500, 'falha no upload');
+    }
+  }
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
 
@@ -136,7 +210,7 @@ export function createAgent(cfg) {
         try { msg = JSON.parse(raw.toString()); } catch { return; }
         handle(ws, msg);
       });
-      ws.on('close', () => clients.delete(ws));
+      ws.on('close', () => { clients.delete(ws); chats.get(ws)?.abort(); chats.delete(ws); });
     });
   });
 

@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../features/assistant/chat_cubit.dart';
+import '../../features/files/files_service.dart';
 import '../../features/power/data/agent_client.dart';
 import '../../features/power/data/plug_client.dart';
 import '../../features/power/data/wol_service.dart';
@@ -15,5 +17,7 @@ Future<void> setupDi() async {
     ..registerSingleton(AgentClient())
     ..registerLazySingleton(WolService.new)
     ..registerLazySingleton(PlugClient.new)
+    ..registerLazySingleton(() => FilesService(sl()))
+    ..registerLazySingleton(() => ChatCubit(sl()))
     ..registerLazySingleton(() => PowerCubit(sl(), sl(), sl(), sl()));
 }

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
@@ -16,6 +17,11 @@ const defaults = () => ({
   allowedActions: ['shutdown', 'restart', 'sleep', 'hibernate', 'lock'],
   // Tomada inteligente opcional (HTTP genérico: Tasmota, Shelly, Home Assistant...).
   plug: null,
+  // Pastas que o app pode ver/baixar/enviar. Nada fora delas é acessível.
+  fileRoots: [path.join(os.homedir(), 'Downloads')],
+  maxUploadMB: 2048,
+  // Assistente local. Troque "model" pelo que você baixou (ollama list).
+  ollama: { url: 'http://127.0.0.1:11434', model: 'llama3' },
 });
 
 export function loadConfig() {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/di/injection.dart';
+import 'core/shell/home_shell.dart';
 import 'core/theme/app_theme.dart';
 import 'features/power/presentation/power_cubit.dart';
-import 'features/power/presentation/power_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +24,7 @@ class PcRemoteApp extends StatelessWidget {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: ThemeMode.system, // alterna sozinho com o sistema
-        home: const PowerPage(),
+        home: const HomeShell(),
       ),
     );
   }
