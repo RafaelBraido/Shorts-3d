@@ -1,0 +1,13 @@
+# Linux: copie para ~/.config/systemd/user/ e rode:
+#   systemctl --user enable --now pc-remote-agent
+[Unit]
+Description=PC Remote Agent
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/Shorts-3d/agent
+ExecStart=/usr/bin/node src/index.js
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
