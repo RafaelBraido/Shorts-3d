@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-from . import __version__, profiles, report, scoring, text
+from . import __version__, history, profiles, report, scoring, text
 
 VIDEO_EXT = (".mp4", ".mov", ".webm", ".mkv", ".m4v", ".avi")
 
@@ -17,9 +17,11 @@ def _run(path: str, args) -> dict:
     weights = json.load(open(args.weights)) if getattr(args, "weights", None) else None
     r = scoring.analyze(path, getattr(args, "transcript", None), getattr(args, "transcribe", False),
                         weights, platform=args.platform)
-    if getattr(args, "model", None):
+    model = json.load(open(args.model)) if getattr(args, "model", None) else (
+        None if getattr(args, "no_learned", False) else history.load_model())
+    if model:
         from . import calibrate
-        r["probability"] = calibrate.apply(json.load(open(args.model)), r)
+        r["probability"] = calibrate.apply(model, r)
     return r
 
 
@@ -137,6 +139,28 @@ def cmd_image(args) -> int:
     return 0
 
 
+def cmd_learn(args) -> int:
+    pairs = []
+    if args.importar:
+        with open(args.importar, newline="", encoding="utf-8") as fh:
+            pairs = [(r["video"], float(r["target"])) for r in csv.DictReader(fh)]
+    elif args.video and args.target is not None:
+        pairs = [(args.video, args.target)]
+    elif args.video or args.target is not None:
+        print("Informe o vídeo e --target juntos (ou use --status / --import).", file=sys.stderr)
+        return 2
+    for path, target in pairs:
+        if not os.path.isfile(path):
+            print(f"! não encontrado: {path}", file=sys.stderr)
+            continue
+        r = scoring.analyze(path, platform=args.platform, keyframes=False)
+        n = history.record(r, target, os.path.basename(path))
+        print(f"registrado: {os.path.basename(path)} (nota {r['overall']:.0f}, alvo {target:g}) · total {n}")
+    st = history.refit()
+    print(history.describe(st))
+    return 0
+
+
 def cmd_calibrate(args) -> int:
     from . import calibrate
     calibrate.fit(args.csv, args.out, args.threshold, args.platform)
@@ -155,6 +179,7 @@ def main(argv=None) -> int:
         sp.add_argument("--transcript", help="arquivo .srt/.vtt/.txt (ou o próprio texto)")
         sp.add_argument("--transcribe", action="store_true", help="transcreve com whisper, se instalado")
         sp.add_argument("--out-dir", default="viralscope_reports", help="onde salvar os relatórios HTML")
+        sp.add_argument("--no-learned", action="store_true", help="ignora o modelo aprendido do canal")
         sp.add_argument("--no-report", action="store_true", help="não gera o HTML")
 
     a = sub.add_parser("analyze", help="analisa um vídeo")
@@ -193,6 +218,14 @@ def main(argv=None) -> int:
     im.add_argument("--platform", choices=list(profiles.PROFILES), default="shorts")
     im.add_argument("--json", action="store_true")
     im.set_defaults(fn=cmd_image)
+
+    lr = sub.add_parser("learn", help="registra um vídeo com a métrica real e reajusta o modelo do canal")
+    lr.add_argument("video", nargs="?")
+    lr.add_argument("--target", type=float, help="métrica real (retenção %, views 7d, ...)")
+    lr.add_argument("--import", dest="importar", help="CSV video,target para registrar vários de uma vez")
+    lr.add_argument("--status", action="store_true", help="só mostra o estado do aprendizado")
+    lr.add_argument("--platform", choices=list(profiles.PROFILES), default="shorts")
+    lr.set_defaults(fn=cmd_learn)
 
     k = sub.add_parser("calibrate", help="ajusta uma probabilidade com seus vídeos (CSV: video,target)")
     k.add_argument("csv")

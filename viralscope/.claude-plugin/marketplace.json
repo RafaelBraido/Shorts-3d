@@ -1,0 +1,5 @@
+{
+  "name": "viralscope",
+  "owner": { "name": "Rafael Braido" },
+  "plugins": [{ "name": "viralscope", "source": "./", "description": "Analisador de vídeos curtos que aprende com o seu canal." }]
+}

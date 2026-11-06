@@ -74,6 +74,20 @@ O relatório HTML marca cada linha como **medido**, **proxy** ou **heurística**
 
 Por segundo: `Visual` (movimento, cortes, qualidade de imagem, cor, sujeito), `Auditory` (volume, ataques, voz), `Language` (ritmo de fala), `Attention` (quebras de padrão: cortes, picos de movimento, ataques de áudio, mudança de cena) → engajamento. `Default Mode` = risco de divagação (trechos de baixa estimulação; menor é melhor). Nota geral = gancho 30% (dinâmica 0–3 s, primeiro quadro, entrada do som, gancho falado), corpo 20%, sustentação 12%, sem divagação 10%, imagem 8%, formato 7%, loop 5%, legendas 4%, áudio técnico 4%. Pesos em `DEFAULT_WEIGHTS`; passe os seus com `--weights`.
 
+## Aprende com o seu canal
+
+```bash
+viralscope learn video.mp4 --target 12345   # registra a métrica real (retenção %, views 7d...)
+viralscope learn --import meus.csv          # vários de uma vez (video,target)
+viralscope learn --status
+```
+
+Cada registro reajusta o modelo do canal (`./.viralscope/`, ou `$VIRALSCOPE_HOME`) e `analyze` passa a mostrar a probabilidade calibrada sozinho. Abaixo de 20 vídeos nada é prometido; depois disso a AUC leave-one-out mostra se o modelo presta, e ele diz o que mais separa os seus bons vídeos dos ruins.
+
+## Skill do Claude
+
+`skills/viralscope/SKILL.md` + `CLAUDE.md` + `.claude-plugin/`. No Claude Code: `/plugin marketplace add RafaelBraido/viralscope` e `/plugin install viralscope@viralscope`. No Claude.ai: envie a pasta `skills/viralscope` como skill.
+
 ## Calibração (o caminho para uma probabilidade real)
 
 `calibrate` ajusta uma regressão logística (L2) dos componentes da nota para "ficou acima da mediana do seu canal" (ou outro `--threshold`) e informa a **AUC em leave-one-out**. Recusa com menos de 20 vídeos e avisa se a AUC < 0,6. Sem isso, qualquer porcentagem seria inventada.
@@ -85,7 +99,7 @@ pip install -e ".[test]"
 pytest
 ```
 
-51 testes: unidades de imagem/áudio/texto, vídeos sintéticos (cortes exatos, início preto, sem áudio, horizontal, borrado, escuro, legenda dentro/fora da zona segura, fala sintética de 3/5,5/7 sílabas/s), CLI, calibração (recupera sinal, ruído dá AUC ≈ 0,5, recusa n pequeno) e um benchmark sintético de ordenação. **Eles validam que o código mede o que diz medir; não validam previsão de viralização.**
+55 testes: unidades de imagem/áudio/texto, vídeos sintéticos (cortes exatos, início preto, sem áudio, horizontal, borrado, escuro, legenda dentro/fora da zona segura, fala sintética de 3/5,5/7 sílabas/s), CLI, calibração (recupera sinal, ruído dá AUC ≈ 0,5, recusa n pequeno) e um benchmark sintético de ordenação. **Eles validam que o código mede o que diz medir; não validam previsão de viralização.**
 
 ## Limites
 

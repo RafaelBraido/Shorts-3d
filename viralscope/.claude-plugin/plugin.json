@@ -1,0 +1,8 @@
+{
+  "name": "viralscope",
+  "version": "0.3.0",
+  "description": "Analisa gancho, imagem, áudio e retenção de vídeos curtos e aprende com as métricas do seu canal.",
+  "author": { "name": "Rafael Braido" },
+  "license": "MIT",
+  "skills": "./skills"
+}
