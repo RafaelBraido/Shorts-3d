@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "viralscope"
+version = "0.2.0"
+description = "Analisador local (sem login) de gancho, imagem, áudio e retenção para Shorts, Reels e TikTok"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = ["numpy", "opencv-python-headless>=4.9,<5"]
+
+[project.optional-dependencies]
+transcribe = ["faster-whisper"]
+test = ["pytest"]
+
+[project.scripts]
+viralscope = "viralscope.cli:main"
+
+[tool.setuptools]
+packages = ["viralscope"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
