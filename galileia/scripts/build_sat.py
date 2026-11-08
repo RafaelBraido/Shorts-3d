@@ -37,31 +37,42 @@ def tiles_for(ext):
     return sorted(s)
 
 SC = {}
-def mosaic(ext, W, H, factor, band="TCI", nearest=False):
+BAD = (0, 1, 3, 8, 9, 10, 11)   # sem dado, saturado, sombra, nuvem, cirro, neve
+
+def composite(ext, W, H, factor):
+    """Média por pixel das observações sem nuvem (máscara SCL + realce de branco) de várias cenas de verão."""
     dst_t = from_bounds(ext["lon0"], ext["lat0"], ext["lon1"], ext["lat1"], W, H)
-    nb = 3 if band == "TCI" else 1
-    out = np.zeros((nb, H, W), np.uint8)
+    acc = np.zeros((3, H, W), np.float32); cnt = np.zeros((H, W), np.float32); wat = np.zeros((H, W), np.float32)
     with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif"):
         for tile in tiles_for(ext):
-          if tile not in SC: SC[tile] = scenes_for(tile)
-          for pre in SC[tile]:
-            with rasterio.open(f"/vsicurl/{B}/{pre}{band}.tif") as d:
-                f = factor if band == "TCI" else max(factor // 2, 1)
-                arr = d.read(out_shape=(nb, d.height // f, d.width // f), resampling=Resampling.nearest if nearest else Resampling.average)
-                t = d.transform * d.transform.scale(f, f)
-                for i in range(nb):
-                    tmp = np.zeros((H, W), np.uint8)
-                    reproject(arr[i], tmp, src_transform=t, src_crs=d.crs, dst_transform=dst_t, dst_crs="EPSG:4326",
-                              resampling=Resampling.nearest if nearest else Resampling.cubic, src_nodata=0, dst_nodata=0)
-                    fill = (out[i] == 0) & (tmp > 0); out[i][fill] = tmp[fill]
-            print(tile, pre.split("/")[-2], flush=True)
-    return out
+            if tile not in SC: SC[tile] = scenes_for(tile, 8)
+            for pre in SC[tile]:
+                with rasterio.open(f"/vsicurl/{B}/{pre}TCI.tif") as d, rasterio.open(f"/vsicurl/{B}/{pre}SCL.tif") as ds:
+                    sh = (d.height // factor, d.width // factor)
+                    rgb = d.read(out_shape=(3, *sh), resampling=Resampling.average)
+                    scl = ds.read(1, out_shape=sh, resampling=Resampling.nearest)
+                    t = d.transform * d.transform.scale(factor, factor)
+                    bad = np.isin(scl, BAD) | ((rgb.min(0) > 190) & (rgb.max(0) > 215))
+                    bad = ndi.binary_dilation(bad, iterations=2)
+                    good = ~bad & (rgb.sum(0) > 0)
+                    kw = dict(src_transform=t, src_crs=d.crs, dst_transform=dst_t, dst_crs="EPSG:4326")
+                    gv = np.zeros((H, W), np.uint8); reproject(good.astype(np.uint8), gv, resampling=Resampling.nearest, **kw)
+                    wv = np.zeros((H, W), np.uint8); reproject(((scl == 6) & good).astype(np.uint8), wv, resampling=Resampling.nearest, **kw)
+                    gm = gv > 0
+                    for i in range(3):
+                        tmp = np.zeros((H, W), np.uint8)
+                        reproject(np.where(good, rgb[i], 0).astype(np.uint8), tmp, resampling=Resampling.bilinear, src_nodata=0, dst_nodata=0, **kw)
+                        acc[i] += np.where(gm, tmp, 0)
+                    cnt += gm; wat += (wv > 0) & gm
+                print(tile, pre.split("/")[-2], flush=True)
+    rgb = (acc / np.maximum(cnt, 1)).transpose(1, 2, 0).astype(np.uint8)
+    return rgb, cnt > 0, (wat / np.maximum(cnt, 1)) > 0.5
 
 def grade(rgb):
     """Realce leve: contraste/saturação estilo mapa de satélite."""
     x = rgb.astype(np.float32) / 255
-    x = np.clip((x - 0.04) / 0.80, 0, 1) ** 0.88
-    g = x.mean(-1, keepdims=True); x = np.clip(g + (x - g) * 1.28, 0, 1)
+    x = np.clip((x - 0.02) / 0.86, 0, 1) ** 0.95
+    g = x.mean(-1, keepdims=True); x = np.clip(g + (x - g) * 1.12, 0, 1)
     return x * 255
 
 def hs_mul(ext, W, H, z, zf):
@@ -72,12 +83,8 @@ def hs_mul(ext, W, H, z, zf):
     return bm.hillshade(e, cx, cy, zf), e
 
 def build(ext, W, H, factor, name, z, zf, gain):
-    tci = mosaic(ext, W, H, factor).transpose(1, 2, 0)
-    scl = mosaic(ext, W // 2, H // 2, factor, band="SCL", nearest=True)[0]
-    water = ndi.zoom((scl == 6).astype(np.uint8), 2, order=0)[:H, :W] > 0
-    water = ndi.binary_closing(water, iterations=2)
-    water = ndi.binary_opening(water, iterations=1)
-    valid = tci.sum(-1) > 0
+    tci, valid, water = composite(ext, W, H, factor)
+    water = ndi.binary_opening(ndi.binary_closing(water, iterations=2), iterations=1)
     hs, e = hs_mul(ext, W, H, z, zf)
     img = grade(tci) * (1 + (hs[..., None] - 0.55) * gain)
     # onde faltar imagem (bordas), usa o mapa sintético já gerado
