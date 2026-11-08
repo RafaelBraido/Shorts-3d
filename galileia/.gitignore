@@ -1,0 +1,6 @@
+node_modules/
+out/frames/
+out/shots/
+out/voice/
+out/audio.wav
+__pycache__/
