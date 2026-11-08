@@ -10,7 +10,7 @@ await p.goto('http://localhost:8123/src/index.html'); await p.waitForFunction('w
 let done = 0;
 for (let f = wk; f < N; f += nw) {
   const path = `out/frames/f_${String(f).padStart(5, '0')}.jpg`; if (fs.existsSync(path)) continue;
-  await p.evaluate(t => window.renderFrame(t), f / FPS); await p.screenshot({ path, type: 'jpeg', quality: 94 }); done++;
+  await p.evaluate(t => window.renderFrame(t), f / FPS); await p.screenshot({ path, type: 'jpeg', quality: 97 }); done++;
   if (done % 20 === 0) console.log(`w${wk} ${done} (frame ${f}/${N})`);
 }
 await b.close(); console.log(`w${wk} fim`);

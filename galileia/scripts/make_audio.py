@@ -68,12 +68,12 @@ def thunder(dur=2.4):
     env = (1 - np.exp(-np.linspace(0, 1, m) * 40)) * np.exp(-np.linspace(0, 1, m) * 3.0)
     return (nz * env / np.abs(nz * env).max()).astype(np.float32)
 sfx = np.zeros(n, np.float32)
-for tm, d, up, g in [(1.3, 1.6, True, 0.55), (L["s2"]["start"] + 0.7, 1.6, True, 0.6), (L["s3"]["start"] + 1.6, 1.2, False, 0.4), (L["s4"]["start"] + 1.6, 1.2, True, 0.4),
-                     (L["s6"]["start"] + 0.2, 1.3, True, 0.5), (L["s7"]["start"] + 0.0, 1.0, False, 0.45), (L["s8"]["start"] + 0.0, 1.2, True, 0.4), (L["s9"]["start"] + 0.2, 2.2, False, 0.6)]:
+for tm, d, up, g in [(1.2, 1.8, True, 0.55), (L["h2"]["start"] + 0.5, 1.6, True, 0.6), (L["d1"]["start"] + 2.0, 1.4, False, 0.4), (L["n5"]["start"] + 0.2, 1.0, True, 0.3),
+                     (L["f1"]["start"] + 0.2, 1.3, True, 0.5), (L["f2"]["start"] + 0.0, 1.2, True, 0.4), (L["f3"]["start"] + 0.0, 1.2, False, 0.45), (L["c1"]["start"] + 0.3, 2.6, False, 0.6)]:
     place(sfx, whoosh(d, up), tm, g)
-for tm in [Wd("s3", "galil", -0.2), Wd("s4", "iam", -0.2), Wd("s4", "Na", 0.05), Wd("s5", "Quinerete", -0.2), Wd("s6", "210", -0.2), Wd("s7", "Morto", -0.3), Wd("s8", "evangelhos", -0.1), Wd("s9", "Segue", -0.1), Wd("s3", "Galileia", -0.1), Wd("s4", "mar", 0.0)]:
+for tm in [Wd("d1", "verdade", 0), Wd("d1", "grande", -0.1), Wd("n3", "Galileia", -0.1), Wd("n4", "galil", -0.2), Wd("n5", "iam", -0.2), Wd("f1", "210", -0.2), Wd("f2", "tempestades", -0.1), Wd("f2", "evangelhos", -0.1), Wd("f3", "rio", -0.2), Wd("f3", "Morto", -0.3), Wd("c1", "Segue", -0.1)]:
     place(sfx, pop(), tm, 0.35)
-place(sfx, thunder(), L["s8"]["start"] + 3.0, 0.9); place(sfx, thunder(1.8), L["s8"]["start"] + 4.3, 0.7)
+place(sfx, thunder(), Wd("f2", "violentas", 0.0), 0.9); place(sfx, thunder(1.8), Wd("f2", "violentas", 1.6), 0.7)
 mix = voice + music * 0.55 + sfx * 0.45
 mix = mix / max(np.abs(mix).max(), 1e-6) * 0.92
 st = np.stack([mix, mix], 1)

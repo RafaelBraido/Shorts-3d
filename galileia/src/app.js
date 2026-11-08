@@ -7,7 +7,7 @@ import * as THREE from 'three';
  * ------------------------------------------------------------------ */
 const W = 1080, H = 1920, R = 6.371, DEG = Math.PI / 180;
 const LIFT = 0.0045;             // base (4,5 km) do remendo local, p/ o relevo exagerado não afundar
-const EXAG = 5;                  // exagero vertical base do relevo local (sobe p/ 16× no fato 1)
+const EXAG = 4;                  // exagero vertical base do relevo local (sobe p/ 16× no fato 1)
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const smooth = x => { x = clamp(x); return x * x * x * (x * (x * 6 - 15) + 10); };
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -99,10 +99,10 @@ const atmo = new THREE.Mesh(new THREE.SphereGeometry(R * 1.09, 96, 64), atmoMat)
 }
 
 // remendos de terreno (regional sem relevo; local com relevo + água animada)
-const patchVS = `attribute vec3 aDir; attribute float aH; uniform float uR,uExag,uLift,uFeather; varying vec2 vUv; varying float vEdge,vDist,vH; varying vec3 vDir;
+const patchVS = `attribute vec3 aDir; attribute float aH; uniform float uR,uExag,uLift,uFeather; varying vec2 vUv; varying float vEdge,vDist,vH; varying vec3 vDir,vP;
   void main(){ vUv=uv; vDir=aDir; float e=smoothstep(0.,uFeather,min(min(uv.x,1.-uv.x),min(uv.y,1.-uv.y))); vEdge=e; vH=aH;
-    vec3 p=aDir*(uR+uLift+aH*1e-6*uExag*e); vDist=distance(p,cameraPosition); gl_Position=projectionMatrix*viewMatrix*vec4(p,1.); }`;
-const patchFS = `uniform sampler2D uMap,uMask,uDet,uDetMask; uniform vec4 uDetRect; uniform float uDetOn; uniform float uAlpha,uTime,uStorm,uBright,uHaze,uWater,uMix,uFeatherA; varying vec2 vUv; varying float vEdge,vDist,vH; varying vec3 vDir;
+    vec3 p=aDir*(uR+uLift+aH*1e-6*uExag*e); vP=p; vDist=distance(p,cameraPosition); gl_Position=projectionMatrix*viewMatrix*vec4(p,1.); }`;
+const patchFS = `uniform sampler2D uMap,uMask,uDet,uDetMask; uniform vec4 uDetRect; uniform float uDetOn; uniform float uAlpha,uTime,uStorm,uBright,uHaze,uWater,uMix,uFeatherA,uExag; uniform vec3 uSun; varying vec3 vP; varying vec2 vUv; varying float vEdge,vDist,vH; varying vec3 vDir;
   float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
   float vn(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y); }
   void main(){ vec3 c=texture2D(uMap,vUv).rgb; float m=texture2D(uMask,vUv).r;
@@ -116,13 +116,15 @@ const patchFS = `uniform sampler2D uMap,uMask,uDet,uDetMask; uniform vec4 uDetRe
       vec3 wc=c*(1.-amp*.6+(w-.5)*amp*1.6)+vec3(.85,.93,1.)*crest*(.12+.85*uStorm);
       c=mix(c,wc,m);
     }
+    { vec3 n=normalize(cross(dFdx(vP),dFdy(vP))); if(dot(n,vDir)<0.) n=-n; float sh=1.+1.5*(dot(n,uSun)-dot(normalize(vDir),uSun)); c*=mix(1.,clamp(sh,.55,1.45),clamp(uExag/3.,0.,1.)); }
     c*=uBright*mix(1.,0.62+0.5*clamp(dot(normalize(vDir),normalize(vec3(-.45,.35,1.))),0.,1.),uMix);
     float hz=clamp(pow(vDist/1.7,1.5),0.,1.)*uHaze; c=mix(c,vec3(.22,.34,.50),hz*.38);
     float ea=smoothstep(0.,uFeatherA,min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y))); gl_FragColor=vec4(c,uAlpha*ea); }`;
 function patchMat(map, mask, o) {
   return new THREE.ShaderMaterial({ transparent: true, depthWrite: true, vertexShader: patchVS, fragmentShader: patchFS,
-    uniforms: { uMap: { value: map }, uMask: { value: mask }, uR: { value: R }, uExag: { value: 0 }, uLift: { value: o.lift }, uFeather: { value: o.feather }, uFeatherA: { value: o.featherA }, uAlpha: { value: 0 }, uTime: { value: 0 }, uStorm: { value: 0 }, uBright: { value: 1 }, uHaze: { value: 1 }, uMix: { value: 1 }, uWater: { value: o.water ? 1 : 0 }, uDet: { value: o.det || blackTex }, uDetMask: { value: o.detMask || blackTex }, uDetRect: { value: DRECT }, uDetOn: { value: o.det ? 1 : 0 } } });
+    uniforms: { uMap: { value: map }, uMask: { value: mask }, uR: { value: R }, uExag: { value: 0 }, uLift: { value: o.lift }, uFeather: { value: o.feather }, uFeatherA: { value: o.featherA }, uAlpha: { value: 0 }, uTime: { value: 0 }, uStorm: { value: 0 }, uBright: { value: 1 }, uHaze: { value: 1 }, uMix: { value: 1 }, uWater: { value: o.water ? 1 : 0 }, uDet: { value: o.det || blackTex }, uDetMask: { value: o.detMask || blackTex }, uDetRect: { value: DRECT }, uDetOn: { value: o.det ? 1 : 0 }, uSun: { value: SUN } } });
 }
+const SUN = (() => { const la = 32.5 * DEG, lo = 35.5 * DEG, up = new THREE.Vector3(Math.cos(la) * Math.sin(lo), Math.sin(la), Math.cos(la) * Math.cos(lo)), east = new THREE.Vector3(Math.cos(lo), 0, -Math.sin(lo)), north = new THREE.Vector3().crossVectors(up, east).normalize(); return up.multiplyScalar(0.55).addScaledVector(east, -0.55).addScaledVector(north, 0.6).normalize(); })();
 const regMat = patchMat(tReg, blackTex, { lift: 0.0003, feather: 0.02, featherA: 0.03 });
 const reg = new THREE.Mesh(patchGeometry(REG.lon0, REG.lon1, REG.lat0, REG.lat1, 250, 190), regMat); reg.renderOrder = 2; scene.add(reg);
 const locMat = patchMat(tLoc, tMask, { lift: LIFT, feather: 0.035, featherA: 0.16, water: true, det: tDet, detMask: tDetMask });
@@ -275,10 +277,10 @@ let capKey = '', cardKey = -1;
 /* ------------------------------ quadro ------------------------------ */
 function update(t) {
   const c = camState(t);
-  const dN = c.d, bump = smooth((t - S('f1', 0.0)) / 1.0) * (1 - smooth((t - E('f1', 0.0)) / 1.2)), Ef = (EXAG + 15 * bump) * smooth((1.4 - dN) / 0.7);
+  const dN = c.d, bump = smooth((t - S('f1', 0.0)) / 1.0) * (1 - smooth((t - E('f1', 0.0)) / 1.2)), Ef = (EXAG + 7 * bump) * smooth((1.4 - dN) / 0.7);
   const st = stormAt(t);
   regMat.uniforms.uAlpha.value = smooth((7.5 - dN) / 4); locMat.uniforms.uAlpha.value = smooth((1.7 - dN) / 0.9);
-  loc.material.uniforms.uExag.value = Ef;
+  loc.material.uniforms.uExag.value = Ef; locMat.uniforms.uExag.value = Ef;
   for (const m of [regMat, locMat]) { m.uniforms.uTime.value = t; m.uniforms.uStorm.value = st; m.uniforms.uBright.value = 1 - 0.16 * st; }
   const lm = smooth((dN - 1.5) / 3); globe.material.uniforms.uMix.value = lm; regMat.uniforms.uMix.value = lm; locMat.uniforms.uMix.value = lm;
   for (const m of [regMat, locMat]) m.uniforms.uHaze.value = smooth((1.8 - dN) / 1.2);
