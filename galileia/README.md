@@ -3,7 +3,7 @@
 Animação em 3D sobre mapas: por que o **Mar da Galileia** tem esse nome e **3 fatos** sobre ele.
 Estilo inspirado em `@historiatenta` (legenda palavra-a-palavra em caixa azul, etiquetas amarelas, cartões de dado, barra "N DE 3").
 
-Vídeo final: `out/galileia_3d.mp4` (~45 s).
+Vídeo final: `out/galileia_3d.mp4` (versão leve de 70 MB; o master CRF 15 de 197 MB não cabe no GitHub) (~62 s).
 
 ## Roteiro (fatos conferidos)
 - **Nome**: *Galileia* é a região ao redor (hebraico *galil* = "círculo/distrito"); "mar" vem de *iam*, que em hebraico serve para mar **e** lago — é um lago de água doce. Em hebraico também é *Kinneret/Quinerete* (de *kinnor*, "harpa", pelo formato).
