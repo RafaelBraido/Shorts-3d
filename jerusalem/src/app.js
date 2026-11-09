@@ -111,7 +111,7 @@ const mk = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS
 const defs = mk('defs', {}); const glow = mk('filter', { id: 'glow', x: '-30%', y: '-30%', width: '160%', height: '160%' }, defs); mk('feGaussianBlur', { stdDeviation: 7, result: 'b' }, glow);
 const fm = mk('feMerge', {}, glow); mk('feMergeNode', { in: 'b' }, fm); mk('feMergeNode', { in: 'SourceGraphic' }, fm);
 const mkPath = (color, w) => mk('path', { fill: 'none', stroke: color, 'stroke-width': w, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1, filter: 'url(#glow)', opacity: 0 });
-const pDiv = mkPath('#ffd36a', 11), pW = mkPath('#7fd6ff', 12), pE = mkPath('#ffb070', 12), pProf = mkPath('#ffffff', 6);
+const pDiv = mkPath('#ffd36a', 11), pW = mkPath('#7fd6ff', 18), pE = mkPath('#ffb070', 18), pProf = mkPath('#ffffff', 6);
 const dotA = mk('circle', { r: 13, fill: '#ffd36a', stroke: '#fff', 'stroke-width': 4, opacity: 0 }), dotB = mk('circle', { r: 13, fill: '#7fe3ff', stroke: '#fff', 'stroke-width': 4, opacity: 0 });
 const curve = pts => { const out = []; for (let i = 0; i < pts.length - 1; i++) { const p0 = pts[Math.max(i - 1, 0)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(i + 2, pts.length - 1)]; for (let s = 0; s < 8; s++) { const u = s / 8, f = (a, b, c, d) => 0.5 * ((2 * b) + (-a + c) * u + (2 * a - 5 * b + 4 * c - d) * u * u + (-a + 3 * b - 3 * c + d) * u * u * u); out.push({ lat: f(p0.lat, p1.lat, p2.lat, p3.lat), lon: f(p0.lon, p1.lon, p2.lon, p3.lon) }); } } out.push(pts[pts.length - 1]); return out; };
 const toObj = a => a.map(([lat, lon]) => ({ lat, lon }));
@@ -125,7 +125,7 @@ const LABELS = [];
 function addLabel(o) { const el = document.createElement('div'); el.className = 'lab ' + (o.cls || ''); el.textContent = o.text; labelsEl.appendChild(el); const dot = o.dot === false ? null : Object.assign(document.createElement('div'), { className: 'dot' }); if (dot) labelsEl.appendChild(dot); LABELS.push({ ...o, el, dotEl: dot }); }
 addLabel({ text: 'JERUSALÉM', lat: JER.lat, lon: JER.lon, t0: Wd('h1', 'Jerusalém', 0.1), t1: E('d1', 0.6), dy: -24 });
 addLabel({ text: 'DIVISOR DE ÁGUAS (APROX.)', cls: 'sm', lat: 31.93, lon: 35.215, t0: Wd('d1', 'divisor', 0.0), t1: E('f0', 0.3), dy: -18, dot: false });
-addLabel({ text: 'MEDITERRÂNEO', cls: 'sm dk', lat: 31.86, lon: 34.72, t0: Wd('h2', 'Mediterrâneo', -0.1), t1: E('f1', 0.5), dy: -12, dot: false });
+addLabel({ text: 'MEDITERRÂNEO', cls: 'sm dk', dx: 150, lat: 31.86, lon: 34.72, t0: Wd('h2', 'Mediterrâneo', -0.1), t1: E('f1', 0.5), dy: -12, dot: false });
 addLabel({ text: 'MAR MORTO', cls: 'sm dk', lat: 31.55, lon: 35.45, t0: Wd('h2', 'Morto', -0.2), t1: E('f3', 0.6), dy: -12, dot: false, h: -430 });
 addLabel({ text: 'OESTE · ~550 mm', lat: 31.80, lon: 34.98, t0: Wd('f2', 'oeste', -0.1), t1: E('f2', 0.4), dy: -14, dot: false });
 addLabel({ text: 'LESTE · <100 mm', lat: 31.72, lon: 35.45, t0: Wd('f2', 'leste', -0.1), t1: E('f2', 0.4), dy: -14, dot: false, h: -300 });
@@ -141,7 +141,7 @@ const CARDS = [
 const BAR = [{ t: 0, chip: 'MISTÉRIO', ttl: 'Jerusalém' }, { t: S('f0', -0.1), chip: '3 FATOS', ttl: 'Jerusalém' }, { t: S('f1', -0.1), chip: '1 DE 3', ttl: 'Para onde vai a chuva' },
   { t: S('f2', -0.1), chip: '2 DE 3', ttl: 'Dois climas' }, { t: S('f3', -0.1), chip: '3 DE 3', ttl: 'Queda de altitude' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'Jerusalém' }];
 const CHUNKS = []; for (const l of TL.lines) { let cur = []; const flush = () => { if (cur.length) { CHUNKS.push({ words: cur, t0: cur[0].t0, t1: cur[cur.length - 1].t1 }); cur = []; } };
-  for (const w of l.words) { const txt = w.w.replace(/[,.:;]/g, '').toUpperCase(); const len = cur.reduce((a, x) => a + x.txt.length + 1, 0) + txt.length; if (cur.length && (len > 24 || cur.length >= 4)) flush(); cur.push({ ...w, txt }); if (/[,.:?]$/.test(w.w)) flush(); } flush(); }
+  for (const w of l.words) { const txt = w.w.replace(/[,.:;]+$/, '').toUpperCase(); const len = cur.reduce((a, x) => a + x.txt.length + 1, 0) + txt.length; if (cur.length && (len > 24 || cur.length >= 4)) flush(); cur.push({ ...w, txt }); if (/[,.:?]$/.test(w.w)) flush(); } flush(); }
 const capEl = document.getElementById('cap'), cardEl = document.getElementById('card'), barChip = document.getElementById('chip'), barTtl = document.getElementById('ttl'), footEl = document.getElementById('foot');
 let capKey = '', cardKey = -1;
 
@@ -162,7 +162,7 @@ function update(t) {
   if (pa > 0 && a.ok && b.ok) { pProf.setAttribute('d', `M${a.x} ${a.y}L${b.x} ${b.y}`); pProf.setAttribute('stroke-dasharray', `${pa.toFixed(3)} 1.01`); pProf.setAttribute('opacity', pa); dotA.setAttribute('cx', a.x); dotA.setAttribute('cy', a.y); dotB.setAttribute('cx', b.x); dotB.setAttribute('cy', b.y); dotA.setAttribute('opacity', pa); dotB.setAttribute('opacity', pa); } else { pProf.setAttribute('opacity', 0); dotA.setAttribute('opacity', 0); dotB.setAttribute('opacity', 0); }
   for (const lb of LABELS) { const al = smooth((t - lb.t0) / 0.28) * (1 - smooth((t - lb.t1) / 0.3)); const p = proj(lb.lat, lb.lon, lb.h ?? hAt(lb.lat, lb.lon));
     if (al <= 0.01 || !p.ok || p.y + (lb.dy ?? -20) < 330) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; }
-    lb.el.style.opacity = al; lb.el.style.left = p.x + 'px'; lb.el.style.top = (p.y + (lb.dy ?? -20)) + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * al})`;
+    lb.el.style.opacity = al; lb.el.style.left = (p.x + (lb.dx || 0)) + 'px'; lb.el.style.top = (p.y + (lb.dy ?? -20)) + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * al})`;
     if (lb.dotEl) { lb.dotEl.style.opacity = al; lb.dotEl.style.left = p.x + 'px'; lb.dotEl.style.top = p.y + 'px'; } }
   const ch = CHUNKS.find(x => t >= x.t0 - 0.05 && t <= x.t1 + 0.18);
   if (ch) { const cur = ch.words.findIndex(w => t >= w.t0 && t < w.t1); const idx = cur < 0 ? (t >= ch.words[ch.words.length - 1].t1 ? ch.words.length - 1 : 0) : cur; const key = CHUNKS.indexOf(ch) + ':' + idx;

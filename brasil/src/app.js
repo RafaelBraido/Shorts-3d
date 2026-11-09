@@ -67,7 +67,7 @@ const patchFS = `uniform sampler2D uMap; uniform float uAlpha,uHaze,uMix,uExag,u
     float ea=smoothstep(0.,uFeatherA,min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y))); gl_FragColor=vec4(c,uAlpha*ea); }`;
 const patchMat = (map, o) => new THREE.ShaderMaterial({ transparent: true, depthWrite: true, vertexShader: patchVS, fragmentShader: patchFS,
   uniforms: { uMap: { value: map }, uR: { value: R }, uExag: { value: 0 }, uLift: { value: o.lift }, uFeather: { value: o.feather }, uFeatherA: { value: o.featherA }, uAlpha: { value: 0 }, uHaze: { value: 1 }, uMix: { value: 1 }, uSun: { value: SUN } } });
-const RG = maps.region, regMat = patchMat(tReg, { lift: 0.0003, feather: 0.02, featherA: 0.03 });
+const RG = maps.region, regMat = patchMat(tReg, { lift: 0.0003, feather: 0.02, featherA: 0.18 });
 const reg = new THREE.Mesh(patchGeometry(RG.lon0, RG.lon1, RG.lat0, RG.lat1, 360, 360), regMat); reg.renderOrder = 2; scene.add(reg);
 
 /* ------------------------------ câmera ------------------------------ */
@@ -80,8 +80,8 @@ const K = [
   { t: Wd('d1', 'Chuí', 0.5), lat: -30, lon: -54, d: 5.5, tilt: 22, head: 0, shift: 0 },
   { t: S('d2', 0.5), lat: -14, lon: -56, d: 14.5, tilt: 0, head: 0, shift: 40 },
   { t: E('d2', 0.0), lat: -14, lon: -56, d: 14, tilt: 0, head: 0, shift: 40 },
-  { t: S('f1', 0.3), lat: -9, lon: -54, d: 13.5, tilt: 0, head: 0, shift: 0 },
-  { t: E('f1', 0.0), lat: -9, lon: -54, d: 13, tilt: 0, head: 0, shift: 0 },
+  { t: S('f1', 0.3), lat: -9, lon: -54, d: 15.5, tilt: 0, head: 0, shift: 0 },
+  { t: E('f1', 0.0), lat: -9, lon: -54, d: 15, tilt: 0, head: 0, shift: 0 },
   { t: S('f2', 0.2), lat: -9, lon: -52, d: 10, tilt: 8, head: 0, shift: 0 },
   { t: E('f2', 0.0), lat: -9, lon: -52, d: 9.5, tilt: 8, head: 0, shift: 0 },
   { t: S('f3', 0.2), lat: -13, lon: -53, d: 15, tilt: 0, head: 0, shift: 40 },
@@ -133,8 +133,8 @@ function addLabel(o) { const el = document.createElement('div'); el.className = 
 addLabel({ text: 'MONTE CABURAÍ · RR', cls: 'sm', ...CAB, t0: Wd('d1', 'Roraima', -0.5), t1: E('d1', 0.3), dy: -18 });
 addLabel({ text: 'CHUÍ · RS', cls: 'sm', ...CHU, t0: Wd('d1', 'Chuí', -0.2), t1: E('d1', 0.3), dy: -18 });
 addLabel({ text: 'EUA · ESCALA REAL', cls: 'dk', lat: MID_.lat, lon: MID_.lon, t0: Wd('d2', 'Estados', -0.2), t1: E('d2', 0.5), dy: 0, dot: false });
-addLabel({ text: 'PONTA DO SEIXAS · PB', cls: 'sm', ...SEI, t0: Wd('f1', 'leste', 0.0), t1: E('f1', 0.4), dy: -18 });
-addLabel({ text: 'SERRA DA CONTAMANA · AC', cls: 'sm', ...CON, t0: Wd('f1', 'oeste', 0.0), t1: E('f1', 0.4), dy: -18 });
+addLabel({ text: 'PONTA DO SEIXAS · PB', cls: 'sm', dx: -120, ...SEI, t0: Wd('f1', 'leste', 0.0), t1: E('f1', 0.4), dy: 68 });
+addLabel({ text: 'SERRA DA CONTAMANA · AC', cls: 'sm', dx: 170, ...CON, t0: Wd('f1', 'oeste', 0.0), t1: E('f1', 0.4), dy: -18 });
 addLabel({ text: 'ACRE · UTC−5', cls: 'sm', lat: -9.0, lon: -70.5, t0: Wd('f2', 'fusos', -0.2), t1: E('f2', 0.4), dy: -14 });
 addLabel({ text: 'MANAUS · UTC−4', cls: 'sm', lat: -3.1, lon: -60.0, t0: Wd('f2', 'fusos', 0.0), t1: E('f2', 0.4), dy: -14 });
 addLabel({ text: 'BRASÍLIA · UTC−3', cls: 'sm', lat: -15.8, lon: -47.9, t0: Wd('f2', 'fusos', 0.2), t1: E('f2', 0.4), dy: -14 });
@@ -142,7 +142,7 @@ addLabel({ text: 'NORONHA · UTC−2', cls: 'sm', lat: -3.85, lon: -32.42, t0: W
 addLabel({ text: 'BRASIL', lat: -12, lon: -53, t0: Wd('h1', 'Brasil', 0.0), t1: S('d1', 0.0), dy: -10, dot: false });
 const bars = (a, b) => `<div style="text-align:left;font-weight:800;color:#fff;font-size:34px;letter-spacing:2px"><div style="margin:8px 0">BRASIL <span style="color:#ffd36a">${a}</span><div style="height:26px;width:${(a / 8.5) * 380}px;background:#ffd36a;border-radius:8px;margin-top:4px"></div></div><div style="margin:12px 0 0">EUA (CONT.) <span style="color:#8fc2ff">${b}</span><div style="height:26px;width:${(b / 8.5) * 380}px;background:#8fc2ff;border-radius:8px;margin-top:4px"></div></div></div>`;
 const CARDS = [
-  { t0: Wd('d1', 'quatro', -0.1), t1: E('d1', 0.6), html: `<div class="big">~${fmt(NS_KM)} km</div><div class="sub">de norte a sul</div>` },
+  { t0: Wd('d1', '4.400', -0.1), t1: E('d1', 0.6), html: `<div class="big">~${fmt(NS_KM)} km</div><div class="sub">de norte a sul</div>` },
   { t0: Wd('d2', 'Quase', -0.1), t1: E('d2', 0.6), html: `<div class="big s">EUA ≈ ${fmt(Math.round(US_EXT / 100) * 100)} km</div><div class="sub">de costa a costa</div>` },
   { t0: Wd('f1', 'Um', 0.0), t1: E('f1', 0.5), html: `<div class="big">~${fmt(EW_KM)} km</div><div class="sub">de leste a oeste</div>` },
   { t0: Wd('f2', 'Dois', 0.0), t1: E('f2', 0.5), html: `<div class="big">4 FUSOS</div><div class="sub">horários no Brasil</div>` },
@@ -152,7 +152,7 @@ const CARDS = [
 const BAR = [{ t: 0, chip: 'CURIOSIDADE', ttl: 'Brasil' }, { t: S('f0', -0.1), chip: '3 FATOS', ttl: 'Brasil' }, { t: S('f1', -0.1), chip: '1 DE 3', ttl: 'Leste a oeste' },
   { t: S('f2', -0.1), chip: '2 DE 3', ttl: 'Fusos horários' }, { t: S('f3', -0.1), chip: '3 DE 3', ttl: 'Maior que os EUA' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'Brasil' }];
 const CHUNKS = []; for (const l of TL.lines) { let cur = []; const flush = () => { if (cur.length) { CHUNKS.push({ words: cur, t0: cur[0].t0, t1: cur[cur.length - 1].t1 }); cur = []; } };
-  for (const w of l.words) { const txt = w.w.replace(/[,.:;]/g, '').toUpperCase(); const len = cur.reduce((a, x) => a + x.txt.length + 1, 0) + txt.length; if (cur.length && (len > 24 || cur.length >= 4)) flush(); cur.push({ ...w, txt }); if (/[,.:?]$/.test(w.w)) flush(); } flush(); }
+  for (const w of l.words) { const txt = w.w.replace(/[,.:;]+$/, '').toUpperCase(); const len = cur.reduce((a, x) => a + x.txt.length + 1, 0) + txt.length; if (cur.length && (len > 24 || cur.length >= 4)) flush(); cur.push({ ...w, txt }); if (/[,.:?]$/.test(w.w)) flush(); } flush(); }
 const capEl = document.getElementById('cap'), cardEl = document.getElementById('card'), barChip = document.getElementById('chip'), barTtl = document.getElementById('ttl'), footEl = document.getElementById('foot');
 let capKey = '', cardKey = -1;
 function update(t) {
@@ -168,7 +168,7 @@ function update(t) {
   drawPath(pEW, EWL.map(P), smooth((t - Wd('f1', 'leste', -0.2)) / 1.6), 1 - smooth((t - E('f2', 0.5)) / 0.8));
   for (const lb of LABELS) { const al = smooth((t - lb.t0) / 0.28) * (1 - smooth((t - lb.t1) / 0.3)); const p = proj(lb.lat, lb.lon);
     if (al <= 0.01 || !p.ok || p.y + (lb.dy ?? -20) < 330) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; }
-    lb.el.style.opacity = al; lb.el.style.left = p.x + 'px'; lb.el.style.top = (p.y + (lb.dy ?? -20)) + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * al})`;
+    lb.el.style.opacity = al; lb.el.style.left = (p.x + (lb.dx || 0)) + 'px'; lb.el.style.top = (p.y + (lb.dy ?? -20)) + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * al})`;
     if (lb.dotEl) { lb.dotEl.style.opacity = al; lb.dotEl.style.left = p.x + 'px'; lb.dotEl.style.top = p.y + 'px'; } }
   const ch = CHUNKS.find(x => t >= x.t0 - 0.05 && t <= x.t1 + 0.18);
   if (ch) { const cur = ch.words.findIndex(w => t >= w.t0 && t < w.t1); const idx = cur < 0 ? (t >= ch.words[ch.words.length - 1].t1 ? ch.words.length - 1 : 0) : cur; const key = CHUNKS.indexOf(ch) + ':' + idx;

@@ -68,11 +68,10 @@ def thunder(dur=2.4):
     env = (1 - np.exp(-np.linspace(0, 1, m) * 40)) * np.exp(-np.linspace(0, 1, m) * 3.0)
     return (nz * env / np.abs(nz * env).max()).astype(np.float32)
 sfx = np.zeros(n, np.float32)
-for tm, d, up, g in [(1.2, 1.8, True, 0.55), (L["h2"]["start"] + 0.5, 1.6, True, 0.6), (L["d1"]["start"] + 1.6, 1.2, False, 0.4), (L["d2"]["start"] + 0.2, 2.4, True, 0.55),
-                     (L["d3"]["start"] + 1.5, 1.4, False, 0.45), (L["f1"]["start"] + 0.3, 1.3, True, 0.45), (L["f2"]["start"] + 0.2, 1.2, True, 0.4), (L["f2"]["start"] + 6.0, 1.6, True, 0.5),
-                     (L["f3"]["start"] + 0.3, 1.2, False, 0.4), (L["c1"]["start"] + 0.3, 2.6, False, 0.6)]:
+for tm, d, up, g in [(1.0, 1.8, True, 0.55), (L["h2"]["start"] + 0.4, 1.8, True, 0.55), (L["d1"]["start"] + 0.0, 1.4, True, 0.5), (L["d2"]["start"] + 0.0, 1.6, False, 0.5),
+                     (L["f1"]["start"] + 0.2, 1.3, True, 0.4), (L["f2"]["start"] + 0.2, 1.2, True, 0.4), (L["f3"]["start"] + 0.2, 1.2, False, 0.4), (L["c1"]["start"] + 0.3, 2.6, False, 0.6)]:
     place(sfx, whoosh(d, up), tm, g)
-for tm in [Wd("d1", "Gizé", 0.2), Wd("d3", "Sudão", 0.0), Wd("f1", "Um", 0.0), Wd("f2", "Dois", 0.0), Wd("f3", "Três", 0.0), Wd("c1", "Segue", -0.1)]:
+for tm in [Wd("h1", "Brasil", 0.0), Wd("d1", "4.400", -0.1), Wd("d2", "Estados", -0.2), Wd("f1", "Um", 0.0), Wd("f2", "Dois", 0.0), Wd("f3", "Três", 0.0), Wd("c1", "Segue", -0.1)]:
     place(sfx, pop(), tm, 0.35)
 mix = voice + music * 0.55 + sfx * 0.45
 mix = mix / max(np.abs(mix).max(), 1e-6) * 0.92
