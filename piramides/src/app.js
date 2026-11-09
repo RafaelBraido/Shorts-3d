@@ -74,7 +74,7 @@ const reg = new THREE.Mesh(patchGeometry(RG.lon0, RG.lon1, RG.lat0, RG.lat1, 320
 const SITES = {};
 for (const [k, tx] of [['giza', tGiza], ['meroe', tMeroe]]) {
   const m = maps[k], h = await hbin(`/assets/${k}_height.bin`); let mn = 1e9; for (const v of h) mn = Math.min(mn, v); for (let i = 0; i < h.length; i++) h[i] -= mn;
-  const mat = patchMat(tx, { lift: LIFT, feather: 0.04, featherA: 0.12 });
+  const mat = patchMat(tx, { lift: LIFT, feather: 0.04, featherA: 0.22 });
   const mesh = new THREE.Mesh(patchGeometry(m.lon0, m.lon1, m.lat0, m.lat1, m.gw, m.gh, h), mat); mesh.renderOrder = 4; scene.add(mesh);
   SITES[k] = { m, h, mat, mesh, c: ll2v((m.lat0 + m.lat1) / 2, (m.lon0 + m.lon1) / 2) };
 }
@@ -113,8 +113,8 @@ const K = [
   { t: S('f1', 0.4), lat: 24.0, lon: 32.2, d: 2.4, tilt: 20, head: 0, shift: 0, hop: 0.2 },
   { t: E('f1', 0.0), lat: 23.6, lon: 32.2, d: 2.2, tilt: 22, head: 0, shift: 0 },
   { t: S('f2', 0.3), lat: 16.945, lon: 33.752, d: 0.05, tilt: 58, head: 20, shift: 0, hop: 0.4 },
-  { t: Wd('f2', 'contra', -0.4), lat: 16.943, lon: 33.750, d: 0.045, tilt: 62, head: -10, shift: 0 },
-  { t: Wd('f2', 'Grande', 0.3), lat: 29.978, lon: 31.133, d: 0.055, tilt: 62, head: 35, shift: 0, hop: 0.7 },
+  { t: Wd('f2', 'metros', -0.2), lat: 16.943, lon: 33.750, d: 0.045, tilt: 62, head: -10, shift: 0 },
+  { t: Wd('f2', '146', 0.1), lat: 29.978, lon: 31.133, d: 0.055, tilt: 62, head: 35, shift: 0, hop: 0.7 },
   { t: E('f2', 0.2), lat: 29.978, lon: 31.133, d: 0.045, tilt: 66, head: 55, shift: 0 },
   { t: S('f3', 0.4), lat: 23.2, lon: 32.0, d: 2.0, tilt: 24, head: 0, shift: 0, hop: 0.2 },
   { t: E('f3', 0.2), lat: 23.0, lon: 32.0, d: 1.9, tilt: 26, head: 0, shift: 0 },
@@ -157,8 +157,8 @@ addLabel({ text: 'SUDÃO', lat: 17.2, lon: 30.2, t0: Wd('d3', 'Sudão', -0.1), t
 addLabel({ text: 'MEROË', lat: 16.9395, lon: 33.7495, t0: Wd('d3', 'qualquer', -0.5), t1: E('f0', 0.4), dy: -60 });
 addLabel({ text: 'EGITO · ~120', lat: 29.6, lon: 31.1, t0: Wd('f1', 'Um', 0.0), t1: E('f1', 0.4), dy: -14 });
 addLabel({ text: 'SUDÃO · 200+', lat: 17.2, lon: 33.3, t0: Wd('f1', 'Sudão', -0.2), t1: E('f1', 0.4), dy: -14 });
-addLabel({ text: '6 A 30 m', cls: 'sm', lat: 16.9395, lon: 33.7495, t0: Wd('f2', '6', -0.2), t1: Wd('f2', 'contra', 0.4), dy: -90, dot: false });
-addLabel({ text: 'GRANDE PIRÂMIDE · 146 m', cls: 'sm', lat: 29.9792, lon: 31.1342, t0: Wd('f2', 'Grande', 0.0), t1: E('f2', 0.4), dy: -120, dot: false });
+addLabel({ text: '6 A 30 m', cls: 'sm', lat: 16.9395, lon: 33.7495, t0: Wd('f2', '6', -0.2), t1: Wd('f2', '146', 0.0), dy: -90, dot: false });
+addLabel({ text: 'GRANDE PIRÂMIDE · 146 m', cls: 'sm', lat: 29.9792, lon: 31.1342, t0: Wd('f2', '146', 0.3), t1: E('f2', 0.4), dy: -120, dot: false });
 addLabel({ text: 'NAPATA', cls: 'sm', lat: 18.55, lon: 31.85, t0: Wd('f3', 'Núbia', -0.2), t1: E('f3', 0.4), dy: -14 });
 addLabel({ text: 'MÊNFIS · EGITO', cls: 'sm', lat: 29.85, lon: 31.25, t0: Wd('f3', 'Egito', -0.2), t1: E('f3', 0.4), dy: -14 });
 
@@ -198,7 +198,7 @@ function update(t) {
   const kp = nile.slice(iNapata).reverse().map(P); drawPath(pKings, kp, kt, kOp); headAt(head2, kp, kt, kOp);
   // rótulos
   for (const lb of LABELS) { const a = smooth((t - lb.t0) / 0.28) * (1 - smooth((t - lb.t1) / 0.3)); const p = proj(lb.lat, lb.lon);
-    if (a <= 0.01 || !p.ok) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; }
+    if (a <= 0.01 || !p.ok || p.y + (lb.dy ?? -20) < 330) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; }
     lb.el.style.opacity = a; lb.el.style.left = p.x + 'px'; lb.el.style.top = (p.y + (lb.dy ?? -20)) + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * a})`;
     if (lb.dotEl) { lb.dotEl.style.opacity = a; lb.dotEl.style.left = p.x + 'px'; lb.dotEl.style.top = p.y + 'px'; } }
   // legenda
