@@ -12,7 +12,7 @@ lines = json.load(open("scripts/narration.json")); res = []
 def trim(s, sr):
     idx = np.where(np.abs(s) > 0.012)[0]
     return s[max(idx[0] - int(.02 * sr), 0): idx[-1] + int(.04 * sr)]
-FLUID = 1.3      # fala contínua: uma síntese por frase, sem cortes de velocidade; ~165 WPM com as pausas
+FLUID = 1.08      # fala contínua: uma síntese por frase, sem cortes de velocidade; ~165 WPM com as pausas
 for l in lines:
     text = " ".join(p["t"] for p in l["parts"]); sr = 22050
     if FLUID not in cache: cache[FLUID] = engine(FLUID)
@@ -20,6 +20,6 @@ for l in lines:
     s = trim(np.array(a.samples, np.float32), sr)
     with wave.open(f"{out_dir}/{l['id']}.wav", "wb") as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr); w.writeframes((np.clip(s, -1, 1) * 32767).astype(np.int16).tobytes())
-    res.append({"id": l["id"], "gap": min(l.get("gap", 0.18), 0.2), "parts": [{"text": text, "t0": 0.0, "t1": len(s) / sr}], "dur": len(s) / sr, "sr": sr, "text": text})
+    res.append({"id": l["id"], "gap": min(l.get("gap", 0.12), 0.2), "parts": [{"text": text, "t0": 0.0, "t1": len(s) / sr}], "dur": len(s) / sr, "sr": sr, "text": text})
     print(l["id"], round(len(s) / sr, 2), flush=True)
 json.dump(res, open(f"{out_dir}/timing_raw.json", "w"), ensure_ascii=False, indent=1)

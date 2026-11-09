@@ -3,7 +3,7 @@
   "id": "h1",
   "parts": [
    {
-    "t": "O Brasil é tão largo quanto é comprido.",
+    "t": "Sem o Alasca, o Brasil é maior que os Estados Unidos.",
     "s": 1
    }
   ]
@@ -12,66 +12,71 @@
   "id": "h2",
   "parts": [
    {
-    "t": "E de norte a sul, ele tem o tamanho dos Estados Unidos, de costa a costa.",
+    "t": "E tem um detalhe que quase ninguém percebe.",
     "s": 1
    }
   ],
-  "gap": 0.15
+  "gap": 0.1
  },
  {
   "id": "d1",
   "parts": [
    {
-    "t": "Do ponto mais ao norte, em Roraima, até o Chuí, no Rio Grande do Sul, são cerca de quatro mil e quatrocentos quilômetros.",
+    "t": "De norte a sul, são quatro mil e quatrocentos quilômetros. Quase a distância de costa a costa dos Estados Unidos.",
     "s": 1
    }
-  ]
+  ],
+  "gap": 0.1
  },
  {
   "id": "d2",
   "parts": [
    {
-    "t": "Quase a mesma distância de costa a costa dos Estados Unidos.",
+    "t": "E de leste a oeste? Quase igual: quatro mil e trezentos.",
     "s": 1
    }
-  ]
+  ],
+  "gap": 0.1
  },
  {
   "id": "f0",
   "parts": [
    {
-    "t": "Anota os três fatos.",
+    "t": "Três fatos rápidos.",
     "s": 1
    }
   ],
-  "gap": 0.3
+  "gap": 0.1
  },
  {
   "id": "f1",
   "parts": [
    {
-    "t": "Um: de leste a oeste, são cerca de quatro mil e trezentos quilômetros. Quase o mesmo que de norte a sul.",
+    "t": "Um: por causa disso, o Brasil tem quatro fusos horários.",
     "s": 1
    }
-  ]
+  ],
+  "gap": 0.1
  },
  {
   "id": "f2",
   "parts": [
    {
-    "t": "Dois: por causa desse tamanho, o Brasil tem quatro fusos horários.",
+    "t": "Dois: ele faz fronteira com dez dos onze outros países da América do Sul.",
     "s": 1
    }
-  ]
+  ],
+  "gap": 0.1
  },
  {
   "id": "f3",
   "parts": [
    {
-    "t": "Três: o Brasil é maior que os Estados Unidos continentais. Oito vírgula cinco milhões de quilômetros quadrados, contra oito vírgula um.",
+    "t": "Três: são oito vírgula cinco milhões de quilômetros quadrados, contra oito vírgula um dos Estados Unidos continentais.",
     "s": 1
    }
-  ]
+  ],
+  "gap": 0.12
  },
  {
   "id": "c1",
@@ -81,6 +86,6 @@
     "s": 1
    }
   ],
-  "gap": 0.3
+  "gap": 0.2
  }
 ]

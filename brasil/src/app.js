@@ -72,21 +72,21 @@ const reg = new THREE.Mesh(patchGeometry(RG.lon0, RG.lon1, RG.lat0, RG.lat1, 360
 
 /* ------------------------------ câmera ------------------------------ */
 const K = [
-  { t: 0, lat: -10, lon: -45, d: 26, tilt: 0, head: 0, shift: 230 },
-  { t: 1.2, lat: -10, lon: -50, d: 21, tilt: 0, head: 0, shift: 200 },
-  { t: E('h2', 0.0), lat: -13, lon: -53, d: 14.5, tilt: 0, head: 0, shift: 60 },
-  { t: S('d1', 0.2), lat: 2, lon: -60, d: 4.5, tilt: 22, head: 0, shift: 0 },
-  { t: Wd('d1', 'Chuí', -1.6), lat: -12, lon: -57, d: 9, tilt: 14, head: 0, shift: 0 },
-  { t: Wd('d1', 'Chuí', 0.5), lat: -30, lon: -54, d: 5.5, tilt: 22, head: 0, shift: 0 },
-  { t: S('d2', 0.5), lat: -14, lon: -56, d: 14.5, tilt: 0, head: 0, shift: 40 },
-  { t: E('d2', 0.0), lat: -14, lon: -56, d: 14, tilt: 0, head: 0, shift: 40 },
-  { t: S('f1', 0.3), lat: -9, lon: -54, d: 15.5, tilt: 0, head: 0, shift: 0 },
-  { t: E('f1', 0.0), lat: -9, lon: -54, d: 15, tilt: 0, head: 0, shift: 0 },
-  { t: S('f2', 0.2), lat: -9, lon: -52, d: 10, tilt: 8, head: 0, shift: 0 },
-  { t: E('f2', 0.0), lat: -9, lon: -52, d: 9.5, tilt: 8, head: 0, shift: 0 },
-  { t: S('f3', 0.2), lat: -13, lon: -53, d: 15, tilt: 0, head: 0, shift: 40 },
-  { t: E('f3', 0.2), lat: -13, lon: -53, d: 15, tilt: 0, head: 0, shift: 40 },
-  { t: S('c1', 1.4), lat: -12, lon: -48, d: 22, tilt: 0, head: 0, shift: 150 },
+  { t: 0, lat: 12, lon: -78, d: 21, tilt: 0, head: 0, shift: 120 },
+  { t: 1.1, lat: -2, lon: -66, d: 14.5, tilt: 0, head: 0, shift: 60 },
+  { t: E('h2', 0.0), lat: -8, lon: -58, d: 13, tilt: 0, head: 0, shift: 0 },
+  { t: S('d1', 0.1), lat: 3, lon: -60, d: 4.2, tilt: 22, head: 0, shift: 0, hop: 0.15 },
+  { t: Wd('d1', 'Chuí', -1.2), lat: -14, lon: -57, d: 8.5, tilt: 14, head: 0, shift: 0 },
+  { t: Wd('d1', 'Chuí', 0.4), lat: -30, lon: -54, d: 5.2, tilt: 22, head: 0, shift: 0 },
+  { t: S('d2', 0.0), lat: -9, lon: -40, d: 6.0, tilt: 20, head: 0, shift: 0, hop: 0.45 },
+  { t: E('d2', 0.0), lat: -8, lon: -66, d: 6.0, tilt: 20, head: 0, shift: 0 },
+  { t: S('f1', 0.0), lat: -10, lon: -52, d: 15, tilt: 0, head: 0, shift: 0, hop: 0.2 },
+  { t: E('f1', 0.0), lat: -10, lon: -52, d: 14.2, tilt: 4, head: 0, shift: 0 },
+  { t: S('f2', 0.0), lat: -14, lon: -58, d: 13, tilt: 10, head: 0, shift: 0 },
+  { t: E('f2', 0.0), lat: -12, lon: -56, d: 11.5, tilt: 12, head: 0, shift: 0 },
+  { t: S('f3', 0.0), lat: -13, lon: -53, d: 14, tilt: 0, head: 0, shift: 0 },
+  { t: E('f3', 0.2), lat: -13, lon: -53, d: 14, tilt: 0, head: 0, shift: 40 },
+  { t: S('c1', 1.2), lat: -12, lon: -48, d: 22, tilt: 0, head: 0, shift: 150 },
   { t: TOTAL, lat: -10, lon: -45, d: 26, tilt: 0, head: 0, shift: 230 },
 ];
 function camState(t) { let i = 0; while (i < K.length - 2 && t > K[i + 1].t) i++;
@@ -107,75 +107,81 @@ const mk = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS
 const defs = mk('defs', {}); const glow = mk('filter', { id: 'glow', x: '-30%', y: '-30%', width: '160%', height: '160%' }, defs); mk('feGaussianBlur', { stdDeviation: 7, result: 'b' }, glow);
 const fm = mk('feMerge', {}, glow); mk('feMergeNode', { in: 'b' }, fm); mk('feMergeNode', { in: 'SourceGraphic' }, fm);
 const mkPath = (color, w, fill = 'none') => mk('path', { fill, stroke: color, 'stroke-width': w, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', pathLength: 1, filter: 'url(#glow)', opacity: 0 });
-const pBR = mkPath('#ffd36a', 7), pUS = mkPath('#8fc2ff', 7, 'rgba(70,130,255,0.30)'), pNS = mkPath('#ffffff', 9), pEW = mkPath('#ffcf4a', 9);
+const pBR = mkPath('#ffd36a', 8, 'rgba(255,200,60,0.12)'), pUS = mkPath('#8fc2ff', 8, 'rgba(70,130,255,0.34)'), pNS = mkPath('#ffffff', 10), pEW = mkPath('#ffcf4a', 10);
 const toObj = a => a.map(([lat, lon]) => ({ lat, lon }));
 const BR = toObj(geo.brasil), US = toObj(geo.usa);
 const CAB = { lat: 5.2717, lon: -60.2167 }, CHU = { lat: -33.7414, lon: -53.3697 }, SEI = { lat: -7.1497, lon: -34.7942 }, CON = { lat: -7.54, lon: -73.9908 };
 const hav = (a, b) => { const r = 6371, f1 = a.lat * DEG, f2 = b.lat * DEG, dl = (b.lon - a.lon) * DEG, dp = f2 - f1; const h = Math.sin(dp / 2) ** 2 + Math.cos(f1) * Math.cos(f2) * Math.sin(dl / 2) ** 2; return 2 * r * Math.asin(Math.sqrt(h)); };
 const NS_KM = Math.round(hav(CAB, CHU) / 100) * 100, EW_KM = Math.round(hav(SEI, CON) / 100) * 100;
 const fmt = n => n.toLocaleString('pt-BR');
-// linhas "retas" sobre a esfera (grande círculo) amostradas
 const gc = (a, b, n = 60) => { const va = ll2v(a.lat, a.lon, 1), vb = ll2v(b.lat, b.lon, 1), om = Math.acos(clamp(va.dot(vb), -1, 1)), out = []; for (let i = 0; i <= n; i++) { const u = i / n, v = va.clone().multiplyScalar(Math.sin((1 - u) * om)).addScaledVector(vb, Math.sin(u * om)).divideScalar(Math.sin(om)); out.push({ lat: Math.asin(v.y) / DEG, lon: Math.atan2(v.x, v.z) / DEG }); } return out; };
 const NSL = gc(CAB, CHU), EWL = gc(SEI, CON);
-// silhueta dos EUA em ESCALA REAL: projeção azimutal equidistante ao redor do centro dos EUA, girada p/ que "leste->oeste" dos EUA acompanhe a linha norte->sul do Brasil
-const USC = { lat: 39.5, lon: -98.5 };
+// silhueta dos EUA em ESCALA REAL: azimutal equidistante em torno do centro dos EUA; é transportada até o Brasil e girada para casar com a linha norte-sul
+const USC = { lat: 39.5, lon: -98.5 }, BRC = { lat: -12.5, lon: -53 };
 function basis(lat, lon) { const up = ll2v(lat, lon, 1), east = new THREE.Vector3(Math.cos(lon * DEG), 0, -Math.sin(lon * DEG)), north = new THREE.Vector3().crossVectors(up, east).normalize(); return { up, east, north }; }
-const bUS = basis(USC.lat, USC.lon), MID_ = gc(CAB, CHU, 2)[1], bBR = basis(MID_.lat, MID_.lon);
-const bearing = (() => { const b = basis(CAB.lat, CAB.lon), v = ll2v(CHU.lat, CHU.lon, 1).sub(b.up.clone().multiplyScalar(ll2v(CHU.lat, CHU.lon, 1).dot(b.up))); return Math.atan2(v.dot(b.east), v.dot(b.north)); })();  // rumo de Caburaí ao Chuí (rad, horário a partir do norte)
+const bUS = basis(USC.lat, USC.lon), MID_ = gc(CAB, CHU, 2)[1];
+const bearing = (() => { const b = basis(CAB.lat, CAB.lon), w = ll2v(CHU.lat, CHU.lon, 1), v = w.clone().sub(b.up.clone().multiplyScalar(w.dot(b.up))); return Math.atan2(v.dot(b.east), v.dot(b.north)); })();
+const PHI_END = Math.PI / 2 - bearing;
 const usLocal = US.map(p => { const v = ll2v(p.lat, p.lon, 1), ang = Math.acos(clamp(v.dot(bUS.up), -1, 1)), d = v.clone().sub(bUS.up.clone().multiplyScalar(v.dot(bUS.up))).normalize(); return { x: ang * 6371 * d.dot(bUS.east), y: ang * 6371 * d.dot(bUS.north) }; });
-const sB = Math.sin(bearing), cB = Math.cos(bearing);
-const USBR = usLocal.map(p => { const X = p.x * sB - p.y * cB, Y = p.x * cB + p.y * sB, ang = Math.hypot(X, Y) / 6371, dir = bBR.east.clone().multiplyScalar(X / (Math.hypot(X, Y) || 1)).addScaledVector(bBR.north, Y / (Math.hypot(X, Y) || 1)), v = bBR.up.clone().multiplyScalar(Math.cos(ang)).addScaledVector(dir, Math.sin(ang)); return { lat: Math.asin(v.y) / DEG, lon: Math.atan2(v.x, v.z) / DEG }; });
 const US_EXT = Math.round(Math.max(...usLocal.map(p => p.x)) - Math.min(...usLocal.map(p => p.x)));
+function usAt(u, phi) {   // centro desliza do EUA (u=0) até o Brasil (u=1), com rotação phi
+  const va = ll2v(USC.lat, USC.lon, 1), vb = ll2v(BRC.lat, BRC.lon, 1), om = Math.acos(clamp(va.dot(vb), -1, 1)), c = va.clone().multiplyScalar(Math.sin((1 - u) * om)).addScaledVector(vb, Math.sin(u * om)).divideScalar(Math.sin(om));
+  const clat = Math.asin(c.y) / DEG, clon = Math.atan2(c.x, c.z) / DEG, b = basis(clat, clon), cp = Math.cos(phi), sp = Math.sin(phi);
+  return usLocal.map(p => { const X = p.x * cp - p.y * sp, Y = p.x * sp + p.y * cp, h = Math.hypot(X, Y) || 1, ang = h / 6371, dir = b.east.clone().multiplyScalar(X / h).addScaledVector(b.north, Y / h), v = b.up.clone().multiplyScalar(Math.cos(ang)).addScaledVector(dir, Math.sin(ang)); return { lat: Math.asin(v.y) / DEG, lon: Math.atan2(v.x, v.z) / DEG }; });
+}
 function pathFrom(pts, close) { return pts.map((p, i) => (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join('') + (close ? 'Z' : ''); }
 function drawPath(el, pts, prog, a = 1, close = false) { if (prog <= 0 || pts.some(p => !p.ok)) { el.setAttribute('opacity', 0); return; } el.setAttribute('d', pathFrom(pts, close)); el.setAttribute('stroke-dasharray', `${prog.toFixed(4)} 1.01`); el.setAttribute('opacity', a); }
 const LABELS = [];
 function addLabel(o) { const el = document.createElement('div'); el.className = 'lab ' + (o.cls || ''); el.textContent = o.text; labelsEl.appendChild(el); const dot = o.dot === false ? null : Object.assign(document.createElement('div'), { className: 'dot' }); if (dot) labelsEl.appendChild(dot); LABELS.push({ ...o, el, dotEl: dot }); }
-addLabel({ text: 'MONTE CABURAÍ · RR', cls: 'sm', ...CAB, t0: Wd('d1', 'Roraima', -0.5), t1: E('d1', 0.3), dy: -18 });
-addLabel({ text: 'CHUÍ · RS', cls: 'sm', ...CHU, t0: Wd('d1', 'Chuí', -0.2), t1: E('d1', 0.3), dy: -18 });
-addLabel({ text: 'EUA · ESCALA REAL', cls: 'dk', lat: MID_.lat, lon: MID_.lon, t0: Wd('d2', 'Estados', -0.2), t1: E('d2', 0.5), dy: 0, dot: false });
-addLabel({ text: 'PONTA DO SEIXAS · PB', cls: 'sm', dx: -120, ...SEI, t0: Wd('f1', 'leste', 0.0), t1: E('f1', 0.4), dy: 68 });
-addLabel({ text: 'SERRA DA CONTAMANA · AC', cls: 'sm', dx: 170, ...CON, t0: Wd('f1', 'oeste', 0.0), t1: E('f1', 0.4), dy: -18 });
-addLabel({ text: 'ACRE · UTC−5', cls: 'sm', lat: -9.0, lon: -70.5, t0: Wd('f2', 'fusos', -0.2), t1: E('f2', 0.4), dy: -14 });
-addLabel({ text: 'MANAUS · UTC−4', cls: 'sm', lat: -3.1, lon: -60.0, t0: Wd('f2', 'fusos', 0.0), t1: E('f2', 0.4), dy: -14 });
-addLabel({ text: 'BRASÍLIA · UTC−3', cls: 'sm', lat: -15.8, lon: -47.9, t0: Wd('f2', 'fusos', 0.2), t1: E('f2', 0.4), dy: -14 });
-addLabel({ text: 'NORONHA · UTC−2', cls: 'sm', lat: -3.85, lon: -32.42, t0: Wd('f2', 'fusos', 0.4), t1: E('f2', 0.4), dy: -14 });
-addLabel({ text: 'BRASIL', lat: -12, lon: -53, t0: Wd('h1', 'Brasil', 0.0), t1: S('d1', 0.0), dy: -10, dot: false });
-const bars = (a, b) => `<div style="text-align:left;font-weight:800;color:#fff;font-size:34px;letter-spacing:2px"><div style="margin:8px 0">BRASIL <span style="color:#ffd36a">${a}</span><div style="height:26px;width:${(a / 8.5) * 380}px;background:#ffd36a;border-radius:8px;margin-top:4px"></div></div><div style="margin:12px 0 0">EUA (CONT.) <span style="color:#8fc2ff">${b}</span><div style="height:26px;width:${(b / 8.5) * 380}px;background:#8fc2ff;border-radius:8px;margin-top:4px"></div></div></div>`;
+addLabel({ text: 'BRASIL', lat: -12, lon: -53, t0: 0.5, t1: Wd('d1', 'norte', 0.0), dy: -10, dot: false });
+addLabel({ text: 'EUA (SEM ALASCA) · ESCALA REAL', cls: 'dk', lat: -3, lon: -62, t0: 1.0, t1: Wd('h2', 'detalhe', 0.0), dy: 0, dot: false });
+addLabel({ text: 'MONTE CABURAÍ · RR', cls: 'sm', ...CAB, t0: S('d1', 0.2), t1: E('d1', 0.3), dy: -18 });
+addLabel({ text: 'CHUÍ · RS', cls: 'sm', ...CHU, t0: Wd('d1', 'Chuí', -0.8), t1: E('d1', 0.3), dy: -18 });
+addLabel({ text: 'PONTA DO SEIXAS · PB', cls: 'sm', dx: -110, ...SEI, t0: S('d2', 0.3), t1: E('d2', 0.5), dy: 66 });
+addLabel({ text: 'SERRA DA CONTAMANA · AC', cls: 'sm', dx: 150, ...CON, t0: S('d2', 1.2), t1: E('d2', 0.5), dy: -18 });
+[['ACRE · UTC−5', -9.0, -70.0, 0.9, 140], ['MANAUS · UTC−4', -3.1, -60.0, 1.35, 0], ['BRASÍLIA · UTC−3', -15.8, -47.9, 1.8, 0], ['NORONHA · UTC−2', -3.85, -32.4, 2.25, -130]].forEach(([text, lat, lon, off, dx]) => addLabel({ text, cls: 'sm', lat, lon, dx, t0: S('f1', off - 0.5), t1: E('f1', 0.5), dy: -14 }));
+const NB = [['COLÔMBIA', 0.5, -71.5], ['VENEZUELA', 3.2, -63.5], ['GUIANA', 3.5, -59.0], ['SURINAME', 3.6, -56.0], ['G. FRANCESA', 3.6, -53.0], ['PERU', -9.5, -73.5], ['BOLÍVIA', -14.5, -62.5], ['PARAGUAI', -22.0, -57.5], ['ARGENTINA', -27.0, -55.5], ['URUGUAI', -32.0, -55.5]];
+NB.forEach(([text, lat, lon], i) => addLabel({ text, cls: 'sm', lat, lon, t0: Wd('f2', 'fronteira', -0.1 + i * 0.27), t1: E('f2', 0.5), dy: -10 }));
+const bars = (a, b) => `<div style="text-align:left;font-weight:800;color:#fff;font-size:36px;letter-spacing:2px"><div style="margin:8px 0">BRASIL <span style="color:#ffd36a">${a}</span><div style="height:30px;width:${(a / 8.5) * 400}px;background:#ffd36a;border-radius:8px;margin-top:4px"></div></div><div style="margin:12px 0 0">EUA (SEM ALASCA) <span style="color:#8fc2ff">${b}</span><div style="height:30px;width:${(b / 8.5) * 400}px;background:#8fc2ff;border-radius:8px;margin-top:4px"></div></div></div>`;
 const CARDS = [
-  { t0: Wd('d1', '4.400', -0.1), t1: E('d1', 0.6), html: `<div class="big">~${fmt(NS_KM)} km</div><div class="sub">de norte a sul</div>` },
-  { t0: Wd('d2', 'Quase', -0.1), t1: E('d2', 0.6), html: `<div class="big s">EUA ≈ ${fmt(Math.round(US_EXT / 100) * 100)} km</div><div class="sub">de costa a costa</div>` },
-  { t0: Wd('f1', 'Um', 0.0), t1: E('f1', 0.5), html: `<div class="big">~${fmt(EW_KM)} km</div><div class="sub">de leste a oeste</div>` },
-  { t0: Wd('f2', 'Dois', 0.0), t1: E('f2', 0.5), html: `<div class="big">4 FUSOS</div><div class="sub">horários no Brasil</div>` },
-  { t0: Wd('f3', 'Três', 0.0), t1: E('f3', 0.5), html: bars(8.5, 8.1) + `<div class="sub" style="font-size:28px;margin-top:10px">milhões de km²</div>` },
+  { t0: 1.5, t1: Wd('h2', 'detalhe', 0.0), html: bars('8,5', '8,1') + `<div class="sub" style="font-size:28px;margin-top:10px">milhões de km²</div>` },
+  { t0: Wd('d1', '4.400', -0.1), t1: E('d1', 0.4), html: `<div class="big">~${fmt(NS_KM)} km</div><div class="sub">de norte a sul</div>` },
+  { t0: Wd('d2', '4.300', -0.5), t1: E('d2', 0.4), html: `<div class="big">~${fmt(EW_KM)} km</div><div class="sub">de leste a oeste</div>` },
+  { t0: Wd('f1', 'Um', 0.0), t1: E('f1', 0.5), html: `<div class="big">4 FUSOS</div><div class="sub">horários no Brasil</div>` },
+  { t0: Wd('f2', 'Dois', 0.0), t1: E('f2', 0.5), html: `<div class="big">10 VIZINHOS</div><div class="sub">de 11 países na América do Sul</div>` },
+  { t0: Wd('f3', 'Três', 0.0), t1: E('f3', 0.5), html: bars('8,5', '8,1') + `<div class="sub" style="font-size:28px;margin-top:10px">milhões de km²</div>` },
   { t0: Wd('c1', 'Segue', -0.1), t1: TOTAL + 1, html: `<div class="big">PARTE 2</div><div class="sub">segue pra continuar</div>` },
 ];
-const BAR = [{ t: 0, chip: 'CURIOSIDADE', ttl: 'Brasil' }, { t: S('f0', -0.1), chip: '3 FATOS', ttl: 'Brasil' }, { t: S('f1', -0.1), chip: '1 DE 3', ttl: 'Leste a oeste' },
-  { t: S('f2', -0.1), chip: '2 DE 3', ttl: 'Fusos horários' }, { t: S('f3', -0.1), chip: '3 DE 3', ttl: 'Maior que os EUA' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'Brasil' }];
+const BAR = [{ t: 0, chip: 'VOCÊ SABIA?', ttl: 'Brasil' }, { t: S('f0', -0.1), chip: '3 FATOS', ttl: 'Brasil' }, { t: S('f1', -0.1), chip: '1 DE 3', ttl: 'Fusos horários' },
+  { t: S('f2', -0.1), chip: '2 DE 3', ttl: 'Vizinhos' }, { t: S('f3', -0.1), chip: '3 DE 3', ttl: 'Maior que os EUA' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'Brasil' }];
 const CHUNKS = []; for (const l of TL.lines) { let cur = []; const flush = () => { if (cur.length) { CHUNKS.push({ words: cur, t0: cur[0].t0, t1: cur[cur.length - 1].t1 }); cur = []; } };
   for (const w of l.words) { const txt = w.w.replace(/[,.:;]+$/, '').toUpperCase(); const len = cur.reduce((a, x) => a + x.txt.length + 1, 0) + txt.length; if (cur.length && (len > 24 || cur.length >= 4)) flush(); cur.push({ ...w, txt }); if (/[,.:?]$/.test(w.w)) flush(); } flush(); }
 const capEl = document.getElementById('cap'), cardEl = document.getElementById('card'), barChip = document.getElementById('chip'), barTtl = document.getElementById('ttl'), footEl = document.getElementById('foot');
 let capKey = '', cardKey = -1;
 function update(t) {
   const c = camState(t), dN = c.d; placeCamera(t, c); camera.updateMatrixWorld();
-  regMat.uniforms.uAlpha.value = smooth((20 - dN) / 6); const lm = smooth((dN - 1.5) / 3);
+  regMat.uniforms.uAlpha.value = smooth((26 - dN) / 6); const lm = smooth((dN - 1.5) / 3);
   globe.material.uniforms.uMix.value = lm; regMat.uniforms.uMix.value = lm; regMat.uniforms.uHaze.value = smooth((1.8 - dN) / 1.2);
-  cloudMat.opacity = 0.5 * smooth((dN - 4) / 6); atmoMat.uniforms.uA.value = smooth((dN - 1.5) / 6) * 0.9 + 0.1 * smooth((dN - 0.3) / 1.5);
+  cloudMat.opacity = 0.35 * smooth((dN - 4) / 6); atmoMat.uniforms.uA.value = smooth((dN - 1.5) / 6) * 0.9 + 0.1 * smooth((dN - 0.3) / 1.5);
   renderer.render(scene, camera);
   const P = p => proj(p.lat, p.lon);
-  drawPath(pBR, BR.map(P), smooth((t - Wd('h1', 'Brasil', 0.0)) / 2.2) , (1 - smooth((t - S('d1', 0.2)) / 0.8)) * 0.9, true);
-  const nsT = smooth((t - S('d1', 0.3)) / (Wd('d1', 'Chuí', 0.2) - S('d1', 0.3))); drawPath(pNS, NSL.map(P), nsT, 1 - smooth((t - E('f0', 0.6)) / 0.8));
-  drawPath(pUS, USBR.map(P), smooth((t - Wd('d2', 'Estados', -0.4)) / 1.2), (1 - smooth((t - S('f1', 0.0)) / 0.6)), true);
-  drawPath(pEW, EWL.map(P), smooth((t - Wd('f1', 'leste', -0.2)) / 1.6), 1 - smooth((t - E('f2', 0.5)) / 0.8));
-  for (const lb of LABELS) { const al = smooth((t - lb.t0) / 0.28) * (1 - smooth((t - lb.t1) / 0.3)); const p = proj(lb.lat, lb.lon);
+  // abertura: contornos do Brasil e dos EUA já na tela; a silhueta dos EUA desliza até o Brasil (mesmo tamanho real)
+  drawPath(pBR, BR.map(P), smooth(t / 0.7), 1 - smooth((t - S('d1', 0.5)) / 0.6), true);
+  const slide = smooth((t - 0.45) / 1.0), rot = smooth((t - Wd('h2', 'detalhe', -0.2)) / 0.9) * PHI_END;
+  const usOp = smooth(t / 0.4) * (1 - smooth((t - E('d2', 0.2)) / 0.6)) * (t < S('f3', 0) || t > S('f3', 0) ? 1 : 1);
+  drawPath(pUS, usAt(slide, t > Wd('h2', 'detalhe', -0.2) ? rot : 0).map(P), 1, usOp, true);
+  const nsT = smooth((t - S('d1', 0.3)) / (Wd('d1', 'Chuí', 0.2) - S('d1', 0.3))); drawPath(pNS, NSL.map(P), nsT, 1 - smooth((t - E('d1', 0.8)) / 0.6));
+  drawPath(pEW, EWL.map(P), smooth((t - S('d2', 0.3)) / 1.6), 1 - smooth((t - E('d2', 0.9)) / 0.6));
+  for (const lb of LABELS) { const al = smooth((t - lb.t0) / 0.2) * (1 - smooth((t - lb.t1) / 0.25)); const p = proj(lb.lat, lb.lon);
     if (al <= 0.01 || !p.ok || p.y + (lb.dy ?? -20) < 330) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; }
     lb.el.style.opacity = al; lb.el.style.left = (p.x + (lb.dx || 0)) + 'px'; lb.el.style.top = (p.y + (lb.dy ?? -20)) + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * al})`;
     if (lb.dotEl) { lb.dotEl.style.opacity = al; lb.dotEl.style.left = p.x + 'px'; lb.dotEl.style.top = p.y + 'px'; } }
-  const ch = CHUNKS.find(x => t >= x.t0 - 0.05 && t <= x.t1 + 0.18);
+  const ch = CHUNKS.find(x => t >= x.t0 - 0.05 && t <= x.t1 + 0.12);
   if (ch) { const cur = ch.words.findIndex(w => t >= w.t0 && t < w.t1); const idx = cur < 0 ? (t >= ch.words[ch.words.length - 1].t1 ? ch.words.length - 1 : 0) : cur; const key = CHUNKS.indexOf(ch) + ':' + idx;
     if (key !== capKey) { capEl.innerHTML = ch.words.map((w, i) => `<span class="w${i === idx ? ' on' : ''}">${w.txt}</span>`).join(' '); capKey = key; } } else if (capKey) { capEl.innerHTML = ''; capKey = ''; }
   const ci = CARDS.findIndex(x => t >= x.t0 && t < x.t1);
-  if (ci >= 0) { const cd = CARDS[ci]; if (ci !== cardKey) { cardEl.innerHTML = cd.html; cardKey = ci; } const al = smooth((t - cd.t0) / 0.3) * (1 - smooth((t - (cd.t1 - 0.25)) / 0.25)); cardEl.style.opacity = al; cardEl.style.transform = `translateY(${(1 - al) * 40}px)`; } else { cardEl.style.opacity = 0; cardKey = -1; }
+  if (ci >= 0) { const cd = CARDS[ci]; if (ci !== cardKey) { cardEl.innerHTML = cd.html; cardKey = ci; } const al = smooth((t - cd.t0) / 0.25) * (1 - smooth((t - (cd.t1 - 0.2)) / 0.2)); cardEl.style.opacity = al; cardEl.style.transform = `translateY(${(1 - al) * 40}px)`; } else { cardEl.style.opacity = 0; cardKey = -1; }
   let bb = BAR[0]; for (const x of BAR) if (t >= x.t) bb = x; if (barChip.textContent !== bb.chip) { barChip.textContent = bb.chip; barTtl.textContent = bb.ttl; }
-  footEl.textContent = 'Contorno do Brasil e dos EUA aproximados'; footEl.style.opacity = dN < 16 && t < S('c1', 1) ? 1 : 0;
+  footEl.textContent = 'Contornos do Brasil e dos EUA aproximados'; footEl.style.opacity = dN < 22 && t < S('c1', 1) ? 1 : 0;
 }
 window.__TOTAL = TOTAL; window.__KM = [NS_KM, EW_KM, US_EXT]; window.renderFrame = async t => { update(t); await new Promise(r => requestAnimationFrame(() => r())); return true; }; window.__ready = true; update(0);
