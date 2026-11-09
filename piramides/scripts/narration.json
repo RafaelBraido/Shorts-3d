@@ -3,8 +3,13 @@
   "id": "h1",
   "parts": [
    {
-    "t": "Você sabia que o país com mais pirâmides do mundo não é o Egito?",
+    "t": "O país com mais pirâmides do mundo",
     "s": 0.94
+   },
+   {
+    "t": "não é o Egito.",
+    "s": 1.15,
+    "pause": 0.1
    }
   ]
  },
@@ -12,11 +17,11 @@
   "id": "h2",
   "parts": [
    {
-    "t": "Vem comigo, e vamos descobrir onde ele fica.",
+    "t": "É um lugar onde quase ninguém olha.",
     "s": 0.98
    }
   ],
-  "gap": 0.2
+  "gap": 0.15
  },
  {
   "id": "d1",
