@@ -1,0 +1,86 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "O Brasil é tão largo quanto é comprido.",
+    "s": 1
+   }
+  ]
+ },
+ {
+  "id": "h2",
+  "parts": [
+   {
+    "t": "E de norte a sul, ele tem o tamanho dos Estados Unidos, de costa a costa.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "d1",
+  "parts": [
+   {
+    "t": "Do ponto mais ao norte, em Roraima, até o Chuí, no Rio Grande do Sul, são cerca de quatro mil e quatrocentos quilômetros.",
+    "s": 1
+   }
+  ]
+ },
+ {
+  "id": "d2",
+  "parts": [
+   {
+    "t": "Quase a mesma distância de costa a costa dos Estados Unidos.",
+    "s": 1
+   }
+  ]
+ },
+ {
+  "id": "f0",
+  "parts": [
+   {
+    "t": "Anota os três fatos.",
+    "s": 1
+   }
+  ],
+  "gap": 0.3
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "Um: de leste a oeste, são cerca de quatro mil e trezentos quilômetros. Quase o mesmo que de norte a sul.",
+    "s": 1
+   }
+  ]
+ },
+ {
+  "id": "f2",
+  "parts": [
+   {
+    "t": "Dois: por causa desse tamanho, o Brasil tem quatro fusos horários.",
+    "s": 1
+   }
+  ]
+ },
+ {
+  "id": "f3",
+  "parts": [
+   {
+    "t": "Três: o Brasil é maior que os Estados Unidos continentais. Oito vírgula cinco milhões de quilômetros quadrados, contra oito vírgula um.",
+    "s": 1
+   }
+  ]
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Qual lugar você quer ver na próxima? Segue pra parte dois.",
+    "s": 1
+   }
+  ],
+  "gap": 0.3
+ }
+]

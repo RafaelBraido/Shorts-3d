@@ -1,0 +1,77 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Jerusalém fica em cima de uma linha invisível.",
+    "s": 1
+   }
+  ]
+ },
+ {
+  "id": "h2",
+  "parts": [
+   {
+    "t": "De um lado, a chuva vai para o Mediterrâneo. Do outro, para o Mar Morto.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "d1",
+  "parts": [
+   {
+    "t": "É o divisor de águas das montanhas da Judeia.",
+    "s": 1
+   }
+  ]
+ },
+ {
+  "id": "f0",
+  "parts": [
+   {
+    "t": "Anota os três fatos.",
+    "s": 1
+   }
+  ],
+  "gap": 0.3
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "Um: a chuva que cai a oeste desce para o Mediterrâneo. A que cai a leste desce para o Mar Morto.",
+    "s": 1
+   }
+  ]
+ },
+ {
+  "id": "f2",
+  "parts": [
+   {
+    "t": "Dois: por isso, a oeste chove cerca de quinhentos e cinquenta milímetros por ano. A leste, perto do Mar Morto, menos de cem.",
+    "s": 1
+   }
+  ]
+ },
+ {
+  "id": "f3",
+  "parts": [
+   {
+    "t": "Três: em menos de trinta quilômetros, a altitude cai de setecentos e cinquenta metros para menos quatrocentos e trinta.",
+    "s": 1
+   }
+  ]
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Qual lugar você quer ver na próxima? Segue pra parte dois.",
+    "s": 1
+   }
+  ],
+  "gap": 0.3
+ }
+]
