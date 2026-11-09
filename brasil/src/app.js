@@ -82,8 +82,8 @@ const K = [
   { t: E('d2', 0.0), lat: -8, lon: -66, d: 6.0, tilt: 20, head: 0, shift: 0 },
   { t: S('f1', 0.0), lat: -10, lon: -52, d: 15, tilt: 0, head: 0, shift: 0, hop: 0.2 },
   { t: E('f1', 0.0), lat: -10, lon: -52, d: 14.2, tilt: 4, head: 0, shift: 0 },
-  { t: S('f2', 0.0), lat: -14, lon: -58, d: 13, tilt: 10, head: 0, shift: 0 },
-  { t: E('f2', 0.0), lat: -12, lon: -56, d: 11.5, tilt: 12, head: 0, shift: 0 },
+  { t: S('f2', 0.0), lat: -14, lon: -58, d: 13, tilt: 10, head: 0, shift: -110 },
+  { t: E('f2', 0.0), lat: -12, lon: -56, d: 11.5, tilt: 12, head: 0, shift: -110 },
   { t: S('f3', 0.0), lat: -13, lon: -53, d: 14, tilt: 0, head: 0, shift: 0 },
   { t: E('f3', 0.2), lat: -13, lon: -53, d: 14, tilt: 0, head: 0, shift: 40 },
   { t: S('c1', 1.2), lat: -12, lon: -48, d: 22, tilt: 0, head: 0, shift: 150 },
@@ -140,8 +140,8 @@ addLabel({ text: 'CHUÍ · RS', cls: 'sm', ...CHU, t0: Wd('d1', '4.400', 0.8), t
 addLabel({ text: 'PONTA DO SEIXAS · PB', cls: 'sm', dx: -110, ...SEI, t0: S('d2', 0.3), t1: E('d2', 0.5), dy: 66 });
 addLabel({ text: 'SERRA DA CONTAMANA · AC', cls: 'sm', dx: 150, ...CON, t0: S('d2', 1.2), t1: E('d2', 0.5), dy: -18 });
 [['ACRE · UTC−5', -9.0, -70.0, 0.9, 140], ['MANAUS · UTC−4', -3.1, -60.0, 1.35, 0], ['BRASÍLIA · UTC−3', -15.8, -47.9, 1.8, 0], ['NORONHA · UTC−2', -3.85, -32.4, 2.25, -130]].forEach(([text, lat, lon, off, dx]) => addLabel({ text, cls: 'sm', lat, lon, dx, t0: S('f1', off - 0.5), t1: E('f1', 0.5), dy: -14 }));
-const NB = [['COLÔMBIA', 0.5, -71.5], ['VENEZUELA', 3.2, -63.5], ['GUIANA', 3.5, -59.0], ['SURINAME', 3.6, -56.0], ['G. FRANCESA', 3.6, -53.0], ['PERU', -9.5, -73.5], ['BOLÍVIA', -14.5, -62.5], ['PARAGUAI', -22.0, -57.5], ['ARGENTINA', -27.0, -55.5], ['URUGUAI', -32.0, -55.5]];
-NB.forEach(([text, lat, lon], i) => addLabel({ text, cls: 'sm', lat, lon, t0: Wd('f2', 'fronteira', -0.1 + i * 0.27), t1: E('f2', 0.5), dy: -10 }));
+const NB = [['COLÔMBIA', 0.5, -71.5, -50, -10], ['VENEZUELA', 3.2, -63.5, -40, -62], ['GUIANA', 3.5, -59.0, -70, -10], ['SURINAME', 3.6, -56.0, 0, -62], ['G. FRANCESA', 3.6, -53.0, 80, -10], ['PERU', -9.5, -73.5, 0, -10], ['BOLÍVIA', -14.5, -62.5, 0, -10], ['PARAGUAI', -22.0, -57.5, 0, -10], ['ARGENTINA', -27.0, -55.5, 0, -10], ['URUGUAI', -32.0, -55.5, 20, -10]];
+NB.forEach(([text, lat, lon, dx, dy], i) => addLabel({ text, cls: 'sm', lat, lon, dx, t0: Wd('f2', 'fronteira', -0.1 + i * 0.27), t1: E('f2', 0.5), dy }));
 const bars = (a, b) => `<div style="text-align:left;font-weight:800;color:#fff;font-size:36px;letter-spacing:2px"><div style="margin:8px 0">BRASIL <span style="color:#ffd36a">${a}</span><div style="height:30px;width:${(a / 8.5) * 400}px;background:#ffd36a;border-radius:8px;margin-top:4px"></div></div><div style="margin:12px 0 0">EUA (SEM ALASCA) <span style="color:#8fc2ff">${b}</span><div style="height:30px;width:${(b / 8.5) * 400}px;background:#8fc2ff;border-radius:8px;margin-top:4px"></div></div></div>`;
 const CARDS = [
   { t0: 1.5, t1: Wd('h2', 'detalhe', 0.0), html: bars('8,5', '8,1') + `<div class="sub" style="font-size:28px;margin-top:10px">milhões de km²</div>` },
@@ -168,7 +168,7 @@ function update(t) {
   // abertura: contornos do Brasil e dos EUA já na tela; a silhueta dos EUA desliza até o Brasil (mesmo tamanho real)
   drawPath(pBR, BR.map(P), smooth(t / 0.7), 1 - smooth((t - S('d1', 0.5)) / 0.6), true);
   const slide = smooth((t - 0.45) / 1.0), rot = smooth((t - Wd('h2', 'detalhe', -0.2)) / 0.9) * PHI_END;
-  const usOp = smooth(t / 0.4) * (1 - smooth((t - E('d1', 0.5)) / 0.6));
+  const usOp = smooth(t / 0.4) * (1 - smooth((t - Wd('d1', 'quilômetros', 0.5)) / 0.5));
   drawPath(pUS, usAt(slide, t > Wd('h2', 'detalhe', -0.2) ? rot : 0).map(P), 1, usOp, true);
   const nsT = smooth((t - S('d1', 0.3)) / (Wd('d1', 'quilômetros', 0.2) - S('d1', 0.3))); drawPath(pNS, NSL.map(P), nsT, 1 - smooth((t - E('d1', 0.8)) / 0.6));
   drawPath(pEW, EWL.map(P), smooth((t - S('d2', 0.3)) / 1.6), 1 - smooth((t - E('d2', 0.9)) / 0.6));
