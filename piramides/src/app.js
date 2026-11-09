@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /* Pirâmides: Egito x Sudão — globo -> Gizé -> descida do Nilo -> Meroë (Sentinel-2 real + relevo SRTM).
    Unidade 1 = 1000 km. Tudo é função pura de t, para render offline determinístico. */
-const W = 1080, H = 1920, R = 6.371, DEG = Math.PI / 180, PS = 6, E_SITE = 3, LIFT = 0.0006;
+const W = 1080, H = 1920, R = 6.371, DEG = Math.PI / 180, PS = 14, E_SITE = 3, LIFT = 0.0006;
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const smooth = x => { x = clamp(x); return x * x * x * (x * (x * 6 - 15) + 10); };
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -181,13 +181,14 @@ let capKey = '', cardKey = -1;
 /* ------------------------------ quadro ------------------------------ */
 function update(t) {
   const c = camState(t), dN = c.d;
+  placeCamera(t, c); camera.updateMatrixWorld();
   regMat.uniforms.uAlpha.value = smooth((7.5 - dN) / 4); const lm = smooth((dN - 1.5) / 3);
   globe.material.uniforms.uMix.value = lm; regMat.uniforms.uMix.value = lm; regMat.uniforms.uHaze.value = smooth((1.8 - dN) / 1.2);
   let near = 0;
   for (const k in SITES) { const S_ = SITES[k], dist = camera.position.distanceTo(S_.c); const a = 1 - smooth((dist - 0.22) / 0.5); S_.mat.uniforms.uAlpha.value = a; S_.mat.uniforms.uExag.value = E_SITE; S_.mat.uniforms.uMix.value = 0; S_.mat.uniforms.uHaze.value = 1; near = Math.max(near, a); }
   cloudMat.opacity = 0.5 * smooth((dN - 4) / 6); atmoMat.uniforms.uA.value = smooth((dN - 1.5) / 6) * 0.9 + 0.1 * smooth((dN - 0.3) / 1.5);
   for (const m of pyrs) { const u = smooth((t - m.userData.t0) / 0.5); m.scale.set(m.userData.r * Math.max(u, 0.0001), Math.max(m.userData.h * u, 1e-6), m.userData.r * Math.max(u, 0.0001)); m.visible = u > 0.001 && SITES[m.userData.site].mat.uniforms.uAlpha.value > 0.05; }
-  placeCamera(t, c); camera.updateMatrixWorld(); renderer.render(scene, camera);
+  renderer.render(scene, camera);
 
   const P = p => proj(p.lat, p.lon);
   // rota Gizé -> Meroë (d2) e conquista Napata -> Gizé (f3)
