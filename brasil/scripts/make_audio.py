@@ -68,7 +68,7 @@ def thunder(dur=2.4):
     env = (1 - np.exp(-np.linspace(0, 1, m) * 40)) * np.exp(-np.linspace(0, 1, m) * 3.0)
     return (nz * env / np.abs(nz * env).max()).astype(np.float32)
 sfx = np.zeros(n, np.float32)
-for tm, d, up, g in [(0.35, 1.0, True, 0.6), (L["h2"]["start"] + 0.3, 1.2, True, 0.5), (L["d1"]["start"] + 0.0, 1.4, True, 0.5), (L["d2"]["start"] + 0.0, 1.2, False, 0.5),
+for tm, d, up, g in [(0.3, 1.0, True, 0.6), (L["h2"]["start"] + 0.3, 1.2, True, 0.5), (L["d1"]["start"] + 0.0, 1.4, True, 0.5), (L["d2"]["start"] + 0.0, 1.2, False, 0.5),
                      (L["f1"]["start"] + 0.0, 1.0, True, 0.4), (L["f2"]["start"] + 0.0, 1.0, True, 0.4), (L["f3"]["start"] + 0.0, 1.0, False, 0.4), (L["c1"]["start"] + 0.3, 2.4, False, 0.6)]:
     place(sfx, whoosh(d, up), tm, g)
 for tm in [1.5, Wd("d1", "4.400", -0.1), Wd("d2", "4.300", -0.5), Wd("f1", "Um", 0.0), Wd("f2", "Dois", 0.0), Wd("f3", "Três", 0.0), Wd("c1", "Segue", -0.1)] + [Wd("f1", "quatro" if False else "4", 0.2 + k * 0.45) for k in range(4)] + [Wd("f2", "fronteira", -0.1 + k * 0.27) for k in range(10)]:
