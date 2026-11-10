@@ -3,33 +3,44 @@
   "id": "h1",
   "parts": [
    {
-    "t": "Sem o Alasca, o Brasil é maior que os Estados Unidos.",
+    "t": "Você acha que o Brasil é menor que os Estados Unidos?",
     "s": 1
    }
-  ]
+  ],
+  "gap": 0.12
  },
  {
   "id": "h2",
   "parts": [
    {
-    "t": "E tem um detalhe que quase ninguém percebe.",
+    "t": "Então olha isso.",
     "s": 1
    }
   ],
-  "gap": 0.1
+  "gap": 0.12
  },
  {
-  "id": "d1",
+  "id": "h3",
   "parts": [
    {
-    "t": "De norte a sul, são quatro mil e quatrocentos quilômetros. Quase a distância de costa a costa dos Estados Unidos.",
+    "t": "Sem o Alasca, é maior. E tem três fatos que ninguém conhece.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "Um: de norte a sul, são quatro mil e quatrocentos quilômetros. Quase a distância de costa a costa dos Estados Unidos.",
     "s": 1
    }
   ],
   "gap": 0.1
  },
  {
-  "id": "d2",
+  "id": "f1b",
   "parts": [
    {
     "t": "E de leste a oeste? Quase igual: quatro mil e trezentos.",
@@ -39,30 +50,10 @@
   "gap": 0.1
  },
  {
-  "id": "f0",
-  "parts": [
-   {
-    "t": "Três fatos rápidos.",
-    "s": 1
-   }
-  ],
-  "gap": 0.1
- },
- {
-  "id": "f1",
-  "parts": [
-   {
-    "t": "Um: por causa disso, o Brasil tem quatro fusos horários.",
-    "s": 1
-   }
-  ],
-  "gap": 0.1
- },
- {
   "id": "f2",
   "parts": [
    {
-    "t": "Dois: ele faz fronteira com dez dos onze outros países da América do Sul.",
+    "t": "Dois: por causa disso, o Brasil tem quatro fusos horários.",
     "s": 1
    }
   ],
@@ -72,7 +63,7 @@
   "id": "f3",
   "parts": [
    {
-    "t": "Três: são oito vírgula cinco milhões de quilômetros quadrados, contra oito vírgula um dos Estados Unidos continentais.",
+    "t": "Três: ele faz fronteira com dez dos onze outros países da América do Sul.",
     "s": 1
    }
   ],
