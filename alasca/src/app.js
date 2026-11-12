@@ -72,16 +72,16 @@ const reg = new THREE.Mesh(patchGeometry(RG.lon0, RG.lon1, RG.lat0, RG.lat1, 360
 
 /* ------------------------------ câmera ------------------------------ */
 const K = [
-  { t: 0, lat: 46, lon: -158, d: 20, tilt: 0, head: 0, shift: 120 },
-  { t: 1.0, lat: 58, lon: -152, d: 10, tilt: 0, head: 0, shift: 40 },
+  { t: 0, lat: 46, lon: -158, d: 20, tilt: 0, head: -22, shift: 120 },
+  { t: 1.0, lat: 58, lon: -152, d: 10, tilt: 8, head: -6, shift: 40 },
   { t: E('h2', 0.0), lat: 63, lon: -152, d: 5.6, tilt: 10, head: 0, shift: 0 },
-  { t: S('f1', 0.5), lat: 64, lon: -150, d: 4.2, tilt: 25, head: 0, shift: 0 },
-  { t: E('f1', 0.0), lat: 61, lon: -146, d: 3.3, tilt: 30, head: 0, shift: 0 },
+  { t: S('f1', 0.5), lat: 64, lon: -150, d: 4.2, tilt: 30, head: -14, shift: 0 },
+  { t: E('f1', 0.0), lat: 61, lon: -146, d: 3.3, tilt: 38, head: 16, shift: 0 },
   { t: S('f2', 0.3), lat: 64, lon: -152, d: 6.5, tilt: 8, head: 0, shift: 0 },
   { t: Wd('f2', 'tamanho', 0.3), lat: 52, lon: -128, d: 12, tilt: 0, head: 0, shift: 0, hop: 0.3 },
   { t: E('f2', 0.0), lat: 44, lon: -110, d: 12, tilt: 0, head: 0, shift: -40 },
-  { t: S('f3', 0.0), lat: 62, lon: -148, d: 7.5, tilt: 8, head: 0, shift: 0, hop: 0.3 },
-  { t: E('f3', 0.0), lat: 58, lon: -150, d: 9, tilt: 6, head: 0, shift: 0 },
+  { t: S('f3', 0.0), lat: 62, lon: -148, d: 7.5, tilt: 18, head: -10, shift: 0, hop: 0.3 },
+  { t: E('f3', 0.0), lat: 58, lon: -150, d: 8.5, tilt: 26, head: 22, shift: 0 },
   { t: S('c1', 1.2), lat: 48, lon: -125, d: 20, tilt: 0, head: 0, shift: 150 },
   { t: TOTAL, lat: 46, lon: -158, d: 22, tilt: 0, head: 0, shift: 230 },
 ];
@@ -125,10 +125,15 @@ banner.innerHTML = '1867 · A RÚSSIA VENDE O ALASCA';
 const price = Object.assign(document.createElement('div'), { id: 'price' }); stage.appendChild(price);
 Object.assign(price.style, { position: 'absolute', transform: 'translate(-50%,-100%)', background: '#fff', color: '#111', font: '900 44px Inter, DejaVu Sans, sans-serif', letterSpacing: '1px', padding: '8px 20px', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,.55)', opacity: 0, whiteSpace: 'nowrap' });
 let PHOTO = false; try { PHOTO = (await fetch('/assets/neymar.png', { method: 'HEAD' })).ok; } catch (e) {}
+const HEXCP = 'polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)';
+const hexPhoto = (w) => { const h = Math.round(w * 1.19); const inner = PHOTO ? `<img src="/assets/neymar.png" style="width:100%;height:100%;object-fit:cover;display:block">` : `<svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="background:#16233f"><circle cx="50" cy="38" r="17" fill="#8fc2ff"/><path d="M14 96 Q14 64 50 64 Q86 64 86 96 Z" fill="#8fc2ff"/></svg>`;
+  return `<div style="width:${w}px;height:${h}px;background:linear-gradient(135deg,#ffd36a,#ff8a4a 55%,#8fc2ff);clip-path:${HEXCP};display:flex;align-items:center;justify-content:center"><div style="width:${w - 16}px;height:${h - 18}px;clip-path:${HEXCP};overflow:hidden">${inner}</div></div>`; };
+const dim = Object.assign(document.createElement('div'), { id: 'dim' }); stage.appendChild(dim);
+Object.assign(dim.style, { position: 'absolute', inset: '0', background: 'radial-gradient(ellipse at 50% 55%, rgba(0,0,0,.15), rgba(0,0,0,.75))', opacity: 0, pointerEvents: 'none' });
+stage.insertBefore(dim, document.getElementById('bar'));
 const nm = Object.assign(document.createElement('div'), { id: 'nm' }); stage.appendChild(nm);
-Object.assign(nm.style, { position: 'absolute', width: '760px', background: 'rgba(12,18,32,.96)', border: '3px solid rgba(143,194,255,.55)', borderRadius: '34px', padding: '34px 30px 38px', textAlign: 'center', color: '#fff', font: '800 40px Inter, DejaVu Sans, sans-serif', boxShadow: '0 24px 70px rgba(0,0,0,.65)', opacity: 0, transformOrigin: '50% 50%' });
-const sil = PHOTO ? '<img src="/assets/neymar.png" style="width:300px;height:300px;object-fit:cover;border-radius:50%;border:5px solid #8fc2ff">' : '<svg width="300" height="300" viewBox="0 0 100 100" style="background:#16233f;border-radius:50%;border:5px solid #8fc2ff"><circle cx="50" cy="38" r="17" fill="#8fc2ff"/><path d="M14 96 Q14 64 50 64 Q86 64 86 96 Z" fill="#8fc2ff"/></svg>';
-nm.innerHTML = `<div>${sil}</div><div style="margin-top:18px;letter-spacing:4px;font-size:46px">NEYMAR JR.</div><div style="color:#9fb4d8;font-size:30px;letter-spacing:3px;margin-top:4px">TRANSFERÊNCIA · 2017</div><div style="color:#ffd36a;font-size:86px;font-weight:900;margin-top:10px">€ 222 MILHÕES</div>`;
+Object.assign(nm.style, { position: 'absolute', width: '640px', textAlign: 'center', color: '#fff', font: '800 40px Inter, DejaVu Sans, sans-serif', opacity: 0, transformOrigin: '50% 50%', filter: 'drop-shadow(0 24px 40px rgba(0,0,0,.7))' });
+nm.innerHTML = `<div style="display:flex;justify-content:center">${hexPhoto(400)}</div><div style="margin-top:22px;letter-spacing:5px;font-size:52px">NEYMAR JR.</div><div style="color:#b9c8e6;font-size:30px;letter-spacing:4px;margin-top:4px">TRANSFERÊNCIA · 2017</div><div style="color:#ffd36a;font-size:78px;font-weight:900;margin-top:10px;white-space:nowrap;text-shadow:0 0 30px rgba(255,200,80,.45)">€ 222 MILHÕES</div>`;
 const LABELS = [];
 function addLabel(o) { const el = document.createElement('div'); el.className = 'lab ' + (o.cls || ''); el.textContent = o.text; labelsEl.appendChild(el); const dot = o.dot === false ? null : Object.assign(document.createElement('div'), { className: 'dot' }); if (dot) labelsEl.appendChild(dot); LABELS.push({ ...o, el, dotEl: dot }); }
 addLabel({ text: 'ALASCA', lat: 64, lon: -152, t0: 0.4, t1: S('f2', 0.2), dy: -10, dot: false });
@@ -169,15 +174,18 @@ function update(t) {
   banner.style.opacity = smooth((t - Wd('f1', '1867', -0.3)) / 0.3) * (1 - smooth((t - E('f1', 0.5)) / 0.3));
   const pp = proj(63, -150), pa = smooth((t - S('f3', 0.1)) / 0.3) * (1 - smooth((t - Wd('f3', 'Neymar', 0.2)) / 0.3));
   if (pp.ok && pa > 0.01) { const rev = t >= Wd('f3', '7,2', 0.0); price.innerHTML = rev ? 'CUSTOU US$ 7,2 MILHÕES' : 'CUSTOU US$ <span style="background:#d6281f;color:#fff;padding:0 10px;border-radius:5px;font-size:30px;letter-spacing:2px">CENSURADO</span>'; price.style.left = pp.x + 'px'; price.style.top = (pp.y - 70) + 'px'; price.style.opacity = pa; } else price.style.opacity = 0;
-  { const tA = Wd('h1', 'Alasca', -0.1), u = smooth((t - tA) / 0.6), fin = smooth(t / 0.25), fout = 1 - smooth((t - Wd('f3', 'Neymar', -0.5)) / 0.3);
-    nm.style.opacity = fin * fout; nm.style.left = (540 + (0) * 1) + 'px'; nm.style.top = (lerp(1000, 520, u)) + 'px';
-    nm.style.transform = `translate(-50%,-50%) translateX(${lerp(0, 250, u)}px) scale(${lerp(1, 0.42, u)})`; }
+  { const tA = Wd('h1', 'Alasca', -0.15), u = smooth((t - tA) / 0.55), ob = 1 + 0.18 * Math.sin(Math.PI * clamp((t - tA) / 0.55)) * (1 - u);   // voa até o canto com um leve "overshoot"
+    const fin = smooth(t / 0.2), fout = 1 - smooth((t - Wd('f3', 'Neymar', -0.5)) / 0.3), push = 1 + 0.12 * clamp(t / 1.7);
+    const ry = (1 - u) * 12 * Math.sin(t * 2.4), rx = (1 - u) * 5 * Math.cos(t * 1.9), rz = (1 - u) * 3 * Math.sin(t * 1.3) - 9 * Math.sin(Math.PI * clamp((t - tA) / 0.55));
+    nm.style.opacity = fin * fout; nm.style.left = '540px'; nm.style.top = lerp(990, 530, u) + 'px';
+    nm.style.transform = `translate(-50%,-50%) translateX(${lerp(0, 262, u)}px) perspective(1000px) rotateY(${ry}deg) rotateX(${rx}deg) rotateZ(${rz}deg) scale(${lerp(push, 0.40, u) * ob})`;
+    dim.style.opacity = fin * (1 - smooth((t - tA) / 0.5)); }
   const ch = CHUNKS.find(x => t >= x.t0 - 0.05 && t <= x.t1 + 0.12);
   if (ch) { const cur = ch.words.findIndex(w => t >= w.t0 && t < w.t1); const idx = cur < 0 ? (t >= ch.words[ch.words.length - 1].t1 ? ch.words.length - 1 : 0) : cur; const key = CHUNKS.indexOf(ch) + ':' + idx;
     if (key !== capKey) { capEl.innerHTML = ch.words.map((w, i) => `<span class="w${i === idx ? ' on' : ''}">${w.txt}</span>`).join(' '); capKey = key; } } else if (capKey) { capEl.innerHTML = ''; capKey = ''; }
   const ci = CARDS.findIndex(x => t >= x.t0 && t < x.t1);
   if (ci >= 0) { const cd = CARDS[ci];
-    if (cd.bars) { const u = smooth((t - cd.t0) / 1.2), n = Math.round(36 * smooth((t - Wd('f3', 'Dá', 0)) / 1.4)); cardEl.innerHTML = `<div style="text-align:left;font-weight:800;color:#fff;font-size:34px;letter-spacing:2px"><div>NEYMAR · 2017 <span style="color:#8fc2ff">€222 mi</span>${fmtBar(262 * u, 262, '#8fc2ff')}</div><div style="margin-top:14px">ALASCA · 1867 <span style="color:#ff8a6a">US$ 7,2 mi</span>${fmtBar(7.2 * u, 262, '#ff6a4a')}</div></div><div class="big s" style="margin-top:12px;color:#ffd36a">≈ ${n} ALASCAS</div>`; cardKey = ci; }
+    if (cd.bars) { const u = smooth((t - cd.t0) / 1.2), n = Math.round(36 * smooth((t - Wd('f3', 'Dá', 0)) / 1.4)); cardEl.innerHTML = `<div style="display:flex;gap:26px;align-items:center"><div style="flex:none">${hexPhoto(96)}</div><div style="text-align:left;font-weight:800;color:#fff;font-size:34px;letter-spacing:2px;flex:1"><div>NEYMAR · 2017 <span style="color:#8fc2ff">€222 mi</span>${fmtBar(262 * u, 262, '#8fc2ff')}</div><div style="margin-top:14px">ALASCA · 1867 <span style="color:#ff8a6a">US$ 7,2 mi</span>${fmtBar(7.2 * u, 262, '#ff6a4a')}</div></div></div><div class="big s" style="margin-top:12px;color:#ffd36a">≈ ${n} ALASCAS</div>`; cardKey = ci; }
     else if (ci !== cardKey) { cardEl.innerHTML = cd.html; cardKey = ci; }
     const al = smooth((t - cd.t0) / 0.25) * (1 - smooth((t - (cd.t1 - 0.2)) / 0.2)); cardEl.style.opacity = al; cardEl.style.transform = `translateY(${(1 - al) * 40}px)`; } else { cardEl.style.opacity = 0; cardKey = -1; }
   let bb = BAR[0]; for (const x of BAR) if (t >= x.t) bb = x; if (barChip.textContent !== bb.chip) { barChip.textContent = bb.chip; barTtl.textContent = bb.ttl; }
