@@ -1,0 +1,18 @@
+{
+  "dashboard": "https://claude.ai/code/artifact/886f73fc-6454-4bf6-95a4-2daffece3fe5",
+  "dataset": "precos",
+  "lojas": {
+    "Mercado Livre": "https://lista.mercadolivre.com.br/{slug}",
+    "Amazon": "https://www.amazon.com.br/s?k={query}",
+    "Magalu": "https://www.magazineluiza.com.br/busca/{query}/",
+    "Shopee": "https://shopee.com.br/search?keyword={query}"
+  },
+  "anuncios_por_loja": 60,
+  "produtos": [
+    {"produto": "Papa-bolinhas", "busca": "papa bolinhas roupas", "slug_ml": "removedor-de-bolinhas-portatil"},
+    {"produto": "Porta-temperos 12 potes", "busca": "porta temperos giratorio 12 potes", "slug_ml": "porta-temperos-giratorio-12-potes"},
+    {"produto": "Potes herméticos de vidro", "busca": "kit potes hermeticos vidro", "slug_ml": "kit-potes-hermeticos-vidro"},
+    {"produto": "Kit chaves e bits", "busca": "kit chaves bits catraca", "slug_ml": "kit-chaves-bits-catraca"},
+    {"produto": "Kit cestos organizadores", "busca": "kit cestos organizadores", "slug_ml": "kit-cestos-organizadores"}
+  ]
+}
