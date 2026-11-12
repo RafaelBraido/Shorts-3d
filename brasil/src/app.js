@@ -187,4 +187,7 @@ function update(t) {
   let bb = BAR[0]; for (const x of BAR) if (t >= x.t) bb = x; if (barChip.textContent !== bb.chip) { barChip.textContent = bb.chip; barTtl.textContent = bb.ttl; }
   footEl.textContent = 'Contornos do Brasil e dos EUA aproximados'; footEl.style.opacity = dN < 22 && t < S('c1', 1) ? 1 : 0;
 }
+const OVERLAY = new URLSearchParams(location.search).has('overlay');
+if (OVERLAY) { document.documentElement.style.background = 'transparent'; document.body.style.background = 'transparent'; renderer.setClearColor(0x000000, 0); scene.visible = false; document.getElementById('stage').style.background = 'transparent'; for (const q of ['.vig', '#storm']) { const e = document.querySelector(q); if (e) e.style.display = 'none'; } }
+window.__proj = (lat, lon) => proj(lat, lon); window.camAt = t => { const c = camState(t); { let k = 1; for (const b of BEATS) if (t >= b && t - b < 1.2) k = Math.min(k, 1 - 0.09 * Math.exp(-(t - b) / 0.22)); c.d *= k; } placeCamera(t, c); camera.updateMatrixWorld(); return { m: camera.matrixWorld.toArray(), shift: c.shift, fov: camera.fov }; };
 window.__TOTAL = TOTAL; window.__KM = [NS_KM, EW_KM, US_EXT]; window.renderFrame = async t => { update(t); await new Promise(r => requestAnimationFrame(() => r())); return true; }; window.__ready = true; update(0);
