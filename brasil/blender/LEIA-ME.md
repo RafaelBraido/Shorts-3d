@@ -6,7 +6,7 @@ Testado no Blender **4.0.2** (cloud, CPU). Você tem o 4.2: a API usada é a mes
 
 ## Passo a passo (na pasta `brasil/`)
 
-1. Descompacte a camada transparente: `blender/overlay.zip` → `out/overlay/` (896 PNGs, `f_00000.png` …).
+1. Descompacte a camada transparente: `blender/overlay.zip` → `out/overlay/` (896 PNGs quantizados (256 cores com transparência), `f_00000.png` …).
 2. Teste rápido de 1 quadro (poucos segundos na GPU):
 
 ```
