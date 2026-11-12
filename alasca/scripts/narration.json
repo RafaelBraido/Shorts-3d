@@ -10,20 +10,10 @@
   "gap": 0.12
  },
  {
-  "id": "h2",
-  "parts": [
-   {
-    "t": "Três fatos. O último é o mais absurdo.",
-    "s": 1
-   }
-  ],
-  "gap": 0.12
- },
- {
   "id": "f1",
   "parts": [
    {
-    "t": "Um: em mil oitocentos e sessenta e sete, a Rússia vendeu o Alasca para os Estados Unidos.",
+    "t": "Em mil oitocentos e sessenta e sete, a Rússia vendeu o Alasca para os Estados Unidos.",
     "s": 1
    }
   ],
@@ -33,7 +23,7 @@
   "id": "f2",
   "parts": [
    {
-    "t": "Dois: olha o tamanho. Um milhão e meio de quilômetros quadrados. Um quinto dos Estados Unidos continentais.",
+    "t": "E olha o tamanho: um milhão e meio de quilômetros quadrados. Um quinto dos Estados Unidos continentais.",
     "s": 1
    }
   ],
@@ -43,7 +33,7 @@
   "id": "f3",
   "parts": [
    {
-    "t": "Três: e o preço? Sete vírgula dois milhões de dólares. O Neymar custou duzentos e vinte e dois milhões de euros. Dá para comprar mais de trinta Alascas.",
+    "t": "Agora o preço. Sete vírgula dois milhões de dólares. O Neymar custou duzentos e vinte e dois milhões de euros. Dá para comprar mais de trinta Alascas.",
     "s": 1
    }
   ],

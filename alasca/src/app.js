@@ -74,7 +74,7 @@ const reg = new THREE.Mesh(patchGeometry(RG.lon0, RG.lon1, RG.lat0, RG.lat1, 360
 const K = [
   { t: 0, lat: 46, lon: -158, d: 20, tilt: 0, head: -22, shift: 120 },
   { t: 1.0, lat: 58, lon: -152, d: 10, tilt: 8, head: -6, shift: 40 },
-  { t: E('h2', 0.0), lat: 63, lon: -152, d: 5.6, tilt: 10, head: 0, shift: 0 },
+  { t: E('h1', 0.3), lat: 63, lon: -152, d: 5.6, tilt: 10, head: 0, shift: 0 },
   { t: S('f1', 0.5), lat: 64, lon: -150, d: 4.2, tilt: 30, head: -14, shift: 0 },
   { t: E('f1', 0.0), lat: 61, lon: -146, d: 3.3, tilt: 38, head: 16, shift: 0 },
   { t: S('f2', 0.3), lat: 64, lon: -152, d: 6.5, tilt: 8, head: 0, shift: 0 },
@@ -137,20 +137,19 @@ nm.innerHTML = `<div style="display:flex;justify-content:center">${hexPhoto(400)
 const LABELS = [];
 function addLabel(o) { const el = document.createElement('div'); el.className = 'lab ' + (o.cls || ''); el.textContent = o.text; labelsEl.appendChild(el); const dot = o.dot === false ? null : Object.assign(document.createElement('div'), { className: 'dot' }); if (dot) labelsEl.appendChild(dot); LABELS.push({ ...o, el, dotEl: dot }); }
 addLabel({ text: 'ALASCA', lat: 64, lon: -152, t0: 0.4, t1: S('f2', 0.2), dy: -10, dot: false });
-addLabel({ text: 'ESTADOS UNIDOS', cls: 'dk', lat: 36, lon: -98, t0: 0.4, t1: S('h2', 0.0), dy: -10, dot: false });
+addLabel({ text: 'ESTADOS UNIDOS', cls: 'dk', lat: 36, lon: -98, t0: 0.4, t1: S('f1', 0.0), dy: -10, dot: false });
 addLabel({ text: 'ALASCA · ESCALA REAL', cls: 'dk', dx: -110, lat: 49.5, lon: -104, t0: Wd('f2', 'tamanho', 1.2), t1: E('f2', 0.4), dy: -6, dot: false });
 const fmtBar = (v, max, c) => `<div style="height:34px;width:${Math.max(3, (v / max) * 520)}px;background:${c};border-radius:8px;margin-top:4px"></div>`;
 let CARD3 = null;
 const CARDS = [
-  { t0: Wd('h2', 'Três', -0.1), t1: E('h2', 0.5), html: `<div class="big">3 FATOS</div><div class="sub">o último é o mais absurdo</div>` },
   { t0: Wd('f1', '1867', -0.2), t1: E('f1', 0.4), html: `<div class="big">1867</div><div class="sub">Rússia → Estados Unidos</div>` },
   { t0: Wd('f2', '1,5', -0.2), t1: E('f2', 0.4), html: `<div class="big s">1,5 mi km²</div><div class="sub">≈ 1/5 dos EUA continentais</div>` },
   { t0: Wd('f3', '7,2', -0.1), t1: Wd('f3', 'Neymar', -0.2), html: `<div class="big">US$ 7,2 mi</div><div class="sub">o preço do Alasca</div>` },
   { t0: Wd('f3', 'Neymar', -0.2), t1: E('f3', 0.5), bars: true },
   { t0: Wd('c1', 'Segue', -0.1), t1: TOTAL + 1, html: `<div class="big">PARTE 2</div><div class="sub">segue pra continuar</div>` },
 ];
-const BAR = [{ t: 0, chip: 'VOCÊ SABIA?', ttl: 'Alasca' }, { t: S('f1', -0.1), chip: '1 DE 3', ttl: 'O preço' }, { t: S('f2', -0.1), chip: '2 DE 3', ttl: 'O tamanho' }, { t: S('f3', -0.1), chip: '3 DE 3', ttl: 'O preço' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'Alasca' }];
-const BEATS = [S('h2', -0.05), S('f1', 0), S('f2', 0), Wd('f2', 'tamanho', 0), S('f3', 0), Wd('f3', 'Dá', 0)];
+const BAR = [{ t: 0, chip: 'VOCÊ SABIA?', ttl: 'Alasca' }, { t: S('f1', -0.1), chip: 'HISTÓRIA', ttl: 'A venda de 1867' }, { t: S('f2', -0.1), chip: 'TAMANHO', ttl: 'Alasca × EUA' }, { t: S('f3', -0.1), chip: 'PREÇO', ttl: 'Alasca × Neymar' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'Alasca' }];
+const BEATS = [S('f1', 0), S('f2', 0), Wd('f2', 'tamanho', 0), S('f3', 0), Wd('f3', 'Dá', 0)];
 const CHUNKS = []; for (const l of TL.lines) { let cur = []; const flush = () => { if (cur.length) { CHUNKS.push({ words: cur, t0: cur[0].t0, t1: cur[cur.length - 1].t1 }); cur = []; } };
   for (const w of l.words) { const txt = w.w.replace(/[,.:;]+$/, '').toUpperCase(); const len = cur.reduce((a, x) => a + x.txt.length + 1, 0) + txt.length; if (cur.length && (len > 24 || cur.length >= 4)) flush(); cur.push({ ...w, txt }); if (/[,.:?]$/.test(w.w)) flush(); } flush(); }
 const capEl = document.getElementById('cap'), cardEl = document.getElementById('card'), barChip = document.getElementById('chip'), barTtl = document.getElementById('ttl'), footEl = document.getElementById('foot');
@@ -173,13 +172,13 @@ function update(t) {
   // faixa "1867" e etiqueta de preço (censurada até a revelação)
   banner.style.opacity = smooth((t - Wd('f1', '1867', -0.3)) / 0.3) * (1 - smooth((t - E('f1', 0.5)) / 0.3));
   const pp = proj(63, -150), pa = smooth((t - S('f3', 0.1)) / 0.3) * (1 - smooth((t - Wd('f3', 'Neymar', 0.2)) / 0.3));
-  if (pp.ok && pa > 0.01) { const rev = t >= Wd('f3', '7,2', 0.0); price.innerHTML = rev ? 'CUSTOU US$ 7,2 MILHÕES' : 'CUSTOU US$ <span style="background:#d6281f;color:#fff;padding:0 10px;border-radius:5px;font-size:30px;letter-spacing:2px">CENSURADO</span>'; price.style.left = pp.x + 'px'; price.style.top = (pp.y - 70) + 'px'; price.style.opacity = pa; } else price.style.opacity = 0;
+  if (pp.ok && pa > 0.01) { const rev = t >= Wd('f3', '7,2', 0.0); price.innerHTML = rev ? 'CUSTOU US$ 7,2 MILHÕES' : `<span style="display:inline-flex;align-items:center;gap:14px">CUSTOU MENOS QUE <span style="display:inline-block;vertical-align:middle">${hexPhoto(104)}</span></span>`; price.style.left = pp.x + 'px'; price.style.top = (pp.y - 70) + 'px'; price.style.opacity = pa; } else price.style.opacity = 0;
   { const tA = Wd('h1', 'Alasca', -0.15), u = smooth((t - tA) / 0.55), ob = 1 + 0.18 * Math.sin(Math.PI * clamp((t - tA) / 0.55)) * (1 - u);   // voa até o canto com um leve "overshoot"
     const fin = smooth(t / 0.2), fout = 1 - smooth((t - Wd('f3', 'Neymar', -0.5)) / 0.3), push = 1 + 0.12 * clamp(t / 1.7);
     const ry = (1 - u) * 12 * Math.sin(t * 2.4), rx = (1 - u) * 5 * Math.cos(t * 1.9), rz = (1 - u) * 3 * Math.sin(t * 1.3) - 9 * Math.sin(Math.PI * clamp((t - tA) / 0.55));
-    nm.style.opacity = fin * fout; nm.style.left = '540px'; nm.style.top = lerp(990, 530, u) + 'px';
+    nm.style.opacity = 0; nm.style.left = '540px'; nm.style.top = lerp(990, 530, u) + 'px';
     nm.style.transform = `translate(-50%,-50%) translateX(${lerp(0, 262, u)}px) perspective(1000px) rotateY(${ry}deg) rotateX(${rx}deg) rotateZ(${rz}deg) scale(${lerp(push, 0.40, u) * ob})`;
-    dim.style.opacity = fin * (1 - smooth((t - tA) / 0.5)); }
+    dim.style.opacity = 0; }
   const ch = CHUNKS.find(x => t >= x.t0 - 0.05 && t <= x.t1 + 0.12);
   if (ch) { const cur = ch.words.findIndex(w => t >= w.t0 && t < w.t1); const idx = cur < 0 ? (t >= ch.words[ch.words.length - 1].t1 ? ch.words.length - 1 : 0) : cur; const key = CHUNKS.indexOf(ch) + ':' + idx;
     if (key !== capKey) { capEl.innerHTML = ch.words.map((w, i) => `<span class="w${i === idx ? ' on' : ''}">${w.txt}</span>`).join(' '); capKey = key; } } else if (capKey) { capEl.innerHTML = ''; capKey = ''; }
