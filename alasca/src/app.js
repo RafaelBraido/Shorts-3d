@@ -80,8 +80,8 @@ const K = [
   { t: S('f2', 0.3), lat: 64, lon: -152, d: 6.5, tilt: 8, head: 0, shift: 0 },
   { t: Wd('f2', 'tamanho', 0.3), lat: 52, lon: -128, d: 12, tilt: 0, head: 0, shift: 0, hop: 0.3 },
   { t: E('f2', 0.0), lat: 44, lon: -110, d: 12, tilt: 0, head: 0, shift: -40 },
-  { t: S('f3', 0.0), lat: 44, lon: -112, d: 13, tilt: 0, head: 0, shift: -40 },
-  { t: E('f3', 0.0), lat: 50, lon: -125, d: 15, tilt: 0, head: 0, shift: 0 },
+  { t: S('f3', 0.0), lat: 62, lon: -148, d: 7.5, tilt: 8, head: 0, shift: 0, hop: 0.3 },
+  { t: E('f3', 0.0), lat: 58, lon: -150, d: 9, tilt: 6, head: 0, shift: 0 },
   { t: S('c1', 1.2), lat: 48, lon: -125, d: 20, tilt: 0, head: 0, shift: 150 },
   { t: TOTAL, lat: 46, lon: -158, d: 22, tilt: 0, head: 0, shift: 230 },
 ];
@@ -120,27 +120,32 @@ function drawPath(el, pts, prog, a = 1, close = false) { if (prog <= 0 || pts.so
 // faixa de data (estilo documentário) e etiqueta de preço
 const stage = document.getElementById('stage');
 const banner = Object.assign(document.createElement('div'), { id: 'banner' }); stage.appendChild(banner);
-Object.assign(banner.style, { position: 'absolute', left: '50%', top: '360px', transform: 'translateX(-50%)', background: 'rgba(10,14,24,.92)', color: '#fff', font: '800 34px Inter, DejaVu Sans, sans-serif', letterSpacing: '3px', padding: '12px 30px', borderRadius: '6px', border: '2px solid rgba(255,255,255,.25)', opacity: 0, whiteSpace: 'nowrap', textTransform: 'uppercase' });
+Object.assign(banner.style, { position: 'absolute', left: '33%', top: '360px', transform: 'translateX(-50%)', background: 'rgba(10,14,24,.92)', color: '#fff', font: '800 30px Inter, DejaVu Sans, sans-serif', letterSpacing: '2px', padding: '10px 24px', borderRadius: '6px', border: '2px solid rgba(255,255,255,.25)', opacity: 0, whiteSpace: 'nowrap', textTransform: 'uppercase' });
 banner.innerHTML = '1867 · A RÚSSIA VENDE O ALASCA';
 const price = Object.assign(document.createElement('div'), { id: 'price' }); stage.appendChild(price);
 Object.assign(price.style, { position: 'absolute', transform: 'translate(-50%,-100%)', background: '#fff', color: '#111', font: '900 44px Inter, DejaVu Sans, sans-serif', letterSpacing: '1px', padding: '8px 20px', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,.55)', opacity: 0, whiteSpace: 'nowrap' });
+let PHOTO = false; try { PHOTO = (await fetch('/assets/neymar.png', { method: 'HEAD' })).ok; } catch (e) {}
+const nm = Object.assign(document.createElement('div'), { id: 'nm' }); stage.appendChild(nm);
+Object.assign(nm.style, { position: 'absolute', width: '760px', background: 'rgba(12,18,32,.96)', border: '3px solid rgba(143,194,255,.55)', borderRadius: '34px', padding: '34px 30px 38px', textAlign: 'center', color: '#fff', font: '800 40px Inter, DejaVu Sans, sans-serif', boxShadow: '0 24px 70px rgba(0,0,0,.65)', opacity: 0, transformOrigin: '50% 50%' });
+const sil = PHOTO ? '<img src="/assets/neymar.png" style="width:300px;height:300px;object-fit:cover;border-radius:50%;border:5px solid #8fc2ff">' : '<svg width="300" height="300" viewBox="0 0 100 100" style="background:#16233f;border-radius:50%;border:5px solid #8fc2ff"><circle cx="50" cy="38" r="17" fill="#8fc2ff"/><path d="M14 96 Q14 64 50 64 Q86 64 86 96 Z" fill="#8fc2ff"/></svg>';
+nm.innerHTML = `<div>${sil}</div><div style="margin-top:18px;letter-spacing:4px;font-size:46px">NEYMAR JR.</div><div style="color:#9fb4d8;font-size:30px;letter-spacing:3px;margin-top:4px">TRANSFERÊNCIA · 2017</div><div style="color:#ffd36a;font-size:86px;font-weight:900;margin-top:10px">€ 222 MILHÕES</div>`;
 const LABELS = [];
 function addLabel(o) { const el = document.createElement('div'); el.className = 'lab ' + (o.cls || ''); el.textContent = o.text; labelsEl.appendChild(el); const dot = o.dot === false ? null : Object.assign(document.createElement('div'), { className: 'dot' }); if (dot) labelsEl.appendChild(dot); LABELS.push({ ...o, el, dotEl: dot }); }
 addLabel({ text: 'ALASCA', lat: 64, lon: -152, t0: 0.4, t1: S('f2', 0.2), dy: -10, dot: false });
 addLabel({ text: 'ESTADOS UNIDOS', cls: 'dk', lat: 36, lon: -98, t0: 0.4, t1: S('h2', 0.0), dy: -10, dot: false });
-addLabel({ text: 'ALASCA · ESCALA REAL', cls: 'dk', lat: 49.5, lon: -104, t0: Wd('f2', 'Mas', 1.2), t1: E('f2', 0.4), dy: -6, dot: false });
+addLabel({ text: 'ALASCA · ESCALA REAL', cls: 'dk', dx: -110, lat: 49.5, lon: -104, t0: Wd('f2', 'tamanho', 1.2), t1: E('f2', 0.4), dy: -6, dot: false });
 const fmtBar = (v, max, c) => `<div style="height:34px;width:${Math.max(3, (v / max) * 520)}px;background:${c};border-radius:8px;margin-top:4px"></div>`;
 let CARD3 = null;
 const CARDS = [
   { t0: Wd('h2', 'Três', -0.1), t1: E('h2', 0.5), html: `<div class="big">3 FATOS</div><div class="sub">o último é o mais absurdo</div>` },
-  { t0: Wd('f1', '7,2', -0.2), t1: E('f1', 0.4), html: `<div class="big">US$ 7,2 mi</div><div class="sub">preço do Alasca em 1867</div>` },
-  { t0: Wd('f2', '2', -0.2), t1: Wd('f2', 'Mas', 0.0), html: `<div class="big">≈ 2¢</div><div class="sub">por acre</div>` },
+  { t0: Wd('f1', '1867', -0.2), t1: E('f1', 0.4), html: `<div class="big">1867</div><div class="sub">Rússia → Estados Unidos</div>` },
   { t0: Wd('f2', '1,5', -0.2), t1: E('f2', 0.4), html: `<div class="big s">1,5 mi km²</div><div class="sub">≈ 1/5 dos EUA continentais</div>` },
+  { t0: Wd('f3', '7,2', -0.1), t1: Wd('f3', 'Neymar', -0.2), html: `<div class="big">US$ 7,2 mi</div><div class="sub">o preço do Alasca</div>` },
   { t0: Wd('f3', 'Neymar', -0.2), t1: E('f3', 0.5), bars: true },
   { t0: Wd('c1', 'Segue', -0.1), t1: TOTAL + 1, html: `<div class="big">PARTE 2</div><div class="sub">segue pra continuar</div>` },
 ];
-const BAR = [{ t: 0, chip: 'VOCÊ SABIA?', ttl: 'Alasca' }, { t: S('f1', -0.1), chip: '1 DE 3', ttl: 'O preço' }, { t: S('f2', -0.1), chip: '2 DE 3', ttl: 'O tamanho' }, { t: S('f3', -0.1), chip: '3 DE 3', ttl: 'O Neymar' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'Alasca' }];
-const BEATS = [S('h2', -0.05), S('f1', 0), S('f2', 0), Wd('f2', 'Mas', 0), S('f3', 0), Wd('f3', 'Dá', 0)];
+const BAR = [{ t: 0, chip: 'VOCÊ SABIA?', ttl: 'Alasca' }, { t: S('f1', -0.1), chip: '1 DE 3', ttl: 'O preço' }, { t: S('f2', -0.1), chip: '2 DE 3', ttl: 'O tamanho' }, { t: S('f3', -0.1), chip: '3 DE 3', ttl: 'O preço' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'Alasca' }];
+const BEATS = [S('h2', -0.05), S('f1', 0), S('f2', 0), Wd('f2', 'tamanho', 0), S('f3', 0), Wd('f3', 'Dá', 0)];
 const CHUNKS = []; for (const l of TL.lines) { let cur = []; const flush = () => { if (cur.length) { CHUNKS.push({ words: cur, t0: cur[0].t0, t1: cur[cur.length - 1].t1 }); cur = []; } };
   for (const w of l.words) { const txt = w.w.replace(/[,.:;]+$/, '').toUpperCase(); const len = cur.reduce((a, x) => a + x.txt.length + 1, 0) + txt.length; if (cur.length && (len > 24 || cur.length >= 4)) flush(); cur.push({ ...w, txt }); if (/[,.:?]$/.test(w.w)) flush(); } flush(); }
 const capEl = document.getElementById('cap'), cardEl = document.getElementById('card'), barChip = document.getElementById('chip'), barTtl = document.getElementById('ttl'), footEl = document.getElementById('foot');
@@ -153,17 +158,20 @@ function update(t) {
   renderer.render(scene, camera);
   const P = p => proj(p.lat, p.lon);
   drawPath(pAK, AKP.map(P), smooth(t / 0.8), 1, true);   // o contorno do Alasca fica; na cena de escala ele "descola" e desliza
-  const slideT = smooth((t - Wd('f2', 'Mas', 0.0)) / 1.8);
-  if (t > Wd('f2', 'Mas', 0.0) - 0.05) { drawPath(pAK, akAt(slideT).map(P), 1, 1, true); drawPath(pUS, USP.map(P), 1, smooth((t - Wd('f2', 'Mas', -0.2)) / 0.5) * (1 - smooth((t - E('f2', 0.4)) / 0.6)), true); } else pUS.setAttribute('opacity', 0);
-  if (t > E('f2', 0.4)) pAK.setAttribute('opacity', 0);
+  const slideT = smooth((t - Wd('f2', 'tamanho', 0.0)) / 1.8);
+  if (t > Wd('f2', 'tamanho', 0.0) - 0.05) { drawPath(pAK, akAt(slideT).map(P), 1, 1, true); drawPath(pUS, USP.map(P), 1, smooth((t - Wd('f2', 'tamanho', -0.2)) / 0.5) * (1 - smooth((t - E('f2', 0.4)) / 0.6)), true); } else pUS.setAttribute('opacity', 0);
+  if (t > E('f2', 0.4)) drawPath(pAK, AKP.map(P), 1, smooth((t - E('f2', 0.4)) / 0.4), true);
   for (const lb of LABELS) { const al = smooth((t - lb.t0) / 0.2) * (1 - smooth((t - lb.t1) / 0.25)); const p = proj(lb.lat, lb.lon);
     if (al <= 0.01 || !p.ok || p.y + (lb.dy ?? -20) < 330) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; }
     lb.el.style.opacity = al; lb.el.style.left = (p.x + (lb.dx || 0)) + 'px'; lb.el.style.top = (p.y + (lb.dy ?? -20)) + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * al})`;
     if (lb.dotEl) { lb.dotEl.style.opacity = al; lb.dotEl.style.left = p.x + 'px'; lb.dotEl.style.top = p.y + 'px'; } }
   // faixa "1867" e etiqueta de preço (censurada até a revelação)
   banner.style.opacity = smooth((t - Wd('f1', '1867', -0.3)) / 0.3) * (1 - smooth((t - E('f1', 0.5)) / 0.3));
-  const pp = proj(63, -150), pa = smooth((t - 1.3) / 0.3) * (1 - smooth((t - Wd('f1', '7,2', 1.5)) / 0.3));
-  if (pp.ok && pa > 0.01) { const rev = t >= Wd('f1', '7,2', 0.0); price.innerHTML = rev ? 'CUSTOU US$ 7,2 MILHÕES' : 'CUSTOU US$ <span style="background:#d6281f;color:#fff;padding:0 10px;border-radius:5px;font-size:30px;letter-spacing:2px">CENSURADO</span>'; price.style.left = pp.x + 'px'; price.style.top = (pp.y - 70) + 'px'; price.style.opacity = pa; } else price.style.opacity = 0;
+  const pp = proj(63, -150), pa = smooth((t - S('f3', 0.1)) / 0.3) * (1 - smooth((t - Wd('f3', 'Neymar', 0.2)) / 0.3));
+  if (pp.ok && pa > 0.01) { const rev = t >= Wd('f3', '7,2', 0.0); price.innerHTML = rev ? 'CUSTOU US$ 7,2 MILHÕES' : 'CUSTOU US$ <span style="background:#d6281f;color:#fff;padding:0 10px;border-radius:5px;font-size:30px;letter-spacing:2px">CENSURADO</span>'; price.style.left = pp.x + 'px'; price.style.top = (pp.y - 70) + 'px'; price.style.opacity = pa; } else price.style.opacity = 0;
+  { const tA = Wd('h1', 'Alasca', -0.1), u = smooth((t - tA) / 0.6), fin = smooth(t / 0.25), fout = 1 - smooth((t - Wd('f3', 'Neymar', -0.5)) / 0.3);
+    nm.style.opacity = fin * fout; nm.style.left = (540 + (0) * 1) + 'px'; nm.style.top = (lerp(1000, 520, u)) + 'px';
+    nm.style.transform = `translate(-50%,-50%) translateX(${lerp(0, 250, u)}px) scale(${lerp(1, 0.42, u)})`; }
   const ch = CHUNKS.find(x => t >= x.t0 - 0.05 && t <= x.t1 + 0.12);
   if (ch) { const cur = ch.words.findIndex(w => t >= w.t0 && t < w.t1); const idx = cur < 0 ? (t >= ch.words[ch.words.length - 1].t1 ? ch.words.length - 1 : 0) : cur; const key = CHUNKS.indexOf(ch) + ':' + idx;
     if (key !== capKey) { capEl.innerHTML = ch.words.map((w, i) => `<span class="w${i === idx ? ' on' : ''}">${w.txt}</span>`).join(' '); capKey = key; } } else if (capKey) { capEl.innerHTML = ''; capKey = ''; }
