@@ -68,11 +68,11 @@ def thunder(dur=2.4):
     env = (1 - np.exp(-np.linspace(0, 1, m) * 40)) * np.exp(-np.linspace(0, 1, m) * 3.0)
     return (nz * env / np.abs(nz * env).max()).astype(np.float32)
 sfx = np.zeros(n, np.float32)
-for tm, d, up, g in [(1.0, 1.8, True, 0.55), (L["h2"]["start"] + 0.2, 1.6, True, 0.5), (L["d1"]["start"] + 0.0, 1.2, False, 0.4), (L["f1"]["start"] + 0.2, 1.3, True, 0.45),
-                     (L["f2"]["start"] + 0.2, 1.2, True, 0.4), (L["f3"]["start"] + 0.2, 1.4, True, 0.45), (L["c1"]["start"] + 0.3, 2.6, False, 0.6)]:
+for tm, d, up, g in [(0.3, 1.0, True, 0.6), (L["h2"]["start"] - 0.1, 1.0, True, 0.5), (L["h3"]["start"], 1.2, True, 0.5), (L["f1"]["start"], 1.0, False, 0.4),
+                     (L["f2"]["start"], 1.0, True, 0.4), (L["f3"]["start"], 1.4, True, 0.5), (L["f3b"]["start"], 0.8, False, 0.4), (L["c1"]["start"] + 0.3, 2.4, False, 0.6)]:
     place(sfx, whoosh(d, up), tm, g)
-for tm in [Wd("h1", "Jerusalém", 0.1), Wd("d1", "divisor", -0.1), Wd("f1", "Um", 0.0), Wd("f2", "Dois", 0.0), Wd("f3", "Três", 0.0), Wd("c1", "Segue", -0.1)]:
-    place(sfx, pop(), tm, 0.35)
+for tm in [Wd("h2", "Três", -0.1), Wd("h3", "Mediterrâneo", -0.3), Wd("f1", "Um", 0.0), Wd("f2", "Dois", 0.0), Wd("f3", "Três", 0.0), Wd("f3b", "1.180", -0.3), Wd("c1", "Segue", -0.1)]:
+    place(sfx, pop(), tm, 0.3)
 mix = voice + music * 0.55 + sfx * 0.45
 mix = mix / max(np.abs(mix).max(), 1e-6) * 0.92
 st = np.stack([mix, mix], 1)

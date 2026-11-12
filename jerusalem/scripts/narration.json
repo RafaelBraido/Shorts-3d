@@ -3,66 +3,71 @@
   "id": "h1",
   "parts": [
    {
-    "t": "Jerusalém fica em cima de uma linha invisível.",
+    "t": "Você sabia que Jerusalém fica em cima de uma linha invisível?",
     "s": 1
    }
-  ]
+  ],
+  "gap": 0.12
  },
  {
   "id": "h2",
   "parts": [
    {
-    "t": "De um lado, a chuva vai para o Mediterrâneo. Do outro, para o Mar Morto.",
+    "t": "Três fatos. O último é o mais louco.",
     "s": 1
    }
   ],
-  "gap": 0.15
+  "gap": 0.12
  },
  {
-  "id": "d1",
+  "id": "h3",
   "parts": [
    {
-    "t": "É o divisor de águas das montanhas da Judeia.",
-    "s": 1
-   }
-  ]
- },
- {
-  "id": "f0",
-  "parts": [
-   {
-    "t": "Anota os três fatos.",
+    "t": "Olha o que a chuva faz: de um lado, vai para o Mediterrâneo. Do outro, para o Mar Morto.",
     "s": 1
    }
   ],
-  "gap": 0.3
+  "gap": 0.12
  },
  {
   "id": "f1",
   "parts": [
    {
-    "t": "Um: a chuva que cai a oeste desce para o Mediterrâneo. A que cai a leste desce para o Mar Morto.",
+    "t": "Um: essa linha é o divisor de águas das montanhas da Judeia.",
     "s": 1
    }
-  ]
+  ],
+  "gap": 0.1
  },
  {
   "id": "f2",
   "parts": [
    {
-    "t": "Dois: por isso, a oeste chove cerca de quinhentos e cinquenta milímetros por ano. A leste, perto do Mar Morto, menos de cem.",
+    "t": "Dois: por isso, a oeste chove cerca de quinhentos e cinquenta milímetros por ano. Mas a leste, perto do Mar Morto, menos de cem.",
     "s": 1
    }
-  ]
+  ],
+  "gap": 0.1
  },
  {
   "id": "f3",
   "parts": [
    {
-    "t": "Três: em menos de trinta quilômetros, a altitude cai de setecentos e cinquenta metros para menos quatrocentos e trinta.",
+    "t": "Três: em menos de trinta quilômetros, a altitude despenca de setecentos e cinquenta metros para menos quatrocentos e trinta.",
     "s": 1
    }
-  ]
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f3b",
+  "parts": [
+   {
+    "t": "É uma queda de mil cento e oitenta metros.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
  },
  {
   "id": "c1",
@@ -72,6 +77,6 @@
     "s": 1
    }
   ],
-  "gap": 0.3
+  "gap": 0.2
  }
 ]

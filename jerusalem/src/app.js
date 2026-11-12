@@ -80,16 +80,15 @@ function hAt(lat, lon) { const GW = SM.gw + 1, GH = SM.gh + 1, x = clamp((lon - 
   return lerp(lerp(SH[y0 * GW + x0], SH[y0 * GW + x1], fx), lerp(SH[y1 * GW + x0], SH[y1 * GW + x1], fx), fy) + HMIN; }   // metros reais
 /* ------------------------------ câmera ------------------------------ */
 const K = [
-  { t: 0, lat: 28, lon: 30, d: 26, tilt: 0, head: 0, shift: 230 },
-  { t: 1.2, lat: 30, lon: 33, d: 20, tilt: 0, head: 0, shift: 200 },
-  { t: E('h1', 0.2), lat: 31.8, lon: 35.0, d: 2.2, tilt: 10, head: 0, shift: 60 },
-  { t: S('h2', 1.5), lat: 31.75, lon: 35.2, d: 0.30, tilt: 42, head: 0, shift: 0 },
-  { t: E('h2', 0.0), lat: 31.78, lon: 35.22, d: 0.20, tilt: 50, head: 0, shift: 0 },
-  { t: E('d1', 0.0), lat: 31.78, lon: 35.22, d: 0.19, tilt: 52, head: 6, shift: 0 },
+  { t: 0, lat: 31.8, lon: 35.0, d: 6, tilt: 0, head: 0, shift: 60 },
+  { t: 1.0, lat: 31.8, lon: 35.1, d: 3.0, tilt: 6, head: 0, shift: 40 },
+  { t: E('h1', 0.2), lat: 31.78, lon: 35.2, d: 0.55, tilt: 30, head: 0, shift: 0 },
+  { t: E('h2', 0.0), lat: 31.78, lon: 35.22, d: 0.25, tilt: 46, head: 0, shift: 0 },
+  { t: E('h3', 0.0), lat: 31.78, lon: 35.22, d: 0.20, tilt: 50, head: 0, shift: 0 },
   { t: E('f1', 0.0), lat: 31.80, lon: 35.20, d: 0.21, tilt: 55, head: -6, shift: 0 },
   { t: E('f2', 0.0), lat: 31.78, lon: 35.2, d: 0.33, tilt: 42, head: 0, shift: 0 },
   { t: S('f3', 0.6), lat: 31.78, lon: 35.30, d: 0.17, tilt: 64, head: 84, shift: 0, hop: 0.2 },
-  { t: E('f3', 0.2), lat: 31.74, lon: 35.38, d: 0.14, tilt: 68, head: 90, shift: 0 },
+  { t: E('f3b', 0.2), lat: 31.74, lon: 35.38, d: 0.14, tilt: 68, head: 90, shift: 0 },
   { t: S('c1', 1.4), lat: 31.8, lon: 35.2, d: 3.0, tilt: 12, head: 0, shift: 100 },
   { t: TOTAL, lat: 28, lon: 30, d: 26, tilt: 0, head: 0, shift: 230 },
 ];
@@ -123,31 +122,34 @@ function pathFrom(pts) { return pts.map((p, i) => (i ? 'L' : 'M') + p.x.toFixed(
 function drawPath(el, pts, prog, a = 1, dash) { if (prog <= 0 || pts.some(p => !p.ok)) { el.setAttribute('opacity', 0); return; } el.setAttribute('d', pathFrom(pts)); el.setAttribute('stroke-dasharray', dash || `${prog.toFixed(4)} 1.01`); el.setAttribute('opacity', a); }
 const LABELS = [];
 function addLabel(o) { const el = document.createElement('div'); el.className = 'lab ' + (o.cls || ''); el.textContent = o.text; labelsEl.appendChild(el); const dot = o.dot === false ? null : Object.assign(document.createElement('div'), { className: 'dot' }); if (dot) labelsEl.appendChild(dot); LABELS.push({ ...o, el, dotEl: dot }); }
-addLabel({ text: 'JERUSALÉM', lat: JER.lat, lon: JER.lon, t0: Wd('h1', 'Jerusalém', 0.1), t1: E('d1', 0.6), dy: -24 });
-addLabel({ text: 'DIVISOR DE ÁGUAS (APROX.)', cls: 'sm', lat: 31.93, lon: 35.215, t0: Wd('d1', 'divisor', 0.0), t1: E('f0', 0.3), dy: -18, dot: false });
-addLabel({ text: 'MEDITERRÂNEO', cls: 'sm dk', dx: 150, lat: 31.86, lon: 34.72, t0: Wd('h2', 'Mediterrâneo', -0.1), t1: E('f1', 0.5), dy: -12, dot: false });
-addLabel({ text: 'MAR MORTO', cls: 'sm dk', lat: 31.55, lon: 35.45, t0: Wd('h2', 'Morto', -0.2), t1: E('f3', 0.6), dy: -12, dot: false, h: -430 });
+addLabel({ text: 'JERUSALÉM', lat: JER.lat, lon: JER.lon, t0: 0.3, t1: E('f1', 0.6), dy: -24 });
+addLabel({ text: 'DIVISOR DE ÁGUAS (APROX.)', cls: 'sm', lat: 31.93, lon: 35.215, t0: Wd('f1', 'divisor', 0.0), t1: E('f1', 0.5), dy: -18, dot: false });
+addLabel({ text: 'MEDITERRÂNEO', cls: 'sm dk', dx: 150, lat: 31.86, lon: 34.72, t0: Wd('h3', 'Mediterrâneo', -0.1), t1: E('f1', 0.5), dy: -12, dot: false });
+addLabel({ text: 'MAR MORTO', cls: 'sm dk', lat: 31.55, lon: 35.45, t0: Wd('h3', 'Morto', -0.2), t1: E('f2', 0.4), dy: -12, dot: false, h: -430 });
 addLabel({ text: 'OESTE · ~550 mm', lat: 31.80, lon: 34.98, t0: Wd('f2', 'oeste', -0.1), t1: E('f2', 0.4), dy: -14, dot: false });
 addLabel({ text: 'LESTE · <100 mm', lat: 31.72, lon: 35.45, t0: Wd('f2', 'leste', -0.1), t1: E('f2', 0.4), dy: -14, dot: false, h: -300 });
-addLabel({ text: 'JERUSALÉM · ~750 m', cls: 'sm', lat: JER.lat, lon: JER.lon, t0: Wd('f3', '750', -0.3), t1: E('f3', 0.4), dy: -22, dot: false });
-addLabel({ text: 'MAR MORTO · −430 m', cls: 'dk', lat: DSN.lat, lon: DSN.lon, t0: Wd('f3', '−430', -0.3), t1: E('f3', 0.4), dy: -22, dot: false, h: -430 });
+addLabel({ text: 'JERUSALÉM · ~750 m', cls: 'sm', lat: JER.lat, lon: JER.lon, t0: Wd('f3', '750', -0.3), t1: E('f3b', 0.4), dy: 72, dot: false });
+addLabel({ text: 'MAR MORTO · −430 m', cls: 'dk', lat: DSN.lat, lon: DSN.lon, t0: Wd('f3', '−430', -0.3), t1: E('f3b', 0.4), dy: -22, dot: false, h: -430 });
 const CARDS = [
-  { t0: Wd('d1', 'divisor', -0.1), t1: E('d1', 0.5), html: `<div class="big s">DIVISOR</div><div class="big s">DE ÁGUAS</div>` },
-  { t0: Wd('f1', 'Um', 0.0), t1: E('f1', 0.5), html: `<div style="display:flex;gap:34px;justify-content:center"><div><div class="sub" style="color:#7fd6ff">← OESTE</div><div class="big s" style="font-size:54px">MEDITERRÂNEO</div></div><div><div class="sub" style="color:#ffb070">LESTE →</div><div class="big s" style="font-size:54px">MAR MORTO</div></div></div>` },
-  { t0: Wd('f2', 'Dois', 0.0), t1: E('f2', 0.5), count: true },
-  { t0: Wd('f3', 'Três', 0.0), t1: E('f3', 0.5), html: `<div style="display:flex;gap:26px;justify-content:center;align-items:baseline"><div class="big s">750 m</div><div style="font-size:54px;color:#fff">→</div><div class="big s" style="color:#8fe3ff">−430 m</div></div><div class="sub">queda de ~1.180 m em ~${DIST_KM} km</div>` },
+  { t0: Wd('h2', 'Três', -0.1), t1: Wd('h3', 'Olha', -0.05), html: `<div class="big">3 FATOS</div><div class="sub">o último é o mais louco</div>` },
+  { t0: Wd('h3', 'Mediterrâneo', -0.3), t1: E('h3', 0.4), html: `<div style="display:flex;gap:34px;justify-content:center"><div><div class="sub" style="color:#7fd6ff">← OESTE</div><div class="big s" style="font-size:54px">MEDITERRÂNEO</div></div><div><div class="sub" style="color:#ffb070">LESTE →</div><div class="big s" style="font-size:54px">MAR MORTO</div></div></div>` },
+  { t0: Wd('f1', 'Um', 0.0), t1: E('f1', 0.4), html: `<div class="big s">DIVISOR</div><div class="big s">DE ÁGUAS</div>` },
+  { t0: Wd('f2', 'Dois', 0.0), t1: E('f2', 0.4), count: true },
+  { t0: Wd('f3', 'Três', 0.0), t1: E('f3', 0.3), html: `<div style="display:flex;gap:26px;justify-content:center;align-items:baseline"><div class="big s">750 m</div><div style="font-size:54px;color:#fff">→</div><div class="big s" style="color:#8fe3ff">−430 m</div></div><div class="sub">em ~${DIST_KM} km</div>` },
+  { t0: Wd('f3b', '1.180', -0.3), t1: E('f3b', 0.6), html: `<div class="big">−1.180 m</div><div class="sub">de queda em ~${DIST_KM} km</div>` },
   { t0: Wd('c1', 'Segue', -0.1), t1: TOTAL + 1, html: `<div class="big">PARTE 2</div><div class="sub">segue pra continuar</div>` },
 ];
-const BAR = [{ t: 0, chip: 'MISTÉRIO', ttl: 'Jerusalém' }, { t: S('f0', -0.1), chip: '3 FATOS', ttl: 'Jerusalém' }, { t: S('f1', -0.1), chip: '1 DE 3', ttl: 'Para onde vai a chuva' },
-  { t: S('f2', -0.1), chip: '2 DE 3', ttl: 'Dois climas' }, { t: S('f3', -0.1), chip: '3 DE 3', ttl: 'Queda de altitude' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'Jerusalém' }];
+const BAR = [{ t: 0, chip: 'VOCÊ SABIA?', ttl: 'Jerusalém' }, { t: S('f1', -0.1), chip: '1 DE 3', ttl: 'Divisor de águas' },
+  { t: S('f2', -0.1), chip: '2 DE 3', ttl: 'Dois climas' }, { t: S('f3', -0.1), chip: '3 DE 3', ttl: 'A queda' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'Jerusalém' }];
+const BEATS = [S('h2', -0.05), S('h3', 0), S('f1', 0), S('f2', 0), S('f3', 0), S('f3b', 0)];   // zoom de impacto a cada fala nova
 const CHUNKS = []; for (const l of TL.lines) { let cur = []; const flush = () => { if (cur.length) { CHUNKS.push({ words: cur, t0: cur[0].t0, t1: cur[cur.length - 1].t1 }); cur = []; } };
   for (const w of l.words) { const txt = w.w.replace(/[,.:;]+$/, '').toUpperCase(); const len = cur.reduce((a, x) => a + x.txt.length + 1, 0) + txt.length; if (cur.length && (len > 24 || cur.length >= 4)) flush(); cur.push({ ...w, txt }); if (/[,.:?]$/.test(w.w)) flush(); } flush(); }
 const capEl = document.getElementById('cap'), cardEl = document.getElementById('card'), barChip = document.getElementById('chip'), barTtl = document.getElementById('ttl'), footEl = document.getElementById('foot');
 let capKey = '', cardKey = -1;
 
 function update(t) {
-  const c = camState(t), dN = c.d; placeCamera(t, c); camera.updateMatrixWorld();
-  const bump = smooth((t - S('f3', 0.0)) / 1.0) * (1 - smooth((t - E('f3', 0.4)) / 1.0)); E_SITE = 3 + 3 * bump;
+  const c = camState(t); { let k = 1; for (const b of BEATS) if (t >= b && t - b < 1.2) k = Math.min(k, 1 - 0.09 * Math.exp(-(t - b) / 0.22)); c.d *= k; } const dN = c.d; placeCamera(t, c); camera.updateMatrixWorld();
+  const bump = smooth((t - S('f3', 0.0)) / 1.0) * (1 - smooth((t - E('f3b', 0.4)) / 1.0)); E_SITE = 3 + 3 * bump;
   regMat.uniforms.uAlpha.value = smooth((7.5 - dN) / 4); const lm = smooth((dN - 1.5) / 3);
   globe.material.uniforms.uMix.value = lm; regMat.uniforms.uMix.value = lm; regMat.uniforms.uHaze.value = smooth((1.8 - dN) / 1.2);
   const dist = camera.position.distanceTo(siteC); const sa = 1 - smooth((dist - 0.25) / 0.6);
@@ -155,10 +157,10 @@ function update(t) {
   cloudMat.opacity = 0.5 * smooth((dN - 4) / 6); atmoMat.uniforms.uA.value = smooth((dN - 1.5) / 6) * 0.9 + 0.1 * smooth((dN - 0.3) / 1.5);
   renderer.render(scene, camera);
   const P = p => proj(p.lat, p.lon, hAt(p.lat, p.lon) + 40);
-  drawPath(pDiv, DIV.map(P), smooth((t - Wd('d1', 'divisor', -0.2)) / 1.6), 1 - smooth((t - E('f0', 0.6)) / 0.8));
-  const fl = smooth((t - Wd('f1', 'chuva', -0.1)) / 0.8) * (1 - smooth((t - E('f2', 0.6)) / 0.8)), off = -t * 0.35;
+  drawPath(pDiv, DIV.map(P), smooth((t - Wd('h1', 'linha', -0.3)) / 1.4), 1 - smooth((t - E('f1', 0.6)) / 0.8));
+  const fl = smooth((t - Wd('h3', 'Olha', 0.0)) / 0.8) * (1 - smooth((t - E('f2', 0.6)) / 0.8)), off = -t * 0.35;
   drawPath(pW, FW.map(P), 1, fl, '0.018 0.034'); drawPath(pE, FE.map(P), 1, fl, '0.018 0.034'); pW.setAttribute('stroke-dashoffset', off); pE.setAttribute('stroke-dashoffset', off);
-  const pa = smooth((t - Wd('f3', '750', -0.4)) / 0.7) * (1 - smooth((t - E('f3', 0.3)) / 0.7)); const a = proj(JER.lat, JER.lon, hAt(JER.lat, JER.lon)), b = proj(DSN.lat, DSN.lon, -430);
+  const pa = smooth((t - Wd('f3', '750', -0.4)) / 0.7) * (1 - smooth((t - E('f3b', 0.3)) / 0.7)); const a = proj(JER.lat, JER.lon, hAt(JER.lat, JER.lon)), b = proj(DSN.lat, DSN.lon, -430);
   if (pa > 0 && a.ok && b.ok) { pProf.setAttribute('d', `M${a.x} ${a.y}L${b.x} ${b.y}`); pProf.setAttribute('stroke-dasharray', `${pa.toFixed(3)} 1.01`); pProf.setAttribute('opacity', pa); dotA.setAttribute('cx', a.x); dotA.setAttribute('cy', a.y); dotB.setAttribute('cx', b.x); dotB.setAttribute('cy', b.y); dotA.setAttribute('opacity', pa); dotB.setAttribute('opacity', pa); } else { pProf.setAttribute('opacity', 0); dotA.setAttribute('opacity', 0); dotB.setAttribute('opacity', 0); }
   for (const lb of LABELS) { const al = smooth((t - lb.t0) / 0.28) * (1 - smooth((t - lb.t1) / 0.3)); const p = proj(lb.lat, lb.lon, lb.h ?? hAt(lb.lat, lb.lon));
     if (al <= 0.01 || !p.ok || p.y + (lb.dy ?? -20) < 330) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; }

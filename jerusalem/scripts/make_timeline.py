@@ -1,10 +1,10 @@
 """Une as frases (duração real do TTS) numa linha do tempo e estima o tempo de cada palavra p/ a legenda."""
 import json, re
 raw = json.load(open("out/voice/timing_raw.json"))
-LEAD, TAIL = 0.25, 1.0
+LEAD, TAIL = 0.9, 1.0
 SUBS = {
     ("f3", "menos quatrocentos e trinta"): "−430", ("f3", "trinta"): "30", ("f3", "setecentos e cinquenta"): "750",
-    ("f2", "quinhentos e cinquenta"): "550", ("f2", "cem"): "100", ("c1", "dois"): "2",
+    ("f2", "quinhentos e cinquenta"): "550", ("f2", "cem"): "100", ("f3b", "mil cento e oitenta"): "1.180", ("c1", "dois"): "2",
 }
 t = LEAD; lines = []
 norm = lambda s: re.sub(r"[^\wÀ-ÿ]", "", s).lower()
