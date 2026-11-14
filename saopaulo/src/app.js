@@ -137,7 +137,7 @@ function pathFrom(pts, close) { return pts.map((p, i) => (i ? 'L' : 'M') + p.x.t
 function drawPath(el, pts, prog, a = 1, close = false) { if (prog <= 0 || pts.some(p => !p.ok)) { el.setAttribute('opacity', 0); return; } el.setAttribute('d', pathFrom(pts, close)); el.setAttribute('stroke-dasharray', `${prog.toFixed(4)} 1.01`); el.setAttribute('opacity', a); }
 const LABELS = [];
 function addLabel(o) { const el = document.createElement('div'); el.className = 'lab ' + (o.cls || ''); el.textContent = o.text; labelsEl.appendChild(el); const dot = o.dot === false ? null : Object.assign(document.createElement('div'), { className: 'dot' }); if (dot) labelsEl.appendChild(dot); LABELS.push({ ...o, el, dotEl: dot }); }
-addLabel({ text: 'SÃO PAULO', lat: -23.55, lon: -46.63, t0: 0.4, t1: E('f1', 0.4), dy: -12 });
+addLabel({ text: 'SÃO PAULO', lat: -23.55, lon: -46.63, t0: 0.4, t1: E('f1', 0.4), dy: -190 });
 addLabel({ text: 'PORTUGAL', cls: 'dk', lat: 39.5, lon: -8.0, t0: 0.5, t1: Wd('f2', 'Portugal', -0.2), dy: -10, dot: false });
 addLabel({ text: 'PORTUGAL · 92 mil km²', cls: 'dk', lat: 40.5, lon: -45, t0: Wd('f2', 'Portugal', 1.6), t1: E('f2', 0.4), dy: -6, dot: false });
 addLabel({ text: 'GRANDE SP · ~8 mil km²', lat: -23.7, lon: -46.3, t0: Wd('f2', 'Grande', -0.3), t1: E('f3', 0.4), dy: 24, dot: false });
@@ -145,7 +145,7 @@ const bars2 = (la, a, lb, b, ca, cb, max) => `<div style="text-align:left;font-w
 const CARDS = [
   { t0: Wd('f1', '11', -0.2), t1: E('f1', 0.5), html: bars2('CIDADE DE SÃO PAULO', '11 mi', 'PORTUGAL INTEIRO', '10 mi', '#ffb347', '#6fd0ff', 11) + `<div class="sub" style="font-size:26px;margin-top:10px">Censo IBGE 2022: 11,45 mi · Censo INE 2021: 10,34 mi</div>` },
   { t0: Wd('f2', 'Portugal', -0.3), t1: E('f2', 0.5), html: `<div style="display:flex;gap:26px;justify-content:center"><div><div class="big s" style="color:#6fd0ff;font-size:62px">92 mil km²</div><div class="sub">Portugal</div></div><div><div class="big s" style="color:#ffb347;font-size:62px">~8 mil km²</div><div class="sub">Grande SP</div></div></div>` },
-  { t0: Wd('f3', '21', -0.2), t1: E('f3', 0.5), html: bars2('GRANDE SÃO PAULO', '21 mi', 'PORTUGAL', '10 mi', '#ffb347', '#6fd0ff', 21) + `<div class="big s" style="margin-top:12px;color:#ffd36a;font-size:60px">2× A GENTE · 11× MENOS ÁREA</div>` },
+  { t0: Wd('f3', '21', -0.2), t1: E('f3', 0.5), html: bars2('GRANDE SÃO PAULO', '21 mi', 'PORTUGAL', '10 mi', '#ffb347', '#6fd0ff', 21) + `<div class="big s" style="margin-top:12px;color:#ffd36a;font-size:64px">2× A GENTE</div><div class="sub" style="font-size:30px;margin-top:4px">em ~11× menos área</div>` },
   { t0: Wd('c1', 'Segue', -0.1), t1: TOTAL + 1, html: `<div class="big">PARTE 2</div><div class="sub">segue pra continuar</div>` },
 ];
 const BAR = [{ t: 0, chip: 'VOCÊ SABIA?', ttl: 'São Paulo × Portugal' }, { t: S('f1', -0.1), chip: 'GENTE', ttl: 'Quantas pessoas' }, { t: S('f2', -0.1), chip: 'TAMANHO', ttl: 'Quanto espaço' }, { t: S('f3', -0.1), chip: 'RESULTADO', ttl: 'Grande SP × Portugal' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'São Paulo' }];
@@ -176,6 +176,6 @@ function update(t) {
   const ci = CARDS.findIndex(x => t >= x.t0 && t < x.t1);
   if (ci >= 0) { const cd = CARDS[ci]; if (ci !== cardKey) { cardEl.innerHTML = cd.html; cardKey = ci; } const al = smooth((t - cd.t0) / 0.25) * (1 - smooth((t - (cd.t1 - 0.2)) / 0.2)); cardEl.style.opacity = al; cardEl.style.transform = `translateY(${(1 - al) * 40}px)`; } else { cardEl.style.opacity = 0; cardKey = -1; }
   let bb = BAR[0]; for (const x of BAR) if (t >= x.t) bb = x; if (barChip.textContent !== bb.chip) { barChip.textContent = bb.chip; barTtl.textContent = bb.ttl; }
-  footEl.textContent = 'Contornos aproximados · Censo IBGE 2022 e INE 2021 · Portugal 92.225 km² · Grande SP ≈ 8 mil km²'; footEl.style.opacity = t < S('c1', 1) ? 1 : 0;
+  footEl.textContent = 'Contornos aproximados · Censos IBGE 2022 e INE 2021'; footEl.style.opacity = t < S('c1', 1) ? 1 : 0;
 }
 window.__TOTAL = TOTAL; window.renderFrame = async t => { update(t); await new Promise(r => requestAnimationFrame(() => r())); return true; }; window.__ready = true; update(0);

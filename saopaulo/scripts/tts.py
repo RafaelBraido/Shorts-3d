@@ -2,7 +2,7 @@
 (menos aspereza metálica e um toque de sala), sem cortar o fim das palavras. Uso: python3 scripts/tts.py <pasta do modelo piper> out/voice"""
 import json, re, subprocess, sys, wave, numpy as np, sherpa_onnx
 model_dir, out_dir = sys.argv[1], sys.argv[2]
-LENGTH, NOISE, NOISE_W = 1.12, 0.5, 0.7
+LENGTH, NOISE, NOISE_W = 1.26, 0.5, 0.7
 cfg = sherpa_onnx.OfflineTtsConfig(model=sherpa_onnx.OfflineTtsModelConfig(vits=sherpa_onnx.OfflineTtsVitsModelConfig(
     model=f"{model_dir}/pt_BR-faber-medium.onnx", tokens=f"{model_dir}/tokens.txt", data_dir=f"{model_dir}/espeak-ng-data",
     length_scale=LENGTH, noise_scale=NOISE, noise_scale_w=NOISE_W), num_threads=4))
@@ -22,6 +22,6 @@ for l in json.load(open("scripts/narration.json")):
     raw = f"{out_dir}/{l['id']}_raw.wav"
     with wave.open(raw, "wb") as w: w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr); w.writeframes((np.clip(s, -1, 1) * 32767).astype(np.int16).tobytes())
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-af", FX, f"{out_dir}/{l['id']}.wav"], check=True)
-    res.append({"id": l["id"], "gap": min(l.get("gap", 0.12), 0.2), "parts": [{"text": " ".join(p["t"] for p in l["parts"]), "t0": 0.0, "t1": len(s) / sr}], "dur": len(s) / sr, "sr": sr, "text": " ".join(p["t"] for p in l["parts"])})
+    res.append({"id": l["id"], "gap": max(min(l.get("gap", 0.12), 0.2), 0.17), "parts": [{"text": " ".join(p["t"] for p in l["parts"]), "t0": 0.0, "t1": len(s) / sr}], "dur": len(s) / sr, "sr": sr, "text": " ".join(p["t"] for p in l["parts"])})
     print(l["id"], round(len(s) / sr, 2), flush=True)
 json.dump(res, open(f"{out_dir}/timing_raw.json", "w"), ensure_ascii=False, indent=1)
