@@ -68,10 +68,10 @@ def thunder(dur=2.4):
     env = (1 - np.exp(-np.linspace(0, 1, m) * 40)) * np.exp(-np.linspace(0, 1, m) * 3.0)
     return (nz * env / np.abs(nz * env).max()).astype(np.float32)
 sfx = np.zeros(n, np.float32)
-for tm, d, up, g in [(0.3, 1.0, True, 0.6), (L["h1"]["start"] + 0.9, 1.0, True, 0.45), (L["f1"]["start"], 1.2, True, 0.5), (L["f2"]["start"], 1.0, False, 0.4),
-                     (Wd("f2", "tamanho", -0.1), 1.6, True, 0.55), (L["f3"]["start"], 1.2, True, 0.5), (Wd("f3", "Dá", -0.1), 0.9, True, 0.5), (L["c1"]["start"] + 0.3, 2.4, False, 0.6)]:
+for tm, d, up, g in [(0.3, 1.0, True, 0.6), (L["h1"]["start"] + 0.9, 1.0, True, 0.45), (L["f1"]["start"], 1.2, True, 0.5), (L["f2"]["start"], 1.0, False, 0.45),
+                     (Wd("f2", "Portugal", -0.1), 1.8, True, 0.55), (L["f3"]["start"], 1.2, True, 0.5), (L["c1"]["start"] + 0.3, 2.4, False, 0.6)]:
     place(sfx, whoosh(d, up), tm, g)
-for tm in [Wd("f1", "1867", -0.3), Wd("f2", "1,5", -0.2), Wd("f3", "7,2", 0.0), Wd("f3", "Neymar", -0.2), Wd("f3", "Dá", 0.2), Wd("c1", "Segue", -0.1)]:
+for tm in [Wd("f1", "11,4", -0.2), Wd("f2", "92", -0.2), Wd("f2", "Grande", -0.2), Wd("f3", "20,7", -0.2), Wd("c1", "Segue", -0.1)]:
     place(sfx, pop(), tm, 0.32)
 mix = voice + music * 0.55 + sfx * 0.45
 mix = mix / max(np.abs(mix).max(), 1e-6) * 0.92

@@ -7,7 +7,7 @@ cfg = sherpa_onnx.OfflineTtsConfig(model=sherpa_onnx.OfflineTtsModelConfig(vits=
     model=f"{model_dir}/pt_BR-faber-medium.onnx", tokens=f"{model_dir}/tokens.txt", data_dir=f"{model_dir}/espeak-ng-data",
     length_scale=LENGTH, noise_scale=NOISE, noise_scale_w=NOISE_W), num_threads=4))
 tts = sherpa_onnx.OfflineTts(cfg)
-RESPELL = {"Neymar": "Neimar", "Alasca": "Alasca", "Alascas": "Alascas"}      # só na síntese; as legendas mantêm a grafia correta
+RESPELL = {"Neymar": "Neimar"}      # só na síntese; as legendas mantêm a grafia correta
 def say(t):
     for k, v in RESPELL.items(): t = re.sub(rf"\b{k}\b", v, t)
     return t
