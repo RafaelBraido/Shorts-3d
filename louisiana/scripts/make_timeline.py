@@ -3,6 +3,7 @@ import json, re
 raw = json.load(open("out/voice/timing_raw.json"))
 LEAD, TAIL = 0.9, 1.0
 SUBS = {
+    ("h1", "um quarto"): "1/4",
     ("f1", "mil oitocentos e três"): "1803", ("f2", "dois milhões"): "2 milhões", ("f3", "quinze milhões"): "15 milhões",
     ("f3", "duzentos e vinte e dois"): "222", ("f3", "dezessete"): "17", ("c1", "dois"): "2",
 }

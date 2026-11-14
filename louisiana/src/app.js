@@ -132,6 +132,7 @@ addLabel({ text: 'LOUISIANA · 1803', lat: 41.5, lon: -101, t0: Wd('f1', '1803',
 addLabel({ text: 'EUA ANTES DE 1803', cls: 'dk', lat: 36, lon: -84, t0: Wd('f2', 'dobrou', 0.2), t1: E('f2', 0.4), dy: -10, dot: false });
 const fmtBar = (v, max, c) => `<div style="height:34px;width:${Math.max(3, (v / max) * 520)}px;background:${c};border-radius:8px;margin-top:4px"></div>`;
 const CARDS = [
+  { t0: 1.6, t1: Wd('f1', '1803', -0.3), html: `<div class="big">≈ 1/4 dos EUA</div><div class="sub">custou menos que o Neymar</div>` },
   { t0: Wd('f1', '1803', -0.2), t1: E('f1', 0.4), html: `<div class="big">1803</div><div class="sub">França → Estados Unidos</div>` },
   { t0: Wd('f2', '2', -0.2), t1: E('f2', 0.4), html: `<div class="big s">≈ 2,1 mi km²</div><div class="sub">dobrou o território dos EUA</div>` },
   { t0: Wd('f3', '15', -0.1), t1: Wd('f3', 'Neymar', -0.2), html: `<div class="big">US$ 15 mi</div><div class="sub">o preço da Louisiana</div>` },
@@ -152,7 +153,7 @@ function update(t) {
   renderer.render(scene, camera);
   const P = p => proj(p.lat, p.lon);
   drawPath(pUS, USP.map(P), smooth(t / 0.9), 1, true);
-  drawPath(pLP, LPP.map(P), smooth((t - Wd('f1', '1803', 0.2)) / 1.6), smooth((t - Wd('f1', '1803', 0.2)) / 0.4), true);
+  drawPath(pLP, LPP.map(P), smooth((t - 1.3) / 1.4), smooth((t - 1.3) / 0.4), true);
   for (const lb of LABELS) { const al = smooth((t - lb.t0) / 0.2) * (1 - smooth((t - lb.t1) / 0.25)); const p = proj(lb.lat, lb.lon);
     if (al <= 0.01 || !p.ok || p.y + (lb.dy ?? -20) < 330) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; }
     lb.el.style.opacity = al; lb.el.style.left = (p.x + (lb.dx || 0)) + 'px'; lb.el.style.top = (p.y + (lb.dy ?? -20)) + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * al})`;
@@ -169,6 +170,6 @@ function update(t) {
     else if (ci !== cardKey) { cardEl.innerHTML = cd.html; cardKey = ci; }
     const al = smooth((t - cd.t0) / 0.25) * (1 - smooth((t - (cd.t1 - 0.2)) / 0.2)); cardEl.style.opacity = al; cardEl.style.transform = `translateY(${(1 - al) * 40}px)`; } else { cardEl.style.opacity = 0; cardKey = -1; }
   let bb = BAR[0]; for (const x of BAR) if (t >= x.t) bb = x; if (barChip.textContent !== bb.chip) { barChip.textContent = bb.chip; barTtl.textContent = bb.ttl; }
-  footEl.textContent = t > S('f3', 0) ? 'Valores nominais da época; €222 mi ≈ US$ 262 mi (2017)' : 'Contornos aproximados · área da compra: ~2,14 milhões de km² (828 mil mi²)'; footEl.style.opacity = t < S('c1', 1) ? 1 : 0;
+  footEl.textContent = t > S('f3', 0) ? 'Valores nominais da época; €222 mi ≈ US$ 262 mi (2017)' : 'Contornos aproximados · a compra (2,14 mi km²) ≈ 26% dos EUA continentais, ≈ 22% de todo o território atual'; footEl.style.opacity = t < S('c1', 1) ? 1 : 0;
 }
 window.__cam = camState; window.__TOTAL = TOTAL; window.renderFrame = async t => { update(t); await new Promise(r => requestAnimationFrame(() => r())); return true; }; window.__ready = true; update(0);
