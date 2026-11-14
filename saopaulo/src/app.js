@@ -89,8 +89,8 @@ const K = [
   { t: E('f1', 0.0), lat: -23.6, lon: -46.6, d: 0.22, tilt: 46, head: 14, shift: 0 },
   { t: S('f2', 0.0), lat: -23.6, lon: -46.6, d: 1.6, tilt: 14, head: 6, shift: 0, hop: 0.2 },
   { t: E('f2', 0.0), lat: -23.0, lon: -46.6, d: 1.5, tilt: 22, head: -8, shift: 0 },
-  { t: S('f3', 0.0), lat: -23.6, lon: -46.6, d: 0.55, tilt: 28, head: 10, shift: 0, hop: 0.15 },
-  { t: E('f3', 0.0), lat: -23.6, lon: -46.6, d: 0.45, tilt: 40, head: -14, shift: 0 },
+  { t: S('f3', 0.0), lat: -23.2, lon: -46.6, d: 1.9, tilt: 18, head: 8, shift: 0 },
+  { t: E('f3', 0.0), lat: -23.0, lon: -46.6, d: 1.6, tilt: 26, head: -10, shift: 0 },
   { t: S('c1', 1.2), lat: -10, lon: -40, d: 16, tilt: 0, head: 0, shift: 150 },
   { t: TOTAL, lat: 8, lon: -32, d: 24, tilt: 0, head: 0, shift: 230 },
 ];
@@ -176,6 +176,6 @@ function update(t) {
   const ci = CARDS.findIndex(x => t >= x.t0 && t < x.t1);
   if (ci >= 0) { const cd = CARDS[ci]; if (ci !== cardKey) { cardEl.innerHTML = cd.html; cardKey = ci; } const al = smooth((t - cd.t0) / 0.25) * (1 - smooth((t - (cd.t1 - 0.2)) / 0.2)); cardEl.style.opacity = al; cardEl.style.transform = `translateY(${(1 - al) * 40}px)`; } else { cardEl.style.opacity = 0; cardKey = -1; }
   let bb = BAR[0]; for (const x of BAR) if (t >= x.t) bb = x; if (barChip.textContent !== bb.chip) { barChip.textContent = bb.chip; barTtl.textContent = bb.ttl; }
-  footEl.textContent = 'Contornos aproximados · população: Censo IBGE 2022 e Censo INE 2021 · áreas: Portugal 92.225 km², Grande SP ≈ 8 mil km²'; footEl.style.opacity = t < S('c1', 1) ? 1 : 0;
+  footEl.textContent = 'Contornos aproximados · Censo IBGE 2022 e INE 2021 · Portugal 92.225 km² · Grande SP ≈ 8 mil km²'; footEl.style.opacity = t < S('c1', 1) ? 1 : 0;
 }
 window.__TOTAL = TOTAL; window.renderFrame = async t => { update(t); await new Promise(r => requestAnimationFrame(() => r())); return true; }; window.__ready = true; update(0);
