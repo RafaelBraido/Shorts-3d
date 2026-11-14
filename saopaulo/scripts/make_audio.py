@@ -71,7 +71,7 @@ sfx = np.zeros(n, np.float32)
 for tm, d, up, g in [(0.3, 1.0, True, 0.6), (L["h1"]["start"] + 0.9, 1.0, True, 0.45), (L["f1"]["start"], 1.2, True, 0.5), (L["f2"]["start"], 1.0, False, 0.45),
                      (Wd("f2", "Portugal", -0.1), 1.8, True, 0.55), (L["f3"]["start"], 1.2, True, 0.5), (L["c1"]["start"] + 0.3, 2.4, False, 0.6)]:
     place(sfx, whoosh(d, up), tm, g)
-for tm in [Wd("f1", "11,4", -0.2), Wd("f2", "92", -0.2), Wd("f2", "Grande", -0.2), Wd("f3", "20,7", -0.2), Wd("c1", "Segue", -0.1)]:
+for tm in [Wd("f1", "11", -0.2), Wd("f2", "Portugal", -0.3), Wd("f2", "Grande", -0.2), Wd("f3", "21", -0.2), Wd("c1", "Segue", -0.1)]:
     place(sfx, pop(), tm, 0.32)
 mix = voice + music * 0.55 + sfx * 0.45
 mix = mix / max(np.abs(mix).max(), 1e-6) * 0.92

@@ -3,8 +3,7 @@ import json, re
 raw = json.load(open("out/voice/timing_raw.json"))
 LEAD, TAIL = 0.9, 1.0
 SUBS = {
-    ("f1", "onze vírgula quatro"): "11,4", ("f1", "dez vírgula três"): "10,3", ("f2", "noventa e dois mil"): "92 mil", ("f2", "oito mil"): "8 mil",
-    ("f3", "vinte vírgula sete"): "20,7", ("f3", "onze"): "11", ("c1", "dois"): "2",
+    ("f1", "onze"): "11", ("f1", "dez"): "10", ("f3", "vinte e um"): "21", ("c1", "dois"): "2",
 }
 t = LEAD; lines = []
 norm = lambda s: re.sub(r"[^\wÀ-ÿ]", "", s).lower()
