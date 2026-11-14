@@ -2,7 +2,7 @@
 (menos aspereza metálica e um toque de sala), sem cortar o fim das palavras. Uso: python3 scripts/tts.py <pasta do modelo piper> out/voice"""
 import json, re, subprocess, sys, wave, numpy as np, sherpa_onnx
 model_dir, out_dir = sys.argv[1], sys.argv[2]
-LENGTH, NOISE, NOISE_W = 1.22, 0.5, 0.7
+LENGTH, NOISE, NOISE_W = 1.12, 0.5, 0.7
 cfg = sherpa_onnx.OfflineTtsConfig(model=sherpa_onnx.OfflineTtsModelConfig(vits=sherpa_onnx.OfflineTtsVitsModelConfig(
     model=f"{model_dir}/pt_BR-faber-medium.onnx", tokens=f"{model_dir}/tokens.txt", data_dir=f"{model_dir}/espeak-ng-data",
     length_scale=LENGTH, noise_scale=NOISE, noise_scale_w=NOISE_W), num_threads=4))
