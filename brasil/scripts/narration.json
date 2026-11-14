@@ -1,0 +1,82 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Você acha que o Brasil é menor que os Estados Unidos?",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "h2",
+  "parts": [
+   {
+    "t": "Então olha isso.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "h3",
+  "parts": [
+   {
+    "t": "Sem o Alasca, é maior. E tem três fatos que ninguém conhece.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "Um: de norte a sul, são quatro mil e quatrocentos quilômetros. Quase a distância de costa a costa dos Estados Unidos.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f1b",
+  "parts": [
+   {
+    "t": "E de leste a oeste? Quase igual: quatro mil e trezentos.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f2",
+  "parts": [
+   {
+    "t": "Dois: por causa disso, o Brasil tem quatro fusos horários.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f3",
+  "parts": [
+   {
+    "t": "Três: ele faz fronteira com dez dos onze outros países da América do Sul.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Qual lugar você quer ver na próxima? Segue pra parte dois.",
+    "s": 1
+   }
+  ],
+  "gap": 0.2
+ }
+]

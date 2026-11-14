@@ -1,0 +1,82 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Você sabia que Jerusalém fica em cima de uma linha invisível?",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "h2",
+  "parts": [
+   {
+    "t": "Três fatos. O último é o mais louco.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "h3",
+  "parts": [
+   {
+    "t": "Olha o que a chuva faz: de um lado, vai para o Mediterrâneo. Do outro, para o Mar Morto.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "Um: essa linha é o divisor de águas das montanhas da Judeia.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f2",
+  "parts": [
+   {
+    "t": "Dois: por isso, a oeste chove cerca de quinhentos e cinquenta milímetros por ano. Mas a leste, perto do Mar Morto, menos de cem.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f3",
+  "parts": [
+   {
+    "t": "Três: em menos de trinta quilômetros, a altitude despenca de setecentos e cinquenta metros para menos quatrocentos e trinta.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f3b",
+  "parts": [
+   {
+    "t": "É uma queda de mil cento e oitenta metros.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Qual lugar você quer ver na próxima? Segue pra parte dois.",
+    "s": 1
+   }
+  ],
+  "gap": 0.2
+ }
+]

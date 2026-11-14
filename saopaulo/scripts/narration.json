@@ -1,0 +1,52 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Você sabia que a cidade de São Paulo tem mais gente que Portugal?",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "São onze vírgula quatro milhões de pessoas na cidade. Portugal inteiro tem dez vírgula três milhões.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f2",
+  "parts": [
+   {
+    "t": "Agora olha o tamanho. Portugal ocupa noventa e dois mil quilômetros quadrados. A Grande São Paulo, cerca de oito mil.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f3",
+  "parts": [
+   {
+    "t": "E a Grande São Paulo inteira tem vinte vírgula sete milhões de pessoas. O dobro de Portugal, numa área onze vezes menor.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Qual lugar você quer ver na próxima? Segue pra parte dois.",
+    "s": 1
+   }
+  ],
+  "gap": 0.2
+ }
+]
