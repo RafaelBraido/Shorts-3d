@@ -84,9 +84,17 @@ const K = [
   { t: S('c1', 1.2), lat: 36, lon: -98, d: 16, tilt: 0, head: 0, shift: 150 },
   { t: TOTAL, lat: 33, lon: -100, d: 22, tilt: 0, head: 0, shift: 230 },
 ];
+// Movimento contínuo (curva de velocidade estilo After Effects): interpolação cúbica monótona (Fritsch–Carlson) pelos pontos-chave,
+// sem parar em cada ponto; só começa e termina suave. 'hop' = arco de altitude do flyTo.
+const KF = ['lat', 'lon', 'tilt', 'head', 'shift'], KTS = K.map(k => k.t), KLD = K.map(k => Math.log(k.d));
+function monoTan(ts, vs) { const n = ts.length, h = [], s = [], m = new Array(n).fill(0); for (let i = 0; i < n - 1; i++) { h[i] = Math.max(ts[i + 1] - ts[i], 1e-6); s[i] = (vs[i + 1] - vs[i]) / h[i]; }
+  for (let i = 1; i < n - 1; i++) m[i] = s[i - 1] * s[i] <= 0 ? 0 : 3 * (h[i - 1] + h[i]) / ((2 * h[i] + h[i - 1]) / s[i - 1] + (h[i] + 2 * h[i - 1]) / s[i]); return m; }
+const KTAN = Object.fromEntries([...KF.map(f => [f, monoTan(KTS, K.map(k => k[f]))]), ['ld', monoTan(KTS, KLD)]]);
+const herm = (v0, v1, m0, m1, h, u) => (2 * u ** 3 - 3 * u ** 2 + 1) * v0 + (u ** 3 - 2 * u ** 2 + u) * h * m0 + (-2 * u ** 3 + 3 * u ** 2) * v1 + (u ** 3 - u ** 2) * h * m1;
 function camState(t) { let i = 0; while (i < K.length - 2 && t > K[i + 1].t) i++;
-  const a = K[i], b = K[i + 1], u = smooth((t - a.t) / Math.max(b.t - a.t, 1e-6));
-  return { lat: lerp(a.lat, b.lat, u), lon: lerp(a.lon, b.lon, u), d: Math.exp(lerp(Math.log(a.d), Math.log(b.d), u) + (b.hop || 0) * Math.sin(Math.PI * u)), tilt: lerp(a.tilt, b.tilt, u), head: lerp(a.head, b.head, u), shift: lerp(a.shift, b.shift, u) }; }
+  const a = K[i], b = K[i + 1], h = Math.max(b.t - a.t, 1e-6), u = clamp((t - a.t) / h), o = {};
+  for (const f of KF) o[f] = herm(a[f], b[f], KTAN[f][i], KTAN[f][i + 1], h, u);
+  o.d = Math.exp(herm(KLD[i], KLD[i + 1], KTAN.ld[i], KTAN.ld[i + 1], h, u) + (b.hop || 0) * Math.sin(Math.PI * u)); return o; }
 function placeCamera(t, c) {
   const P = ll2v(c.lat, c.lon, R + (0.0003)), up = P.clone().normalize(), east = new THREE.Vector3(Math.cos(c.lon * DEG), 0, -Math.sin(c.lon * DEG)), north = new THREE.Vector3().crossVectors(up, east).normalize();
   const head = (c.head + Math.sin(t * 0.8) * 0.5) * DEG, tilt = c.tilt * DEG, Ld = north.clone().multiplyScalar(Math.cos(head)).add(east.clone().multiplyScalar(Math.sin(head)));
@@ -163,4 +171,4 @@ function update(t) {
   let bb = BAR[0]; for (const x of BAR) if (t >= x.t) bb = x; if (barChip.textContent !== bb.chip) { barChip.textContent = bb.chip; barTtl.textContent = bb.ttl; }
   footEl.textContent = t > S('f3', 0) ? 'Valores nominais da época; €222 mi ≈ US$ 262 mi (2017)' : 'Contornos aproximados · área da compra: ~2,14 milhões de km² (828 mil mi²)'; footEl.style.opacity = t < S('c1', 1) ? 1 : 0;
 }
-window.__TOTAL = TOTAL; window.renderFrame = async t => { update(t); await new Promise(r => requestAnimationFrame(() => r())); return true; }; window.__ready = true; update(0);
+window.__cam = camState; window.__TOTAL = TOTAL; window.renderFrame = async t => { update(t); await new Promise(r => requestAnimationFrame(() => r())); return true; }; window.__ready = true; update(0);
