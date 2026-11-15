@@ -8,3 +8,6 @@ out/galileia_3d_master.mp4
 out/overlay/
 out/blender_bg/
 out/bl_test/
+
+assets/*_cnt.npy
+assets/mid_*_raw.jpg
