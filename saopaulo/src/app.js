@@ -128,26 +128,24 @@ const PTP = geo.pt.map(([lat, lon]) => ({ lat, lon })), PTC = { lat: 39.5, lon: 
 function basis(lat, lon) { const up = ll2v(lat, lon, 1), east = new THREE.Vector3(Math.cos(lon * DEG), 0, -Math.sin(lon * DEG)), north = new THREE.Vector3().crossVectors(up, east).normalize(); return { up, east, north }; }
 const bPT = basis(PTC.lat, PTC.lon);
 let ptLocal = PTP.map(p => { const v = ll2v(p.lat, p.lon, 1), ang = Math.acos(clamp(v.dot(bPT.up), -1, 1)), d = v.clone().sub(bPT.up.clone().multiplyScalar(v.dot(bPT.up))).normalize(); return { x: ang * 6371 * d.dot(bPT.east), y: ang * 6371 * d.dot(bPT.north) }; });
-{ let A = 0; for (let i = 0; i < ptLocal.length; i++) { const p = ptLocal[i], q = ptLocal[(i + 1) % ptLocal.length]; A += p.x * q.y - q.x * p.y; } A = Math.abs(A) / 2; const s = Math.sqrt(92225 / A);   // contorno ajustado à área oficial (92.225 km²)
-  const cx = ptLocal.reduce((a, p) => a + p.x, 0) / ptLocal.length, cy = ptLocal.reduce((a, p) => a + p.y, 0) / ptLocal.length; ptLocal = ptLocal.map(p => ({ x: cx + (p.x - cx) * s, y: cy + (p.y - cy) * s })); }
 function ptAt(u) {
   const va = ll2v(PTC.lat, PTC.lon, 1), vb = ll2v(SPC.lat, SPC.lon, 1), om = Math.acos(clamp(va.dot(vb), -1, 1)), c = va.clone().multiplyScalar(Math.sin((1 - u) * om)).addScaledVector(vb, Math.sin(u * om)).divideScalar(Math.sin(om));
   const b = basis(Math.asin(c.y) / DEG, Math.atan2(c.x, c.z) / DEG);
   return ptLocal.map(p => { const h = Math.hypot(p.x, p.y) || 1, ang = h / 6371, dir = b.east.clone().multiplyScalar(p.x / h).addScaledVector(b.north, p.y / h), v = b.up.clone().multiplyScalar(Math.cos(ang)).addScaledVector(dir, Math.sin(ang)); return { lat: Math.asin(v.y) / DEG, lon: Math.atan2(v.x, v.z) / DEG }; });
 }
-const SPE = (() => { const a = 63, b = 40.2, rot = -15 * DEG, out = []; for (let i = 0; i < 72; i++) { const th = i / 72 * Math.PI * 2, x = a * Math.cos(th), y = b * Math.sin(th), X = x * Math.cos(rot) - y * Math.sin(rot), Y = x * Math.sin(rot) + y * Math.cos(rot); out.push({ lat: -23.70 + Y / 111.2, lon: -46.55 + X / (111.2 * Math.cos(23.7 * DEG)) }); } return out; })();   // área ≈ 8.000 km² (Grande SP, contorno aproximado)
+const SPE = geo.rmsp.map(([lat, lon]) => ({ lat, lon }));   // 39 municípios da RMSP (geodata-br/IBGE), ≈ 8.006 km²
 function pathFrom(pts, close) { return pts.map((p, i) => (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join('') + (close ? 'Z' : ''); }
 function drawPath(el, pts, prog, a = 1, close = false) { if (prog <= 0 || pts.some(p => !p.ok)) { el.setAttribute('opacity', 0); return; } el.setAttribute('d', pathFrom(pts, close)); el.setAttribute('stroke-dasharray', `${prog.toFixed(4)} 1.01`); el.setAttribute('opacity', a); }
 const LABELS = [];
 function addLabel(o) { const el = document.createElement('div'); el.className = 'lab ' + (o.cls || ''); el.textContent = o.text; labelsEl.appendChild(el); const dot = o.dot === false ? null : Object.assign(document.createElement('div'), { className: 'dot' }); if (dot) labelsEl.appendChild(dot); LABELS.push({ ...o, el, dotEl: dot }); }
 addLabel({ text: 'SÃO PAULO', lat: -23.55, lon: -46.63, t0: 0.4, t1: E('f1', 0.4), dy: -190 });
-addLabel({ text: 'PORTUGAL', cls: 'dk', lat: 39.5, lon: -8.0, t0: 0.5, t1: Wd('f2', 'Portugal', -0.2), dy: -10, dot: false });
+addLabel({ text: 'PORTUGAL CONTINENTAL', cls: 'dk', lat: 39.5, lon: -8.0, t0: 0.5, t1: Wd('f2', 'Portugal', -0.2), dy: -10, dot: false });
 addLabel({ text: 'PORTUGAL · 92 mil km²', cls: 'dk', lat: 40.5, lon: -45, t0: Wd('f2', 'Portugal', 1.6), t1: E('f2', 0.4), dy: -6, dot: false });
-addLabel({ text: 'GRANDE SP · ~8 mil km²', lat: -23.7, lon: -46.3, t0: Wd('f2', 'Grande', -0.3), t1: E('f3', 0.4), dy: 24, dot: false });
+addLabel({ text: 'GRANDE SP · 8 MIL KM²', lat: -23.7, lon: -46.3, t0: Wd('f2', 'Grande', -0.3), t1: E('f3', 0.4), dy: 24, dot: false });
 const bars2 = (la, a, lb, b, ca, cb, max) => `<div style="text-align:left;font-weight:800;color:#fff;font-size:36px;letter-spacing:2px"><div style="margin:8px 0">${la} <span style="color:${ca}">${a}</span><div style="height:32px;width:${(parseFloat(String(a).replace(',', '.')) / max) * 440}px;background:${ca};border-radius:8px;margin-top:4px"></div></div><div style="margin:14px 0 0">${lb} <span style="color:${cb}">${b}</span><div style="height:32px;width:${(parseFloat(String(b).replace(',', '.')) / max) * 440}px;background:${cb};border-radius:8px;margin-top:4px"></div></div></div>`;
 const CARDS = [
   { t0: Wd('f1', '11', -0.2), t1: E('f1', 0.5), html: bars2('CIDADE DE SÃO PAULO', '11 milhões', 'PORTUGAL INTEIRO', '10 milhões', '#ffb347', '#6fd0ff', 11) + `<div class="sub" style="font-size:28px;margin-top:10px;letter-spacing:2px">HABITANTES</div><div class="sub" style="font-size:20px;margin-top:2px;letter-spacing:1px;white-space:nowrap">IBGE 2022: 11,45 mi · INE 2021: 10,34 mi</div>` },
-  { t0: Wd('f2', 'Portugal', -0.3), t1: E('f2', 0.5), html: `<div style="display:flex;gap:26px;justify-content:center"><div><div class="big s" style="color:#6fd0ff;font-size:62px">92 mil km²</div><div class="sub">Portugal</div></div><div><div class="big s" style="color:#ffb347;font-size:62px">~8 mil km²</div><div class="sub">Grande SP</div></div></div>` },
+  { t0: Wd('f2', 'Portugal', -0.3), t1: E('f2', 0.5), html: `<div style="display:flex;gap:26px;justify-content:center"><div><div class="big s" style="color:#6fd0ff;font-size:48px">92 mil km²</div><div class="sub" style="font-size:24px">Portugal (c/ ilhas)</div></div><div><div class="big s" style="color:#ffb347;font-size:48px">8 mil km²</div><div class="sub" style="font-size:24px">Grande SP</div></div></div>` },
   { t0: Wd('f3', '21', -0.2), t1: E('f3', 0.5), html: bars2('GRANDE SÃO PAULO', '21 milhões', 'PORTUGAL', '10 milhões', '#ffb347', '#6fd0ff', 21) + `<div class="sub" style="font-size:28px;margin-top:8px;letter-spacing:2px">HABITANTES</div><div class="big s" style="margin-top:6px;color:#ffd36a;font-size:60px">2× A GENTE</div><div class="sub" style="font-size:30px;margin-top:4px">em ~11× menos área</div>` },
   { t0: Wd('c1', 'Segue', -0.1), t1: TOTAL + 1, html: `<div class="big">PARTE 2</div><div class="sub">segue pra continuar</div>` },
 ];
@@ -180,6 +178,6 @@ function update(t) {
   const ci = CARDS.findIndex(x => t >= x.t0 && t < x.t1);
   if (ci >= 0) { const cd = CARDS[ci]; if (ci !== cardKey) { cardEl.innerHTML = cd.html; cardKey = ci; } const al = smooth((t - cd.t0) / 0.25) * (1 - smooth((t - (cd.t1 - 0.2)) / 0.2)); cardEl.style.opacity = al; cardEl.style.transform = `translateY(${(1 - al) * 40}px)`; } else { cardEl.style.opacity = 0; cardKey = -1; }
   let bb = BAR[0]; for (const x of BAR) if (t >= x.t) bb = x; if (barChip.textContent !== bb.chip) { barChip.textContent = bb.chip; barTtl.textContent = bb.ttl; }
-  footEl.textContent = 'Contornos aproximados · Censos IBGE 2022 e INE 2021'; footEl.style.opacity = t < S('c1', 1) ? 1 : 0;
+  footEl.textContent = 'Contornos: geoBoundaries e IBGE · Censos 2021 e 2022'; footEl.style.opacity = t < S('c1', 1) ? 1 : 0;
 }
 window.__TOTAL = TOTAL; window.renderFrame = async t => { update(t); await new Promise(r => requestAnimationFrame(() => r())); return true; }; window.__ready = true; update(0);
