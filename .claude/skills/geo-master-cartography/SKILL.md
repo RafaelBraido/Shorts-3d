@@ -19,24 +19,39 @@ Mapas e análises geográficas **100% locais**: só dados vetoriais baixados do 
 
 Não raspe o Google Maps (viola os termos e envolve dados pessoais).
 
-## 2. Fontes (status testado em 2026-11)
+## 2. Fontes (testadas de verdade em 2026-11-15; só o que passou)
 
-### Verificadas (respondem 200 neste ambiente)
-| Fonte | Arquivo | Tamanho | Uso |
+Monte a URL como `https://raw.githubusercontent.com/<usuario>/<repositorio>/<branch>/<caminho>`.
+
+| Repositório (branch) | Arquivo testado | Tamanho | Uso |
 |---|---|---|---|
-| Natural Earth Vector (`nvkelso/natural-earth-vector`) | `geojson/ne_10m_admin_0_countries.geojson` | 13 MB | fronteiras de países (usar sempre `10m`) |
+| `nvkelso/natural-earth-vector` (master) | `geojson/ne_10m_admin_0_countries.geojson` | 13 MB | fronteiras de países (sempre `10m`) |
 | idem | `geojson/ne_10m_admin_1_states_provinces.geojson` | 41 MB | estados e províncias (ex.: Alasca) |
 | idem | `geojson/ne_10m_coastline.geojson` | 10 MB | linha de costa |
-| idem | `geojson/ne_10m_time_zones.geojson` | 3,5 MB | fusos horários |
-| `johan/world.geo.json` | `countries.geo.json` | 0,25 MB | fronteiras leves (prévia rápida) |
-| `tbrugz/geodata-br` | `geojson/geojs-<UF>-mun.json` (ex.: `35` = SP, 22,5 MB o `100-mun`) | 1,9 MB (SP) | municípios do Brasil; `id` = código IBGE |
-| `dr5hn/countries-states-cities-database` | `json/countries.json` | 0,5 MB | países, estados e cidades com lat/lon |
-| `jpatokal/openflights` | `data/airports.dat` | 1,1 MB | aeroportos |
-| `evansiroky/timezone-boundary-builder` | README apenas | — | polígonos de fusos (baixar o release de GitHub) |
-| `ipeaGIT/geobr` | só o README no `master`; dados vêm pelo pacote `geobr` | — | malhas oficiais do IBGE (testar `geobr.read_*` antes de prometer) |
+| idem | `geojson/ne_10m_rivers_lake_centerlines.geojson` | 7 MB | rios e lagos |
+| idem | `geojson/ne_10m_time_zones.geojson` | 3,5 MB | fusos (aproximados) |
+| `datasets/geo-countries` (main) | `data/countries.geojson` | 14,6 MB | países, GeoJSON limpo |
+| `dr5hn/countries-states-cities-database` (master) | `json/countries.json`, `json/states.json` | 0,5 e 6,6 MB | países e estados com lat/lon (cidades não testadas) |
+| `tbrugz/geodata-br` (master) | `geojson/geojs-<cod UF>-mun.json` (`35` = SP, `100` = Brasil) | 1,9 MB (SP) | municípios; `id` = código IBGE |
+| `fititnt/gis-dataset-brasil` (master) | `mesorregiao/geojson/mesorregiao.json`, `microrregiao/geojson/microrregiao.json` | 6,3 e 11 MB | meso e microrregiões do IBGE |
+| `kelvins/municipios-brasileiros` (main) | `csv/municipios.csv` | 0,4 MB | 5.570 municípios: código IBGE, lat/lon, DDD |
+| `jpatokal/openflights` (master) | `data/airports.dat`, `data/routes.dat` | 1,1 e 2,4 MB | aeroportos e rotas |
+| `datasets/airport-codes` (main) | `data/airport-codes.csv` | 8,8 MB | IATA, ICAO, tipo, elevação |
+| `evansiroky/timezone-boundary-builder` | release `timezones.geojson.zip` em `github.com/<repo>/releases/latest/download/` | 52 MB | polígonos reais de fusos (zip: descompactar no cache) |
 
-### Citadas pelo usuário, mas o link veio truncado (`https://github.com`): precisam do link completo
-GeoJSON Countries (fronteiras limpas), World Atlas TopoJSON (`topojson/world-atlas` não tem `countries-10m.json` no repositório: vem no pacote npm `world-atlas`), "GIS Dataset Brasil", "5.570 Municípios Brasileiros", "Airport Codes", todos os itens do Google Maps (MCP, Agent Skills, 18 ferramentas, Places/Routes). **Peça o link completo antes de usar.**
+No `nvkelso/natural-earth-vector` as pastas `10m_cultural/` e `10m_physical/` guardam shapefiles (`.shp/.dbf/.shx`); a pasta `geojson/` tem os mesmos dados em GeoJSON, e foi essa a que testei.
+
+### Parcial
+- `topojson/world-atlas`: o repositório **não guarda dados** (só o código de build). Os mapas vêm do pacote npm `world-atlas` (o registro npm responde; o arquivo `.tgz` não foi testado).
+
+### Reprovados neste ambiente (não use)
+- `ipeaGIT/geobr`: `pip install geobr` funciona, mas `geobr.read_*` falha com `ConnectionError`, porque os dados ficam em `ipea.gov.br` (inacessível aqui) e em `api.github.com` (bloqueada). Use `tbrugz/geodata-br` e `fititnt/gis-dataset-brasil` no lugar.
+
+### Google Maps (só sob demanda, com chave no `.env`)
+Os repositórios `googlemaps/agent-skills`, `cablate/mcp-google-map` e `vicpeacock/google-maps-comprehensive-mcp` abrem e podem ser lidos, mas **não foram usados nem instalados**. A API (`maps.googleapis.com`) responde, e sem chave devolve erro; cobrança e termos de uso do Google valem.
+
+### Pacotes Python
+Instalados e importando: `geopandas`, `shapely`, `pyproj`, `plotly`, `folium`, `matplotlib`, `pyogrio`. O `geobr` está instalado, mas sem dados (ver acima).
 
 ## 3. Padrões de qualidade
 
