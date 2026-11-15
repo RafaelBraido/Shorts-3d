@@ -77,6 +77,9 @@ const E_SITE = 3;
 const SM = maps.site, SH = await hbin('/assets/site_height.bin'); let HMIN = 1e9; for (const v of SH) HMIN = Math.min(HMIN, v); for (let i = 0; i < SH.length; i++) SH[i] -= HMIN;
 const siteMat = patchMat(tSite, { lift: LIFT, feather: 0.04, featherA: 0.18 });
 const siteMesh = new THREE.Mesh(patchGeometry(SM.lon0, SM.lon1, SM.lat0, SM.lat1, SM.gw, SM.gh, SH), siteMat); siteMesh.renderOrder = 4; scene.add(siteMesh);
+const MM = maps.mid, tMid = await tex('/assets/mid_color.jpg');
+const midMat = patchMat(tMid, { lift: 0.0004, feather: 0.02, featherA: 0.30 });
+const midMesh = new THREE.Mesh(patchGeometry(MM.lon0, MM.lon1, MM.lat0, MM.lat1, 140, 140), midMat); midMesh.renderOrder = 3; scene.add(midMesh);
 const siteC = ll2v((SM.lat0 + SM.lat1) / 2, (SM.lon0 + SM.lon1) / 2);
 function hAt(lat, lon) { const GW = SM.gw + 1, GH = SM.gh + 1, x = clamp((lon - SM.lon0) / (SM.lon1 - SM.lon0)) * (GW - 1), y = clamp((SM.lat1 - lat) / (SM.lat1 - SM.lat0)) * (GH - 1), x0 = Math.floor(x), y0 = Math.floor(y), x1 = Math.min(x0 + 1, GW - 1), y1 = Math.min(y0 + 1, GH - 1), fx = x - x0, fy = y - y0;
   return lerp(lerp(SH[y0 * GW + x0], SH[y0 * GW + x1], fx), lerp(SH[y1 * GW + x0], SH[y1 * GW + x1], fx), fy) + HMIN; }   // metros reais
@@ -158,6 +161,7 @@ function update(t) {
   const c = camState(t); { let k = 1; for (const b of BEATS) if (t >= b && t - b < 1.2) k = Math.min(k, 1 - 0.09 * Math.exp(-(t - b) / 0.22)); c.d *= k; } const dN = c.d; placeCamera(t, c); camera.updateMatrixWorld();
   regMat.uniforms.uAlpha.value = smooth((26 - dN) / 6); const lm = smooth((dN - 1.5) / 3);
   globe.material.uniforms.uMix.value = lm; regMat.uniforms.uMix.value = lm; regMat.uniforms.uHaze.value = smooth((1.8 - dN) / 1.2);
+  midMat.uniforms.uAlpha.value = smooth((9 - dN) / 3); midMat.uniforms.uMix.value = lm; midMat.uniforms.uHaze.value = regMat.uniforms.uHaze.value; midMat.uniforms.uExag.value = 0;
   const dist = camera.position.distanceTo(siteC), sa = 1 - smooth((dist - 0.25) / 0.6);
   siteMat.uniforms.uAlpha.value = sa; siteMat.uniforms.uExag.value = E_SITE; siteMat.uniforms.uMix.value = 0; siteMat.uniforms.uHaze.value = 1;
   cloudMat.opacity = 0.35 * smooth((dN - 4) / 6); atmoMat.uniforms.uA.value = smooth((dN - 1.5) / 6) * 0.9 + 0.1 * smooth((dN - 0.3) / 1.5);
