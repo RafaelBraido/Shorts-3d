@@ -10,6 +10,8 @@ from mathutils import Vector
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 ap = argparse.ArgumentParser()
 ap.add_argument("--out", default="cinema/out/teste_frame.png"); ap.add_argument("--device", default="OPTIX", choices=["OPTIX", "CUDA", "CPU"])
+ap.add_argument("--engine", default="EEVEE", choices=["EEVEE", "CYCLES"], help="EEVEE = rápido (minutos); CYCLES = fotorrealista (horas)")
+ap.add_argument("--frames", default="", help="ex.: 0-299"); ap.add_argument("--step", type=int, default=1, help="renderiza 1 a cada N quadros")
 ap.add_argument("--samples", type=int, default=128); ap.add_argument("--width", type=int, default=1080); ap.add_argument("--height", type=int, default=1920)
 ap.add_argument("--lat", type=float, default=-8.0); ap.add_argument("--lon", type=float, default=-55.0); ap.add_argument("--dist", type=float, default=9.0)
 ap.add_argument("--tilt", type=float, default=28.0); ap.add_argument("--sun-el", type=float, default=14.0); ap.add_argument("--track", default="")
@@ -27,25 +29,42 @@ try: sc.view_settings.view_transform = "AgX"
 except Exception: sc.view_settings.view_transform = "Filmic"
 sc.view_settings.exposure = 0.35
 
-# ---- Cycles: GPU NVIDIA (OptiX), OIDN, filtro Blackman-Harris 1.5
-sc.render.engine = "CYCLES"; cy = sc.cycles; cy.samples = a.samples; cy.use_adaptive_sampling = True; cy.adaptive_threshold = 0.01
-cy.pixel_filter_type = "BLACKMAN_HARRIS"; cy.filter_width = 1.5
-HAS_OIDN = getattr(bpy.app.build_options, 'openimagedenoise', False)
-cy.use_denoising = bool(HAS_OIDN)
-if not HAS_OIDN: print('AVISO: este Blender foi compilado sem OpenImageDenoise; renderizando sem denoiser (use o Blender 4.2 oficial)')
-try: cy.denoiser = "OPENIMAGEDENOISE"; cy.denoising_input_passes = "RGB_ALBEDO_NORMAL"; cy.denoising_prefilter = "ACCURATE"
-except Exception as e: print("AVISO denoiser:", e)
-dev = "CPU"
-if a.device != "CPU":
-    cp = bpy.context.preferences.addons["cycles"].preferences
-    try:
-        cp.compute_device_type = a.device; cp.get_devices(); gpus = [d for d in cp.devices if d.type != "CPU"]
-        for d in cp.devices: d.use = d.type != "CPU"
-        print("GPUs:", [d.name for d in gpus])
-        if gpus: cy.device = "GPU"; dev = a.device
-        else: print("AVISO: nenhuma GPU encontrada, usando CPU")
-    except Exception as e: print("AVISO GPU:", e)
-print("DISPOSITIVO:", dev, "| Blender", bpy.app.version_string)
+# ---- Motor. EEVEE (padrão): tempo real, sem ruído, minutos. Cycles: fotorrealista, lento (só para quadros estáticos).
+dev = "GPU (OpenGL)"
+if a.engine == "EEVEE":
+    for eng in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"):      # 4.2 usa EEVEE Next; 4.0 usa o antigo
+        try: sc.render.engine = eng; break
+        except Exception: pass
+    ev = sc.eevee
+    for k, v in (("taa_render_samples", 48), ("use_gtao", True), ("use_soft_shadows", True), ("use_shadows", True), ("shadow_ray_count", 2), ("shadow_step_count", 8)):
+        try: setattr(ev, k, v)
+        except Exception: pass
+    try: sc.render.filter_size = 1.5                         # filtro de pixel de 1,5 px (suave, estilo Blackman-Harris)
+    except Exception: pass
+else:
+    sc.render.engine = "CYCLES"; cy = sc.cycles; cy.samples = a.samples; cy.use_adaptive_sampling = True; cy.adaptive_threshold = 0.01
+    cy.pixel_filter_type = "BLACKMAN_HARRIS"; cy.filter_width = 1.5
+    HAS_OIDN = getattr(bpy.app.build_options, 'openimagedenoise', False)
+    cy.use_denoising = bool(HAS_OIDN)
+    if not HAS_OIDN: print('AVISO: este Blender foi compilado sem OpenImageDenoise; renderizando sem denoiser (use o Blender 4.2 oficial)')
+    try: cy.denoiser = "OPENIMAGEDENOISE"; cy.denoising_input_passes = "RGB_ALBEDO_NORMAL"; cy.denoising_prefilter = "ACCURATE"
+    except Exception as e: print("AVISO denoiser:", e)
+    dev = "CPU"
+    if a.device != "CPU":
+        cp = bpy.context.preferences.addons["cycles"].preferences
+        try:
+            cp.compute_device_type = a.device; cp.get_devices(); gpus = [d for d in cp.devices if d.type != "CPU"]
+            for d in cp.devices: d.use = d.type != "CPU"
+            print("GPUs:", [d.name for d in gpus])
+            if gpus: cy.device = "GPU"; dev = a.device
+            else: print("AVISO: nenhuma GPU encontrada, usando CPU")
+        except Exception as e: print("AVISO GPU:", e)
+print("MOTOR:", a.engine, "| DISPOSITIVO:", dev, "| Blender", bpy.app.version_string)
+
+def blend(m):                                                # transparência no EEVEE (4.0: blend_method; 4.2: surface_render_method)
+    for k, v in (("blend_method", "BLEND"), ("show_transparent_back", False), ("surface_render_method", "BLENDED")):
+        try: setattr(m, k, v)
+        except Exception: pass
 
 def img(name, cs="sRGB"):
     p = P("data", "textures", name)
@@ -84,7 +103,7 @@ cm = bpy.data.materials.new("Nuvens"); cm.use_nodes = True; nt = cm.node_tree; n
 UV = uv_node(); ct = tex("Clouds.png", "Non-Color")
 dif = N("ShaderNodeBsdfDiffuse"); dif.inputs["Color"].default_value = (0.95, 0.97, 1, 1); tr = N("ShaderNodeBsdfTransparent"); mx = N("ShaderNodeMixShader")
 cr = N("ShaderNodeMapRange"); cr.inputs["From Min"].default_value = 0.08; cr.inputs["From Max"].default_value = 0.85; L(ct.outputs["Color"], cr.inputs["Value"])
-L(cr.outputs["Result"], mx.inputs[0]); L(tr.outputs["BSDF"], mx.inputs[1]); L(dif.outputs["BSDF"], mx.inputs[2]); o = N("ShaderNodeOutputMaterial"); L(mx.outputs["Shader"], o.inputs["Surface"]); cl.data.materials.append(cm)
+L(cr.outputs["Result"], mx.inputs[0]); L(tr.outputs["BSDF"], mx.inputs[1]); L(dif.outputs["BSDF"], mx.inputs[2]); o = N("ShaderNodeOutputMaterial"); L(mx.outputs["Shader"], o.inputs["Surface"]); cl.data.materials.append(cm); blend(cm)
 cl.visible_shadow = True
 
 # ---- Atmosfera: Layer Weight (Fresnel) + ColorRamp azulado + Transparent
@@ -95,7 +114,9 @@ ramp = N("ShaderNodeValToRGB"); ramp.color_ramp.elements[0].position = 0.42; ram
 ramp.color_ramp.elements[1].position = 1.0; ramp.color_ramp.elements[1].color = (0.24, 0.52, 1.0, 1); L(lw.outputs["Facing"], ramp.inputs["Fac"])
 em = N("ShaderNodeEmission"); em.inputs["Strength"].default_value = 3.2; L(ramp.outputs["Color"], em.inputs["Color"])
 fac = math_("POWER", lw.outputs["Facing"], 2.2); tr = N("ShaderNodeBsdfTransparent"); mx = N("ShaderNodeMixShader"); L(fac, mx.inputs[0]); L(tr.outputs["BSDF"], mx.inputs[1]); L(em.outputs["Emission"], mx.inputs[2])
-o = N("ShaderNodeOutputMaterial"); L(mx.outputs["Shader"], o.inputs["Surface"]); at.data.materials.append(am); at.visible_shadow = False
+o = N("ShaderNodeOutputMaterial"); L(mx.outputs["Shader"], o.inputs["Surface"]); at.data.materials.append(am); blend(am)
+try: at.visible_shadow = False
+except Exception: pass
 
 # ---- Sol baixo (sombras longas no relevo) + estrelas procedurais
 target = ll(a.lat, a.lon)                                              # ponto de interesse (normal da esfera)
@@ -124,6 +145,14 @@ else:
     bpy.ops.object.empty_add(location=target * R); tgt = bpy.context.active_object; tc_ = cam.constraints.new("TRACK_TO"); tc_.target = tgt; tc_.track_axis = "TRACK_NEGATIVE_Z"; tc_.up_axis = "UP_Y"
 
 os.makedirs(os.path.dirname(P(a.out)) or ".", exist_ok=True); sc.render.filepath = P(a.out)
-if animate: bpy.ops.render.render(animation=True)
-else: bpy.ops.render.render(write_still=True)
-print("PRONTO:", sc.render.filepath, "| dispositivo:", dev, "| amostras:", a.samples)
+import time
+if animate:
+    f0, f1 = (int(x) for x in a.frames.split("-")) if a.frames else (sc.frame_start, sc.frame_end); sc.frame_start, sc.frame_end, sc.frame_step = f0, f1, a.step
+    total = len(range(f0, f1 + 1, a.step)); st = {"n": 0, "t0": time.time()}
+    def _post(scene, *args):
+        st["n"] += 1; el = time.time() - st["t0"]; per = el / st["n"]
+        print(f"QUADRO {st['n']}/{total} | {per:.2f} s/quadro | falta ~{per * (total - st['n']) / 60:.1f} min", flush=True)
+    bpy.app.handlers.render_post.append(_post); bpy.ops.render.render(animation=True)
+else:
+    t0 = time.time(); bpy.ops.render.render(write_still=True); print(f"TEMPO DO QUADRO: {time.time() - t0:.1f} s  ->  900 quadros (30 s) ~ {(time.time() - t0) * 900 / 3600:.1f} h")
+print("PRONTO:", sc.render.filepath, "| motor:", a.engine, "| dispositivo:", dev)
