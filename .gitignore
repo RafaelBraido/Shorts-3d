@@ -2,3 +2,9 @@
 __pycache__/
 data/
 data/geo/
+maramorto/node_modules
+maramorto/out/frames/
+maramorto/out/shots/
+maramorto/out/voice/
+maramorto/out/audio.wav
+maramorto/out/*.log
