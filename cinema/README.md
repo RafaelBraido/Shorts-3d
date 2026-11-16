@@ -1,9 +1,4 @@
----
-name: geo-cinema
-description: Globo 3D cinematográfico e vídeos de mapa no Blender 4.2 (Cycles, RTX/OptiX) com dados brutos do GitHub, sem instalar nada e sem API. Use para renderizar o planeta (albedo 8K, relevo 10K, atmosfera, sol baixo), preparar áudio procedural e voz nativa do Windows nos Shorts de mapa deste repositório.
----
-
-# geo-cinema (regras enxutas)
+# cinema/: globo 3D no Blender (notas do projeto, não é skill)
 
 ## Proibido
 - Instalar qualquer coisa (`pip`, `npm`, `apt`, `winget`, `brew`, venv, addons/plugins). Só o Python embutido do Blender 4.2, bibliotecas do sistema e arquivos brutos em `./data/`.
