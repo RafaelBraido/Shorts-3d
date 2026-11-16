@@ -102,7 +102,7 @@ const atmo = new THREE.Mesh(new THREE.SphereGeometry(R * 1.09, 96, 64), atmoMat)
 const patchVS = `attribute vec3 aDir; attribute float aH; uniform float uR,uExag,uLift,uFeather; varying vec2 vUv; varying float vEdge,vDist,vH; varying vec3 vDir,vP;
   void main(){ vUv=uv; vDir=aDir; float e=smoothstep(0.,uFeather,min(min(uv.x,1.-uv.x),min(uv.y,1.-uv.y))); vEdge=e; vH=aH;
     vec3 p=aDir*(uR+uLift+aH*1e-6*uExag*e); vP=p; vDist=distance(p,cameraPosition); gl_Position=projectionMatrix*viewMatrix*vec4(p,1.); }`;
-const patchFS = `uniform sampler2D uMap,uMask,uDet,uDetMask; uniform vec4 uDetRect; uniform float uDetOn; uniform float uAlpha,uTime,uStorm,uBright,uHaze,uWater,uMix,uFeatherA,uExag; uniform vec3 uSun; varying vec3 vP; varying vec2 vUv; varying float vEdge,vDist,vH; varying vec3 vDir;
+const patchFS = `uniform sampler2D uMap,uMask,uDet,uDetMask; uniform vec4 uDetRect; uniform float uDetOn; uniform float uCamD,uAlpha,uTime,uStorm,uBright,uHaze,uWater,uMix,uFeatherA,uExag; uniform vec3 uSun; varying vec3 vP; varying vec2 vUv; varying float vEdge,vDist,vH; varying vec3 vDir;
   float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
   float vn(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y); }
   void main(){ vec3 c=texture2D(uMap,vUv).rgb; float m=texture2D(uMask,vUv).r;
@@ -118,11 +118,11 @@ const patchFS = `uniform sampler2D uMap,uMask,uDet,uDetMask; uniform vec4 uDetRe
     }
     { vec3 n=normalize(cross(dFdx(vP),dFdy(vP))); if(dot(n,vDir)<0.) n=-n; float sh=1.+1.5*(dot(n,uSun)-dot(normalize(vDir),uSun)); c*=mix(1.,clamp(sh,.55,1.45),clamp(uExag/3.,0.,1.)); }
     c*=uBright*mix(1.,0.62+0.5*clamp(dot(normalize(vDir),normalize(vec3(-.45,.35,1.))),0.,1.),uMix);
-    float hz=clamp(pow(vDist/1.7,1.5),0.,1.)*uHaze; c=mix(c,vec3(.22,.34,.50),hz*.38);
+    float hz=smoothstep(0.95*uCamD,1.75*uCamD,vDist)*uHaze; c=mix(c,vec3(.015,.03,.06),hz*.96);
     float ea=smoothstep(0.,uFeatherA,min(min(vUv.x,1.-vUv.x),min(vUv.y,1.-vUv.y))); gl_FragColor=vec4(c,uAlpha*ea); }`;
 function patchMat(map, mask, o) {
   return new THREE.ShaderMaterial({ transparent: true, depthWrite: true, vertexShader: patchVS, fragmentShader: patchFS,
-    uniforms: { uMap: { value: map }, uMask: { value: mask }, uR: { value: R }, uExag: { value: 0 }, uLift: { value: o.lift }, uFeather: { value: o.feather }, uFeatherA: { value: o.featherA }, uAlpha: { value: 0 }, uTime: { value: 0 }, uStorm: { value: 0 }, uBright: { value: 1 }, uHaze: { value: 1 }, uMix: { value: 1 }, uWater: { value: o.water ? 1 : 0 }, uDet: { value: o.det || blackTex }, uDetMask: { value: o.detMask || blackTex }, uDetRect: { value: DRECT }, uDetOn: { value: o.det ? 1 : 0 }, uSun: { value: SUN } } });
+    uniforms: { uMap: { value: map }, uMask: { value: mask }, uR: { value: R }, uExag: { value: 0 }, uLift: { value: o.lift }, uFeather: { value: o.feather }, uFeatherA: { value: o.featherA }, uAlpha: { value: 0 }, uTime: { value: 0 }, uStorm: { value: 0 }, uBright: { value: 1 }, uHaze: { value: 1 }, uCamD: { value: 1 }, uMix: { value: 1 }, uWater: { value: o.water ? 1 : 0 }, uDet: { value: o.det || blackTex }, uDetMask: { value: o.detMask || blackTex }, uDetRect: { value: DRECT }, uDetOn: { value: o.det ? 1 : 0 }, uSun: { value: SUN } } });
 }
 const SUN = (() => { const la = 32.5 * DEG, lo = 35.5 * DEG, up = new THREE.Vector3(Math.cos(la) * Math.sin(lo), Math.sin(la), Math.cos(la) * Math.cos(lo)), east = new THREE.Vector3(Math.cos(lo), 0, -Math.sin(lo)), north = new THREE.Vector3().crossVectors(up, east).normalize(); return up.multiplyScalar(0.55).addScaledVector(east, -0.55).addScaledVector(north, 0.6).normalize(); })();
 const regMat = patchMat(tReg, blackTex, { lift: 0.0003, feather: 0.02, featherA: 0.03 });
@@ -144,16 +144,16 @@ const WW = (id, k) => L[id].words[k].t0;
 const K = [
   { t: 0, lat: 32.2, lon: 35.2, d: 1.6, tilt: 20, head: 0, shift: 60 },
   { t: Wd('h1', 'peixes', 0.1), lat: 32.80, lon: 35.56, d: 0.24, tilt: 42, head: -6, shift: 0 },
-  { t: Wd('h1', 'corre', 0.0), lat: 32.45, lon: 35.56, d: 0.30, tilt: 48, head: 0, shift: 0 },
-  { t: Wd('h1', 'vive', -0.3), lat: 31.62, lon: 35.50, d: 0.30, tilt: 50, head: 6, shift: 0 },
+  { t: Wd('h1', 'corre', 0.0), lat: 32.40, lon: 35.56, d: 0.24, tilt: 42, head: 0, shift: 0 },
+  { t: Wd('h1', 'vive', -0.3), lat: 31.62, lon: 35.50, d: 0.22, tilt: 44, head: 6, shift: 0 },
   { t: S('d1', 0.1), lat: 32.82, lon: 35.60, d: 0.17, tilt: 46, head: 8, shift: 0, hop: 0.2 },
   { t: E('d1'), lat: 32.80, lon: 35.585, d: 0.125, tilt: 50, head: 14, shift: 0 },
   { t: Wd('d2', 'Jordão', 0.0), lat: 32.65, lon: 35.57, d: 0.16, tilt: 52, head: 6, shift: 0 },
-  { t: Wd('d2', 'Morto', -0.5), lat: 32.15, lon: 35.56, d: 0.30, tilt: 54, head: 0, shift: 0 },
-  { t: E('d2', 0.1), lat: 31.62, lon: 35.50, d: 0.30, tilt: 54, head: 0, shift: 0 },
-  { t: E('s1'), lat: 31.50, lon: 35.48, d: 0.21, tilt: 54, head: 8, shift: 0 },
-  { t: E('s2'), lat: 31.50, lon: 35.49, d: 0.19, tilt: 50, head: 0, shift: 0 },
-  { t: E('s3'), lat: 31.50, lon: 35.48, d: 0.24, tilt: 44, head: -6, shift: 0 },
+  { t: Wd('d2', 'Morto', -0.5), lat: 32.15, lon: 35.56, d: 0.22, tilt: 44, head: 0, shift: 0 },
+  { t: E('d2', 0.1), lat: 31.60, lon: 35.50, d: 0.20, tilt: 44, head: 0, shift: 0 },
+  { t: E('s1'), lat: 31.50, lon: 35.48, d: 0.18, tilt: 44, head: 8, shift: 0 },
+  { t: E('s2'), lat: 31.50, lon: 35.49, d: 0.17, tilt: 42, head: 0, shift: 0 },
+  { t: E('s3'), lat: 31.50, lon: 35.48, d: 0.21, tilt: 40, head: -6, shift: 0 },
   { t: TOTAL - 0.8, lat: 32.0, lon: 35.2, d: 1.8, tilt: 14, head: 0, shift: 60 },
   { t: TOTAL, lat: 31.5, lon: 33, d: 4, tilt: 6, head: 0, shift: 120 },
 ];
@@ -227,7 +227,7 @@ function addLabel(o) { const el = document.createElement('div'); el.className = 
 addLabel({ text: 'MAR DA GALILEIA', lat: 32.86, lon: 35.60, t0: Wd('h1', 'peixes', 0.0), t1: Wd('d1', 'doce', 1.4), dy: -40 });
 addLabel({ text: 'MAR MORTO', cls: 'dk', lat: 31.52, lon: 35.47, t0: Wd('h1', 'mar', 0.9), t1: S('d1', 0.0), dy: -30 });
 addLabel({ text: 'RIO JORDÃO', lat: 32.35, lon: 35.56, t0: Wd('d2', 'Jordão', 0.0), t1: Wd('d2', 'Morto', 0.3), dy: -14 });
-addLabel({ text: 'MAR MORTO', cls: 'dk', lat: 31.52, lon: 35.47, t0: Wd('d2', 'Morto', 0.0), t1: E('s1', 0.4), dy: -30 });
+addLabel({ text: 'MAR MORTO', cls: 'dk', lat: 31.52, lon: 35.47, t0: Wd('d2', 'Morto', 0.0), t1: E('s1', 0.4), dy: -110 });
 addLabel({ text: 'EVAPORA', cls: 'sm', lat: 31.60, lon: 35.50, t0: Wd('s2', 'evapora', -0.1), t1: Wd('s2', 'sal', -0.2), dy: -70, dot: false });
 addLabel({ text: 'SAL', cls: 'dk', lat: 31.40, lon: 35.46, t0: Wd('s2', 'sal', -0.1), t1: E('s2', 0.6), dy: -30 });
 
@@ -273,7 +273,7 @@ function update(t) {
   locMat.uniforms.uExag.value = Ef;
   for (const m of [regMat, locMat]) { m.uniforms.uTime.value = t; m.uniforms.uStorm.value = 0; m.uniforms.uBright.value = 1; }
   const lm = smooth((dN - 1.5) / 3); globe.material.uniforms.uMix.value = lm; regMat.uniforms.uMix.value = lm; locMat.uniforms.uMix.value = lm;
-  for (const m of [regMat, locMat]) m.uniforms.uHaze.value = 0;
+  for (const m of [regMat, locMat]) { m.uniforms.uHaze.value = smooth((1.2 - dN) / 0.5); m.uniforms.uCamD.value = dN; }
   cloudMat.opacity = 0.5 * smooth((dN - 4) / 6);
   atmoMat.uniforms.uA.value = smooth((dN - 1.5) / 6) * 0.9 + 0.1 * smooth((dN - 0.3) / 1.5);
   seaPlane.material.uniforms.uA.value = 0;
