@@ -2,7 +2,7 @@
 import json, re
 raw = json.load(open("out/voice/timing_raw.json"))
 LEAD, TAIL = 0.9, 1.0
-SUBS = {("d3", "duzentos e vinte"): "220", ("s3", "dez"): "10", ("c1", "dois"): "2"}
+SUBS = {}
 t = LEAD; lines = []
 norm = lambda s: re.sub(r"[^\wÀ-ÿ]", "", s).lower()
 for i, l in enumerate(raw):

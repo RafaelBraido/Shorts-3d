@@ -68,10 +68,10 @@ def thunder(dur=2.4):
     env = (1 - np.exp(-np.linspace(0, 1, m) * 40)) * np.exp(-np.linspace(0, 1, m) * 3.0)
     return (nz * env / np.abs(nz * env).max()).astype(np.float32)
 sfx = np.zeros(n, np.float32)
-for tm, d, up, g in [(0.3, 1.0, True, 0.6), (Wd("h1", "peixes", 0.0), 1.0, True, 0.45), (L["d1"]["start"], 1.2, True, 0.5), (Wd("d2", "sai", 0.0), 1.4, False, 0.45),
-                     (Wd("d3", "220", -0.3), 1.2, False, 0.5), (L["s1"]["start"], 1.0, True, 0.4), (L["s4"]["start"], 1.2, False, 0.45), (L["c1"]["start"] + 0.3, 2.4, False, 0.6)]:
+for tm, d, up, g in [(0.3, 1.0, True, 0.6), (Wd("h1", "peixes", 0.0), 1.0, True, 0.45), (L["d1"]["start"], 1.2, True, 0.5), (Wd("d2", "Jordão", 0.0), 1.4, False, 0.45),
+                     (L["s1"]["start"], 1.0, True, 0.4), (L["s3"]["start"], 1.2, False, 0.45), (L["c1"]["start"] + 0.2, 2.0, False, 0.6)]:
     place(sfx, whoosh(d, up), tm, g)
-for tm in [Wd("d1", "doce", -0.2), Wd("d2", "Jordão", -0.2), Wd("d3", "220", -0.2), Wd("s1", "sair", -0.3), Wd("s2", "evapora", -0.2), Wd("s2", "sal", -0.2), Wd("s3", "10", -0.2), Wd("s4", "Nenhum", -0.2), Wd("c1", "Segue", -0.1)]:
+for tm in [Wd("d1", "doce", -0.2), Wd("d2", "Jordão", -0.2), Wd("s1", "saída", -0.3), Wd("s2", "evapora", -0.2), Wd("s2", "sal", -0.2), Wd("s3", "nenhum", -0.2), Wd("c1", "nome", -0.1)]:
     place(sfx, pop(), tm, 0.32)
 mix = voice + music * 0.55 + sfx * 0.45
 mix = mix / max(np.abs(mix).max(), 1e-6) * 0.92

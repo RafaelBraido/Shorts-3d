@@ -33,17 +33,7 @@
   "id": "d2",
   "parts": [
    {
-    "t": "Da ponta sul dele sai o rio Jordão, que desce até o Mar Morto.",
-    "s": 1
-   }
-  ],
-  "gap": 0.15
- },
- {
-  "id": "d3",
-  "parts": [
-   {
-    "t": "O Mar Morto fica duzentos e vinte metros mais baixo.",
+    "t": "O rio Jordão leva a água dele até o Mar Morto.",
     "s": 1
    }
   ],
@@ -53,7 +43,7 @@
   "id": "s1",
   "parts": [
    {
-    "t": "E aqui a água entra, mas não tem por onde sair.",
+    "t": "Só que o Mar Morto não tem saída: a água entra, mas não sai.",
     "s": 1
    }
   ],
@@ -63,7 +53,7 @@
   "id": "s2",
   "parts": [
    {
-    "t": "Ela só evapora, e o sal fica para trás.",
+    "t": "Ela evapora, e o sal fica.",
     "s": 1
    }
   ],
@@ -73,17 +63,7 @@
   "id": "s3",
   "parts": [
    {
-    "t": "Hoje ele é quase dez vezes mais salgado que o oceano.",
-    "s": 1
-   }
-  ],
-  "gap": 0.15
- },
- {
-  "id": "s4",
-  "parts": [
-   {
-    "t": "Nenhum peixe aguenta. Por isso, o nome: Mar Morto.",
+    "t": "Com tanto sal, nenhum peixe sobrevive.",
     "s": 1
    }
   ],
@@ -93,7 +73,7 @@
   "id": "c1",
   "parts": [
    {
-    "t": "Quer ver outro lugar? Segue pra parte dois.",
+    "t": "Por isso, o nome: Mar Morto.",
     "s": 1
    }
   ],

@@ -127,7 +127,7 @@ function patchMat(map, mask, o) {
 const SUN = (() => { const la = 32.5 * DEG, lo = 35.5 * DEG, up = new THREE.Vector3(Math.cos(la) * Math.sin(lo), Math.sin(la), Math.cos(la) * Math.cos(lo)), east = new THREE.Vector3(Math.cos(lo), 0, -Math.sin(lo)), north = new THREE.Vector3().crossVectors(up, east).normalize(); return up.multiplyScalar(0.55).addScaledVector(east, -0.55).addScaledVector(north, 0.6).normalize(); })();
 const regMat = patchMat(tReg, blackTex, { lift: 0.0003, feather: 0.02, featherA: 0.03 });
 const reg = new THREE.Mesh(patchGeometry(REG.lon0, REG.lon1, REG.lat0, REG.lat1, 250, 190), regMat); reg.renderOrder = 2; scene.add(reg);
-const locMat = patchMat(tLoc, tMask, { lift: LIFT, feather: 0.035, featherA: 0.16, water: true, det: tDet, detMask: tDetMask });
+const locMat = patchMat(tLoc, tMask, { lift: LIFT, feather: 0.035, featherA: 0.05, water: true, det: tDet, detMask: tDetMask });
 const loc = new THREE.Mesh(patchGeometry(LOC.lon0, LOC.lon1, LOC.lat0, LOC.lat1, LOC.gw, LOC.gh, HG), locMat); loc.renderOrder = 4; scene.add(loc);
 
 // plano do nível do mar sobre o lago (fato 1)
@@ -142,24 +142,20 @@ const seaPlane = new THREE.Mesh(patchGeometry(SEA.lon0, SEA.lon1, SEA.lat0, SEA.
 /* ------------------------------ câmera ------------------------------ */
 const WW = (id, k) => L[id].words[k].t0;
 const K = [
-  { t: 0, lat: 31.9, lon: 33.2, d: 4.5, tilt: 8, head: 0, shift: 120 },
-  { t: Wd('h1', 'peixes', 0.1), lat: 32.78, lon: 35.52, d: 0.40, tilt: 36, head: -6, shift: 0 },
-  { t: Wd('h1', 'corre', 0.0), lat: 32.55, lon: 35.56, d: 0.52, tilt: 46, head: 0, shift: 0 },
-  { t: Wd('h1', 'vive', -0.3), lat: 31.62, lon: 35.50, d: 0.42, tilt: 50, head: 6, shift: 0 },
-  { t: S('d1', 0.1), lat: 32.82, lon: 35.60, d: 0.17, tilt: 46, head: 8, shift: 0, hop: 0.25 },
+  { t: 0, lat: 32.2, lon: 35.2, d: 1.6, tilt: 20, head: 0, shift: 60 },
+  { t: Wd('h1', 'peixes', 0.1), lat: 32.80, lon: 35.56, d: 0.24, tilt: 42, head: -6, shift: 0 },
+  { t: Wd('h1', 'corre', 0.0), lat: 32.45, lon: 35.56, d: 0.30, tilt: 48, head: 0, shift: 0 },
+  { t: Wd('h1', 'vive', -0.3), lat: 31.62, lon: 35.50, d: 0.30, tilt: 50, head: 6, shift: 0 },
+  { t: S('d1', 0.1), lat: 32.82, lon: 35.60, d: 0.17, tilt: 46, head: 8, shift: 0, hop: 0.2 },
   { t: E('d1'), lat: 32.80, lon: 35.585, d: 0.125, tilt: 50, head: 14, shift: 0 },
-  { t: Wd('d2', 'sai', 0.0), lat: 32.70, lon: 35.57, d: 0.15, tilt: 52, head: 6, shift: 0 },
-  { t: Wd('d2', 'Jordão', 0.6), lat: 32.35, lon: 35.56, d: 0.32, tilt: 54, head: 0, shift: 0 },
-  { t: E('d2', 0.1), lat: 31.85, lon: 35.52, d: 0.42, tilt: 56, head: 0, shift: 0 },
-  { t: Wd('d3', 'mais', 0.0), lat: 32.15, lon: 35.60, d: 0.80, tilt: 62, head: -6, shift: 0 },
-  { t: E('d3'), lat: 31.95, lon: 35.52, d: 0.62, tilt: 64, head: 4, shift: 0 },
-  { t: S('s1', 0.0), lat: 31.55, lon: 35.48, d: 0.30, tilt: 52, head: 0, shift: 0 },
-  { t: E('s1'), lat: 31.50, lon: 35.48, d: 0.23, tilt: 54, head: 8, shift: 0 },
-  { t: E('s2'), lat: 31.50, lon: 35.49, d: 0.21, tilt: 50, head: 0, shift: 0 },
-  { t: E('s3'), lat: 31.48, lon: 35.47, d: 0.25, tilt: 46, head: -8, shift: 0 },
-  { t: E('s4', 0.2), lat: 31.50, lon: 35.48, d: 0.30, tilt: 44, head: 0, shift: 0 },
-  { t: TOTAL - 0.8, lat: 32.0, lon: 35.0, d: 3.0, tilt: 12, head: 0, shift: 90 },
-  { t: TOTAL, lat: 31.0, lon: 30.0, d: 9, tilt: 0, head: 0, shift: 200 },
+  { t: Wd('d2', 'Jordão', 0.0), lat: 32.65, lon: 35.57, d: 0.16, tilt: 52, head: 6, shift: 0 },
+  { t: Wd('d2', 'Morto', -0.5), lat: 32.15, lon: 35.56, d: 0.30, tilt: 54, head: 0, shift: 0 },
+  { t: E('d2', 0.1), lat: 31.62, lon: 35.50, d: 0.30, tilt: 54, head: 0, shift: 0 },
+  { t: E('s1'), lat: 31.50, lon: 35.48, d: 0.21, tilt: 54, head: 8, shift: 0 },
+  { t: E('s2'), lat: 31.50, lon: 35.49, d: 0.19, tilt: 50, head: 0, shift: 0 },
+  { t: E('s3'), lat: 31.50, lon: 35.48, d: 0.24, tilt: 44, head: -6, shift: 0 },
+  { t: TOTAL - 0.8, lat: 32.0, lon: 35.2, d: 1.8, tilt: 14, head: 0, shift: 60 },
+  { t: TOTAL, lat: 31.5, lon: 33, d: 4, tilt: 6, head: 0, shift: 120 },
 ];
 const KF = ['lat', 'lon', 'tilt', 'head', 'shift'], KTS = K.map(k => k.t), KLD = K.map(k => Math.log(k.d));
 function monoTan(ts, vs) { const n = ts.length, h = [], s = [], m = new Array(n).fill(0); for (let i = 0; i < n - 1; i++) { h[i] = Math.max(ts[i + 1] - ts[i], 1e-6); s[i] = (vs[i + 1] - vs[i]) / h[i]; }
@@ -230,31 +226,24 @@ function addLabel(o) { const el = document.createElement('div'); el.className = 
   const dot = o.dot === false ? null : Object.assign(document.createElement('div'), { className: 'dot' }); if (dot) labelsEl.appendChild(dot); LABELS.push({ ...o, el, dotEl: dot }); }
 addLabel({ text: 'MAR DA GALILEIA', lat: 32.86, lon: 35.60, t0: Wd('h1', 'peixes', 0.0), t1: Wd('d1', 'doce', 1.4), dy: -40 });
 addLabel({ text: 'MAR MORTO', cls: 'dk', lat: 31.52, lon: 35.47, t0: Wd('h1', 'mar', 0.9), t1: S('d1', 0.0), dy: -30 });
-addLabel({ text: 'RIO JORDÃO', lat: 32.35, lon: 35.56, t0: Wd('d2', 'Jordão', 0.0), t1: E('d2', 0.2), dy: -14 });
-addLabel({ text: 'MAR DA GALILEIA · −210 m', cls: 'sm', lat: 32.70, lon: 35.60, t0: Wd('d3', 'baixo', -2.0), t1: E('d3', 0.2), dy: -16, dot: false, h: -210 });
-addLabel({ text: 'MAR MORTO · −430 m', cls: 'dk', lat: 31.52, lon: 35.47, t0: Wd('d3', 'baixo', -1.2), t1: E('d3', 0.4), dy: -16, dot: false, h: -430 });
-addLabel({ text: 'SEM SAÍDA', lat: 31.52, lon: 35.47, t0: Wd('s1', 'sair', -1.0), t1: E('s1', 0.4), dy: -60 });
+addLabel({ text: 'RIO JORDÃO', lat: 32.35, lon: 35.56, t0: Wd('d2', 'Jordão', 0.0), t1: Wd('d2', 'Morto', 0.3), dy: -14 });
+addLabel({ text: 'MAR MORTO', cls: 'dk', lat: 31.52, lon: 35.47, t0: Wd('d2', 'Morto', 0.0), t1: E('s1', 0.4), dy: -30 });
 addLabel({ text: 'EVAPORA', cls: 'sm', lat: 31.60, lon: 35.50, t0: Wd('s2', 'evapora', -0.1), t1: Wd('s2', 'sal', -0.2), dy: -70, dot: false });
 addLabel({ text: 'SAL', cls: 'dk', lat: 31.40, lon: 35.46, t0: Wd('s2', 'sal', -0.1), t1: E('s2', 0.6), dy: -30 });
 
 const FISH_SVG = `<svg width="190" height="110" viewBox="-40 -25 80 50" style="display:block;margin:0 auto 6px"><path d="${FISH_D}" fill="#ffd36a" stroke="#fff" stroke-width="1.6"/><circle cx="-12" cy="-3" r="2.6" fill="#0d1424"/></svg>`;
 const DEADFISH = `<svg width="190" height="130" viewBox="-60 -40 120 80" style="display:block;margin:0 auto 6px"><g transform="scale(1.4)"><path d="${FISH_D}" fill="#ffd36a" stroke="#fff" stroke-width="1.6"/><circle cx="-12" cy="-3" r="2.6" fill="#0d1424"/></g><path d="M-45 -32 L45 32 M45 -32 L-45 32" stroke="#ff4b4b" stroke-width="9" stroke-linecap="round"/></svg>`;
-const bars = `<div class="sub" style="margin:0 0 14px">SAL NA ÁGUA</div>
- <div class="row"><span class="lb">OCEANO</span><span class="trk"><span class="fill" style="width:10%;background:#7fe3ff"></span></span><span class="v">3,5%</span></div>
- <div class="row"><span class="lb">MAR MORTO</span><span class="trk"><span class="fill" style="width:97%;background:#ff9d6b"></span></span><span class="v">34%</span></div>`;
 const CARDS = [
   { t0: Wd('d1', 'doce', -0.2), t1: E('d1', 0.3), html: FISH_SVG + `<div class="big s">ÁGUA DOCE</div><div class="sub">cheia de peixes</div>` },
-  { t0: Wd('d2', 'sai', -0.2), t1: E('d2', 0.2), html: `<div class="big s">RIO JORDÃO</div><div class="sub">do lago ao Mar Morto</div>` },
-  { t0: Wd('d3', '220', -0.2), t1: E('d3', 0.4), html: `<div class="big">220 m</div><div class="sub">mais baixo que o lago</div>` },
-  { t0: Wd('s1', 'sair', -1.2), t1: E('s1', 0.4), html: `<div class="big s">SEM SAÍDA</div><div class="sub">a água entra e não sai</div>` },
+  { t0: Wd('d2', 'Jordão', -0.2), t1: E('d2', 0.2), html: `<div class="big s">RIO JORDÃO</div><div class="sub">do lago ao Mar Morto</div>` },
+  { t0: Wd('s1', 'saída', -0.3), t1: E('s1', 0.4), html: `<div class="big s">SEM SAÍDA</div><div class="sub">a água entra e não sai</div>` },
   { t0: Wd('s2', 'evapora', -0.1), t1: E('s2', 0.5), html: `<div class="big s">SÓ EVAPORA</div><div class="sub">o sal fica para trás</div>` },
-  { t0: Wd('s3', 'salgado', -0.9), t1: E('s3', 0.5), html: bars },
-  { t0: Wd('s4', 'Nenhum', -0.1), t1: E('s4', 0.4), html: DEADFISH + `<div class="big s">SEM PEIXES</div>` },
-  { t0: Wd('c1', 'Segue', -0.1), t1: TOTAL + 1, html: `<div class="big">PARTE 2</div><div class="sub">segue pra continuar</div>` },
+  { t0: Wd('s3', 'nenhum', -0.5), t1: E('s3', 0.4), html: DEADFISH + `<div class="big s">SEM PEIXES</div>` },
+  { t0: Wd('c1', 'nome', -0.1), t1: TOTAL + 1, html: `<div class="big s">MAR MORTO</div><div class="sub">sal demais para qualquer peixe</div>` },
 ];
 const BAR = [
   { t: 0, chip: 'PEIXE?', ttl: 'Galileia × Mar Morto' }, { t: S('d1', -0.1), chip: 'O LAGO', ttl: 'Água doce' }, { t: S('d2', -0.1), chip: 'O RIO', ttl: 'Jordão' },
-  { t: S('d3', -0.1), chip: 'A QUEDA', ttl: '220 m mais baixo' }, { t: S('s1', -0.1), chip: 'O SAL', ttl: 'Mar Morto' }, { t: S('s4', -0.1), chip: 'O RESULTADO', ttl: 'Sem peixes' }, { t: S('c1', -0.1), chip: 'PARTE 1', ttl: 'Galileia × Mar Morto' },
+  { t: S('s1', -0.1), chip: 'O SAL', ttl: 'Mar Morto' }, { t: S('s3', -0.1), chip: 'O RESULTADO', ttl: 'Sem peixes' }, { t: S('c1', -0.1), chip: 'POR ISSO', ttl: 'Mar Morto' },
 ];
 
 // legenda palavra a palavra
@@ -274,17 +263,17 @@ const CHUNKS = []; {
 const capEl = document.getElementById('cap'), cardEl = document.getElementById('card'), barChip = document.getElementById('chip'), barTtl = document.getElementById('ttl');
 const footEl = document.getElementById('foot');
 let capKey = '', cardKey = -1;
-const BEATS = [S('d1', 0.1), Wd('d2', 'sai', 0), Wd('d3', '220', 0), Wd('s1', 'entra', 0), Wd('s3', 'salgado', 0), Wd('s4', 'Nenhum', 0)];
+const BEATS = [S('d1', 0.1), Wd('d2', 'Jordão', 0), Wd('s1', 'saída', 0), Wd('s2', 'evapora', 0), Wd('s3', 'nenhum', 0)];
 
 /* ------------------------------ quadro ------------------------------ */
 function update(t) {
   const c = camState(t); { let k = 1; for (const b of BEATS) if (t >= b && t - b < 1.2) k = Math.min(k, 1 - 0.07 * Math.exp(-(t - b) / 0.22)); c.d *= k; }
-  const dN = c.d, bump = smooth((t - Wd('d3', 'mais', -0.6)) / 0.9) * (1 - smooth((t - E('d3', 0.0)) / 1.0)), Ef = (EXAG + 5 * bump) * smooth((1.4 - dN) / 0.7);
+  const dN = c.d, bump = 0, Ef = (EXAG + 5 * bump) * smooth((1.4 - dN) / 0.7);
   regMat.uniforms.uAlpha.value = smooth((7.5 - dN) / 4); locMat.uniforms.uAlpha.value = smooth((1.7 - dN) / 0.9);
   locMat.uniforms.uExag.value = Ef;
   for (const m of [regMat, locMat]) { m.uniforms.uTime.value = t; m.uniforms.uStorm.value = 0; m.uniforms.uBright.value = 1; }
   const lm = smooth((dN - 1.5) / 3); globe.material.uniforms.uMix.value = lm; regMat.uniforms.uMix.value = lm; locMat.uniforms.uMix.value = lm;
-  for (const m of [regMat, locMat]) m.uniforms.uHaze.value = smooth((1.8 - dN) / 1.2);
+  for (const m of [regMat, locMat]) m.uniforms.uHaze.value = 0;
   cloudMat.opacity = 0.5 * smooth((dN - 4) / 6);
   atmoMat.uniforms.uA.value = smooth((dN - 1.5) / 6) * 0.9 + 0.1 * smooth((dN - 0.3) / 1.5);
   seaPlane.material.uniforms.uA.value = 0;
@@ -293,20 +282,20 @@ function update(t) {
   const P = (p, h) => proj(p.lat, p.lon, h ?? hOn(p.lat, p.lon), Ef);
 
   // contorno do lago (aparece com "peixes") e do Mar Morto (com "mar sem peixe")
-  const lakeT = smooth((t - Wd('h1', 'peixes', -0.2)) / 1.0) * (1 - smooth((t - E('d3', 0.3)) / 0.8));
+  const lakeT = smooth((t - Wd('h1', 'peixes', -0.2)) / 1.0) * (1 - smooth((t - E('d2', 0.3)) / 0.8));
   drawPath(pLake, lakePts.map(p => P(p, -210)), lakeT, true, clamp(lakeT * 3));
   const dT = smooth((t - Wd('h1', 'mar', 0.6)) / 0.9);
   const milk = smooth((t - Wd('s2', 'sal', -0.2)) / 1.2);
   pDead.setAttribute('fill', `rgba(255,255,255,${(0.34 * milk).toFixed(3)})`);
   drawPath(pDead, deadPts.map(p => P(p, -430)), dT, true, clamp(dT * 3));
   // peixes no lago
-  const fishA = smooth((t - Wd('h1', 'peixes', 0.0)) / 0.5) * (1 - smooth((t - E('d1', 0.6)) / 0.5)) + smooth((t - Wd('d3', 'baixo', -2.2)) / 0.5) * (1 - smooth((t - Wd('d3', 'baixo', -0.5)) / 0.5)) * 0;
+  const fishA = smooth((t - Wd('h1', 'peixes', 0.0)) / 0.5) * (1 - smooth((t - E('d1', 0.6)) / 0.5)) ;
   for (const f of fishPts) { const a = f.ph * 6.28 + t * f.sp * 0.9, la = f.lat + Math.sin(a) * 0.012, lo = f.lon + Math.cos(a) * 0.014;
     const p = P({ lat: la, lon: lo }, -210), q = P({ lat: f.lat + Math.sin(a + 0.1) * 0.012, lon: f.lon + Math.cos(a + 0.1) * 0.014 }, -210);
     const ang = Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI + 180, sc = clamp(0.9 * (0.35 / Math.max(dN, 0.12)) ** 0.5, 0.5, 1.5);
     f.g.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)}) rotate(${ang.toFixed(1)}) scale(${sc.toFixed(2)})`); f.g.setAttribute('opacity', p.ok ? clamp(fishA) : 0); }
   // Jordão
-  const rT = smooth((t - Wd('d2', 'Jordão', -0.3)) / Math.max(Wd('d2', 'Morto', 0.2) - Wd('d2', 'Jordão', -0.3), 1));
+  const rT = smooth((t - Wd('d2', 'Jordão', -0.3)) / Math.max(Wd('d2', 'Morto', -0.2) - Wd('d2', 'Jordão', -0.3), 1));
   const rOp = 1 - smooth((t - E('s1', 0.3)) / 0.7);
   const rpts = jordan.map(p => P(p)); drawPath(pRoute, rpts, rT, false, rOp);
   if (rT > 0 && rOp > 0 && rpts.every(p => p.ok)) { const f = rT * (rpts.length - 1), i = Math.min(Math.floor(f), rpts.length - 2), u = f - i; head.setAttribute('cx', lerp(rpts[i].x, rpts[i + 1].x, u)); head.setAttribute('cy', lerp(rpts[i].y, rpts[i + 1].y, u)); head.setAttribute('opacity', rOp * (rT < 0.999 ? 1 : 0)); } else head.setAttribute('opacity', 0);
@@ -317,10 +306,10 @@ function update(t) {
   // evaporação + sal
   const evA = smooth((t - Wd('s2', 'evapora', -0.3)) / 0.5) * (1 - smooth((t - E('s2', 0.5)) / 0.6));
   wispPts.forEach(p => { const q = P(p, -430), ph = (t * 0.45 * p.sp + p.ph) % 1; p.el.setAttribute('cx', q.x); p.el.setAttribute('cy', q.y - ph * 150); p.el.setAttribute('r', 8 + ph * 10); p.el.setAttribute('opacity', q.ok ? evA * Math.sin(Math.PI * ph) * 0.8 : 0); });
-  const saltA = smooth((t - Wd('s2', 'sal', -0.3)) / 0.6) * (1 - smooth((t - E('s4', 0.2)) / 0.6));
+  const saltA = smooth((t - Wd('s2', 'sal', -0.3)) / 0.6) * (1 - smooth((t - E('s3', 0.2)) / 0.6));
   saltPts.forEach((p, i) => { const q = P(p, -430), tw = 0.55 + 0.45 * Math.sin(t * 5 * p.sp + p.ph * 20), on = clamp((t - Wd('s2', 'sal', -0.2) - i * 0.03) / 0.3); p.el.setAttribute('cx', q.x); p.el.setAttribute('cy', q.y); p.el.setAttribute('opacity', q.ok ? saltA * tw * on : 0); });
   // peixe riscado sobre o Mar Morto
-  const xA = smooth((t - Wd('h1', 'vive', -0.15)) / 0.3) * (1 - smooth((t - S('d1', 0.0)) / 0.3)) + smooth((t - Wd('s4', 'Nenhum', 0.4)) / 0.3) * (1 - smooth((t - E('s4', 0.2)) / 0.4));
+  const xA = smooth((t - Wd('h1', 'vive', -0.15)) / 0.3) * (1 - smooth((t - S('d1', 0.0)) / 0.3)) + smooth((t - Wd('s3', 'nenhum', 0.2)) / 0.3) * (1 - smooth((t - E('s3', 0.2)) / 0.4));
   { const q = P({ lat: 31.52, lon: 35.47 }, -430); xG.setAttribute('transform', `translate(${q.x.toFixed(1)} ${q.y.toFixed(1)}) scale(${(0.9 + 0.1 * Math.sin(t * 6)).toFixed(3)})`); xG.setAttribute('opacity', q.ok ? clamp(xA) : 0); }
 
   // rótulos
@@ -348,7 +337,7 @@ function update(t) {
   let b = BAR[0]; for (const x of BAR) if (t >= x.t) b = x;
   if (barChip.textContent !== b.chip) { barChip.textContent = b.chip; barTtl.textContent = b.ttl; }
   const onLoc = locMat.uniforms.uAlpha.value > 0.5 && t < S('c1', 0.5);
-  footEl.textContent = t > Wd('s3', 'salgado', -0.9) && t < E('s3', 0.5) ? 'Salinidade aproximada · Mar Morto × oceano' : 'Relevo exagerado ' + Math.round(Ef) + '× · SRTM e Sentinel-2'; footEl.style.opacity = onLoc ? 1 : 0;
+  footEl.textContent = 'Relevo exagerado ' + Math.round(Ef) + '× · SRTM e Sentinel-2'; footEl.style.opacity = onLoc ? 1 : 0;
 }
 window.__TOTAL = TOTAL;
 window.renderFrame = async t => { update(t); await new Promise(r => requestAnimationFrame(() => r())); return true; };
