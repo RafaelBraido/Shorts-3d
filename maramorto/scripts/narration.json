@@ -1,0 +1,102 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Este lago está cheio de peixes. E a água dele corre para um mar onde nenhum peixe vive.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "h2",
+  "parts": [
+   {
+    "t": "Entenda por quê.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "d1",
+  "parts": [
+   {
+    "t": "Este é o Mar da Galileia: água doce, cheia de peixes.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "d2",
+  "parts": [
+   {
+    "t": "Da ponta sul dele sai o rio Jordão, que desce até o Mar Morto.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "d3",
+  "parts": [
+   {
+    "t": "O Mar Morto fica duzentos e vinte metros mais baixo.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "s1",
+  "parts": [
+   {
+    "t": "E aqui a água entra, mas não tem por onde sair.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "s2",
+  "parts": [
+   {
+    "t": "Ela só evapora, e o sal fica para trás.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "s3",
+  "parts": [
+   {
+    "t": "Hoje ele é quase dez vezes mais salgado que o oceano.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "s4",
+  "parts": [
+   {
+    "t": "Nenhum peixe aguenta. Por isso, o nome: Mar Morto.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Quer ver outro lugar? Segue pra parte dois.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ }
+]
