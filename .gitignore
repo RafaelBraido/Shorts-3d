@@ -8,3 +8,9 @@ maramorto/out/shots/
 maramorto/out/voice/
 maramorto/out/audio.wav
 maramorto/out/*.log
+corrida/node_modules
+corrida/out/frames/
+corrida/out/shots/
+corrida/out/voice/
+corrida/out/audio.wav
+corrida/out/*.log
