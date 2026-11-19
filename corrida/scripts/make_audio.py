@@ -66,7 +66,7 @@ def pop():
 sfx = np.zeros(n, np.float32)
 for tm, d, up, g in [(0.1, 1.2, True, 0.6), (L["d1"]["start"], 1.0, True, 0.5), (L["d2"]["start"] + 0.2, 1.0, True, 0.5), (L["d3"]["start"] + 1.4, 1.2, True, 0.5), (L["d4"]["start"], 1.0, False, 0.5), (L["f1"]["start"] - 0.2, 1.0, True, 0.5), (L["c1"]["start"] - 0.3, 1.4, True, 0.6)]:
     place(sfx, whoosh(d, up), tm, g)
-for tm in [Wd("h1", "20", -0.1), Wd("d1", "largada", -0.1), Wd("d2", "ida", -0.1), Wd("d3", "retorno", -0.2), Wd("d4", "volta", -0.1), Wd("f1", "3", -0.1), Wd("c1", "Venha", -0.1)]: place(sfx, pop(), tm, 0.3)
+for tm in [Wd("h1", "20", -0.1), Wd("d1", "largada", -0.1), Wd("d2", "ida", -0.1), Wd("d2", "trinta", -0.2), Wd("d3", "retorno", -0.2), Wd("d4", "volta", -0.1), Wd("f1", "3", -0.1), Wd("c1", "Venha", -0.1)]: place(sfx, pop(), tm, 0.3)
 mix = voice + music * 0.5 * duck + steps * 0.8 + breath + heart * 0.6 + sfx * 0.45
 fade = np.clip((total + 0.4 - t) / 0.8, 0, 1); mix = mix * fade
 mix = mix / max(np.abs(mix).max(), 1e-6) * 0.92

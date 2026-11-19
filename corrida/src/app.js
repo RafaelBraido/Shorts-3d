@@ -8,7 +8,12 @@ const smooth = x => { x = clamp(x); return x * x * x * (x * (x * 6 - 15) + 10); 
 const lerp = (a, b, k) => a + (b - a) * k;
 const fract = x => x - Math.floor(x);
 
-const [TL, RT, DET, CITY] = await Promise.all(['/out/timeline.json', '/data/route.json', '/data/detail.json', '/data/city.json'].map(u => fetch(u).then(r => r.json())));
+const [TL, RT, DET, CITY, DEMJ] = await Promise.all(['/out/timeline.json', '/data/route.json', '/data/detail.json', '/data/city.json', '/data/dem.json'].map(u => fetch(u).then(r => r.json())));
+const DEMF = new Float32Array(await fetch('/data/dem.bin').then(r => r.arrayBuffer())); for (let i = 0; i < DEMF.length; i++) DEMF[i] = Math.min(DEMF[i], 1150);
+const EXAG = 3, H0 = 900, DN = DEMJ.n, DHALF = DEMJ.half, DSTEP = DEMJ.step;
+function demRaw(x, z) { const gx = clamp((x + DHALF) / DSTEP, 0, DN - 1.001), gy = clamp((-z + DHALF) / DSTEP, 0, DN - 1.001), i = Math.floor(gx), j = Math.floor(gy), u = gx - i, v = gy - j;
+  return lerp(lerp(DEMF[j * DN + i], DEMF[j * DN + i + 1], u), lerp(DEMF[(j + 1) * DN + i], DEMF[(j + 1) * DN + i + 1], u), v); }
+const demH = (x, z) => (demRaw(x, z) - H0) * EXAG;
 const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
 const L = Object.fromEntries(TL.lines.map(l => [l.id, l]));
 const S = (id, dt = 0) => L[id].start + dt, E = (id, dt = 0) => L[id].end + dt;
@@ -35,12 +40,17 @@ const HAZE = new THREE.Color(0xe9eef3);
 scene.add(new THREE.HemisphereLight(0xffffff, 0xd8d0c2, 2.5));
 const sunL = new THREE.DirectionalLight(0xfff0d8, 1.7); sunL.position.set(-0.7, 0.85, 0.55); scene.add(sunL);
 
-const UNI = { uS: { value: 1 }, uFogC: { value: HAZE }, uFogN: { value: 1e9 }, uFogF: { value: 2e9 }, uTime: { value: 0 }, uSwitch: { value: L1 + L3 * 0.5 } };
+const demTex = new THREE.DataTexture(DEMF, DN, DN, THREE.RedFormat, THREE.FloatType); demTex.minFilter = demTex.magFilter = THREE.NearestFilter; demTex.needsUpdate = true;
+const UNI = { uDem: { value: demTex }, uDemN: { value: DN }, uHalf: { value: DHALF }, uStep: { value: DSTEP }, uH0: { value: H0 }, uExag: { value: EXAG }, uS: { value: 1 }, uFogC: { value: HAZE }, uFogN: { value: 1e9 }, uFogF: { value: 2e9 }, uTime: { value: 0 }, uSwitch: { value: L1 + L3 * 0.5 } };
+const DEMGLSL = `uniform sampler2D uDem; uniform float uDemN,uHalf,uStep,uH0,uExag;
+  float demH(vec2 xz){ vec2 g=clamp((vec2(xz.x,-xz.y)+uHalf)/uStep,vec2(0.),vec2(uDemN-1.001)); ivec2 i=ivec2(floor(g)); vec2 f=fract(g);
+    float a=texelFetch(uDem,i,0).r,b=texelFetch(uDem,i+ivec2(1,0),0).r,c=texelFetch(uDem,i+ivec2(0,1),0).r,d=texelFetch(uDem,i+ivec2(1,1),0).r; return (mix(mix(a,b,f.x),mix(c,d,f.x),f.y)-uH0)*uExag; }
+  float shadeAt(vec2 xz){ float h0=demH(xz),hx=demH(xz+vec2(40.,0.)),hz=demH(xz+vec2(0.,40.)); vec3 n=normalize(vec3(-(hx-h0)/40.,1.,-(hz-h0)/40.)); return .56+.62*max(dot(n,normalize(vec3(-.6,.72,-.45))),0.); }`;
 const FOGGLSL = `varying float vD; uniform vec3 uFogC; uniform float uFogN,uFogF;
   vec3 fogMix(vec3 c){ return mix(c,uFogC,smoothstep(uFogN,uFogF,vD)); }`;
-const flatMat = hex => new THREE.ShaderMaterial({ depthTest: false, depthWrite: false, side: THREE.DoubleSide, uniforms: { ...UNI, uColor: { value: new THREE.Color(hex) } },
-  vertexShader: 'varying float vD; void main(){ vec4 w=modelMatrix*vec4(position,1.); vD=distance(w.xyz,cameraPosition); gl_Position=projectionMatrix*viewMatrix*w; }',
-  fragmentShader: FOGGLSL + 'uniform vec3 uColor; void main(){ gl_FragColor=linearToOutputTexel(vec4(fogMix(uColor),1.)); }' });
+const flatMat = (hex, shade = 1) => new THREE.ShaderMaterial({ depthTest: false, depthWrite: false, side: THREE.DoubleSide, uniforms: { ...UNI, uColor: { value: new THREE.Color(hex) }, uShade: { value: shade } },
+  vertexShader: DEMGLSL + 'varying float vD; varying vec2 vXZ; void main(){ vec4 w=modelMatrix*vec4(position,1.); w.y+=demH(w.xz); vXZ=w.xz; vD=distance(w.xyz,cameraPosition); gl_Position=projectionMatrix*viewMatrix*w; }',
+  fragmentShader: DEMGLSL + FOGGLSL + 'varying vec2 vXZ; uniform vec3 uColor; uniform float uShade; void main(){ vec3 c=uColor*mix(1.,shadeAt(vXZ),uShade); gl_FragColor=linearToOutputTexel(vec4(fogMix(c),1.)); }' });
 const addMesh = (g, m, order) => { const x = new THREE.Mesh(g, m); x.renderOrder = order; x.frustumCulled = false; scene.add(x); return x; };
 
 // céu e chão
@@ -48,7 +58,9 @@ const addMesh = (g, m, order) => { const x = new THREE.Mesh(g, m); x.renderOrder
     vertexShader: 'varying vec3 vP; void main(){ vP=normalize(position); gl_Position=projectionMatrix*mat4(mat3(modelViewMatrix))*vec4(position,1.); }',
     fragmentShader: 'varying vec3 vP; void main(){ float h=clamp(vP.y,0.,1.); vec3 c=mix(vec3(.91,.93,.95),vec3(.55,.74,.93),smoothstep(0.,.5,h)); gl_FragColor=linearToOutputTexel(vec4(c,1.)); }' }));
   sky.renderOrder = -30; sky.frustumCulled = false; scene.add(sky);
-  const g = new THREE.PlaneGeometry(4e5, 4e5); g.rotateX(-Math.PI / 2); addMesh(g, flatMat(0xece8df), -20); }
+  const g = new THREE.PlaneGeometry(4e5, 4e5); g.rotateX(-Math.PI / 2); addMesh(g, flatMat(0xece8df), -22);
+  const g1 = new THREE.PlaneGeometry(2 * DHALF, 2 * DHALF, 320, 320); g1.rotateX(-Math.PI / 2); addMesh(g1, flatMat(0xece8df), -21);
+  const g2 = new THREE.PlaneGeometry(3600, 3600, 240, 240); g2.rotateX(-Math.PI / 2); g2.translate(-380, 0, 30); addMesh(g2, flatMat(0xece8df), -20); }
 
 // polígonos planos (parques, água, uso do solo)
 function flatPolys(polys, color, order) {
@@ -76,8 +88,8 @@ function ribbonGeo(lines, widthOf, expOf, off = 0, y = 0) {
     for (let i = 0; i < ln.length - 1; i++) { const a = base + i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('aN', new THREE.Float32BufferAttribute(nr, 3));
   g.setAttribute('aWK', new THREE.Float32BufferAttribute(wk, 3)); g.setAttribute('aS', new THREE.Float32BufferAttribute(sS, 1)); g.setIndex(idx); return g; }
-const ROAD_VS = `attribute vec3 aN; attribute vec3 aWK; attribute float aS; uniform float uS,uWm,uAdd; varying float vD; varying float vS;
-  void main(){ float w=(aWK.x*pow(uS,aWK.y)*uWm+uAdd*uS)*0.5; vec3 p=position+vec3(aN.x,0.,aN.y)*(aN.z*w+aWK.z*sqrt(uS)); vS=aS; vec4 wp=modelMatrix*vec4(p,1.); vD=distance(wp.xyz,cameraPosition); gl_Position=projectionMatrix*viewMatrix*wp; }`;
+const ROAD_VS = DEMGLSL + `attribute vec3 aN; attribute vec3 aWK; attribute float aS; uniform float uS,uWm,uAdd; varying float vD; varying float vS;
+  void main(){ float w=(aWK.x*pow(uS,aWK.y)*uWm+uAdd*uS)*0.5; vec3 p=position+vec3(aN.x,0.,aN.y)*(aN.z*w+aWK.z*sqrt(uS)); vS=aS; vec4 wp=modelMatrix*vec4(p,1.); wp.y+=demH(wp.xz)+uS*0.0; vD=distance(wp.xyz,cameraPosition); gl_Position=projectionMatrix*viewMatrix*wp; }`;
 const roadMat = hex => new THREE.ShaderMaterial({ depthTest: false, depthWrite: false, side: THREE.DoubleSide, uniforms: { ...UNI, uColor: { value: new THREE.Color(hex) }, uWm: { value: 1 }, uAdd: { value: 0 } },
   vertexShader: ROAD_VS, fragmentShader: FOGGLSL + 'varying float vS; uniform vec3 uColor; void main(){ gl_FragColor=linearToOutputTexel(vec4(fogMix(uColor),1.)); }' });
 const ROADSTYLE = { motorway: [0xf0b35c, 0xffe0a0], trunk: [0xf0b35c, 0xffe0a0], primary: [0xe8a84a, 0xffe39a], secondary: [0xdcbd68, 0xfff1c2], tertiary: [0xd5cfc2, 0xffffff], residential: [0xd9d3c7, 0xffffff], unclassified: [0xd9d3c7, 0xffffff], living_street: [0xdcd6ca, 0xfbf9f4], service: [0xe3ded3, 0xf8f6f1], unknown: [0xe3ded3, 0xf8f6f1] };
@@ -113,13 +125,13 @@ let bldCount = 0;
     let h = b.h || (b.f ? b.f * 3.2 : ar < 90 ? 3 + r * 1.6 : ar < 250 ? 3.6 + r * 3.2 : ar < 700 ? 5 + r * 11 : 9 + r * 22); const lm = lmIdx.get(bi); if (lm) h = Math.max(h, 18);
     const wall = new THREE.Color().setHSL(0.09 + (r - 0.5) * 0.04, 0.1 + r * 0.1, 0.80 + (hash(cy, cx) - 0.5) * 0.06), roof = new THREE.Color().setHSL(0.08, 0.06, 0.88 - r * 0.05);
     if (lm) { wall.set(lm.col).multiplyScalar(0.92); roof.set(lm.col); }
-    const base = wall.clone().multiplyScalar(0.78), pts = ring.slice(0, -1).map(p => [p[0], -p[1]]);
+    const base = wall.clone().multiplyScalar(0.78), pts = ring.slice(0, -1).map(p => [p[0], -p[1]]); const y0 = Math.min(...pts.map(p => demH(p[0], p[1]))) - 0.3;
     let sum = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; sum += p[0] * q[1] - q[0] * p[1]; } const sgn = sum > 0 ? 1 : -1;
     for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; const dx = q[0] - p[0], dz = q[1] - p[1], dl = Math.hypot(dx, dz); if (dl < 0.05) continue;
       const n = new THREE.Vector3(sgn * dz / dl, 0, -sgn * dx / dl), shade = 0.86 + 0.14 * Math.abs(n.x * -0.6 + n.z * 0.5), wc = wall.clone().multiplyScalar(shade), bc = base.clone().multiplyScalar(shade);
-      const A = new THREE.Vector3(p[0], 0, p[1]), B = new THREE.Vector3(q[0], 0, q[1]), C = new THREE.Vector3(q[0], h, q[1]), D2 = new THREE.Vector3(p[0], h, p[1]); tri(A, B, C, n, bc, bc, wc); tri(A, C, D2, n, bc, wc, wc); }
+      const A = new THREE.Vector3(p[0], y0 - 2.5, p[1]), B = new THREE.Vector3(q[0], y0 - 2.5, q[1]), C = new THREE.Vector3(q[0], y0 + h, q[1]), D2 = new THREE.Vector3(p[0], y0 + h, p[1]); tri(A, B, C, n, bc, bc, wc); tri(A, C, D2, n, bc, wc, wc); }
     let tr; try { tr = THREE.ShapeUtils.triangulateShape(pts.map(p => new THREE.Vector2(p[0], p[1])), []); } catch (e) { tr = []; } const up = new THREE.Vector3(0, 1, 0);
-    for (const t of tr) tri(new THREE.Vector3(pts[t[0]][0], h, pts[t[0]][1]), new THREE.Vector3(pts[t[1]][0], h, pts[t[1]][1]), new THREE.Vector3(pts[t[2]][0], h, pts[t[2]][1]), up, roof, roof, roof);
+    for (const t of tr) tri(new THREE.Vector3(pts[t[0]][0], y0 + h, pts[t[0]][1]), new THREE.Vector3(pts[t[1]][0], y0 + h, pts[t[1]][1]), new THREE.Vector3(pts[t[2]][0], y0 + h, pts[t[2]][1]), up, roof, roof, roof);
     bldCount++; });
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })); m.renderOrder = 20; m.frustumCulled = false; scene.add(m); }
@@ -143,9 +155,9 @@ function signTex(txt, sub, c1) { const c = document.createElement('canvas'); c.w
   const beam = new THREE.Mesh(new THREE.BoxGeometry(13.4, 2.4, 0.7), new THREE.MeshLambertMaterial({ color: 0x1b2a6b })); beam.position.set(0, 6.4, 0); g.add(beam);
   const mat = new THREE.MeshBasicMaterial({ map: signTex('LARGADA E CHEGADA', '11ª RESGATANDO VIDAS NA CORRIDA', '#2f55f0') });
   const f1 = new THREE.Mesh(new THREE.PlaneGeometry(13, 2.1), mat); f1.position.set(0, 6.4, 0.4); g.add(f1); const f2 = new THREE.Mesh(new THREE.PlaneGeometry(13, 2.1), mat); f2.position.set(0, 6.4, -0.4); f2.rotation.y = Math.PI; g.add(f2);
-  g.position.set(p0[0], 0, -p0[1]); g.rotation.y = th; g.renderOrder = 30; scene.add(g);
+  g.position.set(p0[0], demH(p0[0], -p0[1]), -p0[1]); g.rotation.y = th; g.renderOrder = 30; scene.add(g);
   const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64; const cx = cv.getContext('2d'); for (let i = 0; i < 16; i++) for (let j = 0; j < 4; j++) { cx.fillStyle = (i + j) % 2 ? '#111' : '#fff'; cx.fillRect(i * 16, j * 16, 16, 16); }
-  const ct = new THREE.CanvasTexture(cv); ct.colorSpace = THREE.SRGBColorSpace; const line = new THREE.Mesh(new THREE.PlaneGeometry(9, 2.2), new THREE.MeshBasicMaterial({ map: ct })); line.rotation.x = -Math.PI / 2; line.position.y = 0.3; const lg = new THREE.Group(); lg.add(line); lg.rotation.y = th; lg.position.set(p0[0], 0, -p0[1]); lg.renderOrder = 31; scene.add(lg); }
+  const ct = new THREE.CanvasTexture(cv); ct.colorSpace = THREE.SRGBColorSpace; const line = new THREE.Mesh(new THREE.PlaneGeometry(9, 2.2), new THREE.MeshBasicMaterial({ map: ct })); line.rotation.x = -Math.PI / 2; line.position.y = 0.3; const lg = new THREE.Group(); lg.add(line); lg.rotation.y = th; lg.position.set(p0[0], demH(p0[0], -p0[1]) + 0.3, -p0[1]); lg.renderOrder = 31; scene.add(lg); }
 
 /* ------------------------------ câmera ------------------------------ */
 const cityC = ll([-50.157, -25.104]), rc = (() => { let x = 0, y = 0; for (const p of route) { x += p[0]; y += p[1]; } return [x / route.length, y / route.length]; })();
@@ -175,18 +187,18 @@ function camState(t) { let i = 0; while (i < K.length - 2 && t > K[i + 1].t) i++
   for (const f of KF) o[f] = herm(a[f], b[f], KTAN[f][i], KTAN[f][i + 1], h, u); o.d = Math.exp(herm(KLD[i], KLD[i + 1], KTAN.ld[i], KTAN.ld[i + 1], h, u)); return o; }
 const BEATS = [Wd('h1', 'Ponta', 0), S('d1', 0), S('d2', 0), S('d3', 0), S('d4', 0), S('f1', 0), S('c1', 0)];
 function placeCamera(c) {
-  const hd = c.head * DEG, tl = c.tilt * DEG, fw = new THREE.Vector3(Math.sin(hd), 0, -Math.cos(hd)), tgt = new THREE.Vector3(c.x, 0, -c.y);
-  camera.position.copy(tgt).addScaledVector(fw, -c.d * Math.sin(tl)); camera.position.y = c.d * Math.cos(tl); camera.up.copy(fw); camera.lookAt(tgt);
+  const hd = c.head * DEG, tl = c.tilt * DEG, fw = new THREE.Vector3(Math.sin(hd), 0, -Math.cos(hd)), tgt = new THREE.Vector3(c.x, demH(c.x, -c.y), -c.y);
+  camera.position.copy(tgt).addScaledVector(fw, -c.d * Math.sin(tl)); camera.position.y = tgt.y + c.d * Math.cos(tl); camera.up.copy(fw); camera.lookAt(tgt);
   camera.near = Math.max(1, c.d * 0.015); camera.far = c.d * 12 + 40000; camera.updateProjectionMatrix();
   const low = smooth((c.tilt - 8) / 30), fogF = lerp(1e9, c.d * 4.5 + 1800, low), fogN = lerp(5e8, c.d * 0.9, low);
   UNI.uFogN.value = fogN; UNI.uFogF.value = fogF; scene.fog.near = fogN; scene.fog.far = fogF; UNI.uS.value = clamp(c.d / 900, 1, 60); }
 
 /* ------------------------------ interface ------------------------------ */
 const labelsEl = document.getElementById('labels'), capEl = document.getElementById('cap'), cardEl = document.getElementById('card'), barChip = document.getElementById('chip'), barTtl = document.getElementById('ttl');
-const footEl = document.getElementById('foot'), hudEl = document.getElementById('hud'), hfl = document.getElementById('hfl'), htx = document.getElementById('htx');
+const footEl = document.getElementById('foot'), hudEl = document.getElementById('hud'), hfl = null;
 document.getElementById('speed')?.remove(); document.getElementById('pulse')?.remove();
 const LABELS = [], _p = new THREE.Vector3();
-function addLabel(o) { const el = document.createElement('div'); el.className = 'lab ' + (o.cls || ''); el.innerHTML = o.text; labelsEl.appendChild(el); const dot = o.dot ? Object.assign(document.createElement('div'), { className: 'dot' }) : null; if (dot) labelsEl.appendChild(dot); LABELS.push({ ...o, el, dotEl: dot, pos: new THREE.Vector3(o.xy[0], o.up ?? 0, -o.xy[1]) }); }
+function addLabel(o) { const el = document.createElement('div'); el.className = 'lab ' + (o.cls || ''); el.innerHTML = o.text; labelsEl.appendChild(el); const dot = o.dot ? Object.assign(document.createElement('div'), { className: 'dot' }) : null; if (dot) labelsEl.appendChild(dot); LABELS.push({ ...o, el, dotEl: dot, pos: new THREE.Vector3(o.xy[0], (o.up ?? 0) + demH(o.xy[0], -o.xy[1]), -o.xy[1]) }); }
 const tipP = atS(L1 + L3 * 0.5), midIda = atS(L1 * 0.45), midVolta = atS(L1 + L3 + (LTOT - L1 - L3) * 0.45), vereadores = atS(120);
 addLabel({ text: 'PONTA GROSSA · PR', xy: [cityC[0] - 500, cityC[1] + 300], t0: 0.3, t1: E('h1', 0.1), cls: '', dot: false, up: 0 });
 addLabel({ text: 'LARGADA E CHEGADA<br><span style="font-size:.62em;font-weight:800">ESQUADRÃO DA VIDA</span>', xy: STAR, t0: Wd('d1', 'largada', -0.4), t1: Wd('d2', 'ida', 0.6), cls: '', dot: true, up: 14, dy: -150 });
@@ -196,11 +208,21 @@ addLabel({ text: 'RETORNO<br><span style="font-size:.62em;font-weight:800">ALÇA
 addLabel({ text: 'AV. SILVA JARDIM', xy: midVolta, t0: Wd('d4', 'Silva', -0.3), t1: E('d4', 0.3), cls: '', dot: false, up: 10, dy: -4 });
 for (const lm of LANDMARKS) addLabel({ text: lm.label, xy: lm.xy, near: lm.s, cls: 'sm', dot: true, up: 24, dy: -10 });
 
-const FOOT = '© OpenStreetMap contributors via Overture Maps · altura dos prédios estimada';
+const FOOT = 'Relevo real exagerado 3× · © OpenStreetMap via Overture Maps · altura dos prédios estimada';
+// perfil de altitude real ao longo do percurso (modelo digital de elevação)
+const PROF = []; for (let q = 0; q <= LTOT; q += 12) { const p = atS(q); PROF.push([q, demRaw(p[0], -p[1])]); }
+const eMin = Math.min(...PROF.map(a => a[1])), eMax = Math.max(...PROF.map(a => a[1])), eStart = PROF[0][1], eTip = demRaw(...(a => [a[0], -a[1]])(atS(L1 + L3 * 0.5))), CLIMB = Math.round(eTip - eStart);
+const PW = 960, PH = 74, px_ = q => q / LTOT * PW, py_ = e => PH - 8 - (e - eMin) / Math.max(eMax - eMin, 1) * (PH - 18);
+const profD = PROF.map((a, i) => (i ? 'L' : 'M') + px_(a[0]).toFixed(1) + ' ' + py_(a[1]).toFixed(1)).join('');
+hudEl.innerHTML = `<svg width="${PW}" height="${PH}" viewBox="0 0 ${PW} ${PH}" style="display:block"><defs><clipPath id="pc"><rect id="pcr" x="0" y="0" width="0" height="${PH}"/></clipPath></defs>
+  <path d="${profD}L${PW} ${PH}L0 ${PH}Z" fill="rgba(255,255,255,.22)"/><path d="${profD}L${PW} ${PH}L0 ${PH}Z" fill="rgba(255,194,26,.85)" clip-path="url(#pc)"/><path d="${profD}" fill="none" stroke="#fff" stroke-width="3"/>
+  <circle id="pdot" r="9" fill="#fff" stroke="#ffc21a" stroke-width="5"/></svg><div class="tx" id="htx"></div>`;
+const pcr = document.getElementById('pcr'), pdot = document.getElementById('pdot'), htx2 = document.getElementById('htx');
 const CARDS = [
   { t0: S('h1', 0.1), t1: E('h1', 0.2), html: `<div class="big">20 NOV</div><div class="sub">Ponta Grossa</div>` },
   { t0: Wd('d1', 'largada', -0.1), t1: E('d1', 0.3), html: `<div class="big s">LARGADA</div><div class="sub">Esquadrão da Vida · Av. dos Vereadores, 850</div>` },
-  { t0: Wd('d2', 'ida', -0.1), t1: E('d2', 0.3), html: `<div class="big s">IDA</div><div class="sub" style="color:#ffd23c">Subindo a Rua Jacob Holzmann</div>` },
+  { t0: Wd('d2', 'ida', -0.1), t1: Wd('d2', 'subida', -0.2), html: `<div class="big s">IDA</div><div class="sub" style="color:#ffd23c">Subindo a Rua Jacob Holzmann</div>` },
+  { t0: Wd('d2', 'subida', -0.2), t1: E('d2', 0.3), html: `<div class="big">+${CLIMB} m</div><div class="sub">de subida · altitude real</div>` },
   { t0: Wd('d3', 'retorno', -0.6), t1: E('d3', 0.3), html: `<div class="big s">RETORNO</div><div class="sub">Alça da Rua 14 de Julho</div>` },
   { t0: Wd('d4', 'volta', -0.1), t1: E('d4', 0.3), html: `<div class="big s" style="color:#6fc8ff">VOLTA</div><div class="sub">Avenida Silva Jardim</div>` },
   { t0: S('f1', -0.1), t1: E('f1', 0.3), html: `<div class="big">3 km</div><div class="sub">Prova individual · Corrida de rua</div>` },
@@ -224,7 +246,7 @@ function update(t) {
 
   for (const lb of LABELS) { let a; if (lb.near != null) { a = (1 - smooth((Math.abs(s - lb.near) - 120) / 160)) * smooth((t - tF0 + 0.2) / 0.4) * (1 - smooth((t - E('d4', 0.2)) / 0.4)); } else a = smooth((t - lb.t0) / 0.28) * (1 - smooth((t - lb.t1) / 0.3));
     const q = _p.copy(lb.pos).project(camera); if (a <= 0.01 || q.z > 1 || q.z < -1) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; }
-    const px = clamp((q.x + 1) / 2 * W, 300, 780), py = (1 - q.y) / 2 * H, ly = clamp(py + (lb.dy ?? -14), 250, 980); lb.el.style.opacity = a; lb.el.style.left = px + 'px'; lb.el.style.top = ly + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * a})`;
+    const px = clamp((q.x + 1) / 2 * W, 300, 780), py = (1 - q.y) / 2 * H, ly = clamp(py + (lb.dy ?? -14), 300, 980); if (lb.near != null && (py < 360 || py > 960)) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; } lb.el.style.opacity = a; lb.el.style.left = px + 'px'; lb.el.style.top = ly + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * a})`;
     if (lb.dotEl) { lb.dotEl.style.opacity = a; lb.dotEl.style.left = ((q.x + 1) / 2 * W) + 'px'; lb.dotEl.style.top = py + 'px'; } }
   const ch = CHUNKS.find(x => t >= x.t0 - 0.05 && t <= x.t1 + 0.18);
   if (ch) { const cur = ch.words.findIndex(w => t >= w.t0 && t < w.t1); const idx = cur < 0 ? (t >= ch.words[ch.words.length - 1].t1 ? ch.words.length - 1 : 0) : cur; const key = CHUNKS.indexOf(ch) + ':' + idx;
@@ -233,7 +255,7 @@ function update(t) {
   if (ci >= 0) { if (ci !== cardKey) { cardEl.innerHTML = CARDS[ci].html; cardKey = ci; } const cd = CARDS[ci], a = smooth((t - cd.t0) / 0.3) * (1 - smooth((t - (cd.t1 - 0.25)) / 0.25)); cardEl.style.opacity = a; cardEl.style.transform = `translateY(${(1 - a) * 40}px)`; } else { cardEl.style.opacity = 0; cardKey = -1; }
   let b = BAR[0]; for (const x of BAR) if (t >= x.t) b = x; if (barChip.textContent !== b.chip) { barChip.textContent = b.chip; barTtl.textContent = b.ttl; }
   footEl.textContent = FOOT; footEl.style.opacity = 1;
-  const hv = smooth((t - S('d2', -0.2)) / 0.5) * (1 - smooth((t - S('c1', -0.2)) / 0.4)); hudEl.style.opacity = hv; const sh = full > 0 ? LTOT : Math.min(s, LTOT); hfl.style.width = (sh / LTOT * 100) + '%'; htx.textContent = `${fmt(sh / 1000)} km de 3 km`;
+  const hv = smooth((t - S('d2', -0.2)) / 0.5) * (1 - smooth((t - S('c1', -0.2)) / 0.4)); hudEl.style.opacity = hv; const sh = full > 0 ? LTOT : Math.min(s, LTOT); pcr.setAttribute('width', px_(sh)); const pp = atS(sh); const alt = demRaw(pp[0], -pp[1]); pdot.setAttribute('cx', px_(sh)); pdot.setAttribute('cy', py_(alt)); htx2.textContent = `${fmt(sh / 1000)} km de 3 km · altitude ${Math.round(alt)} m`;
 }
 window.__TOTAL = TOTAL; window.__INFO = { LTOT, L1, L3, bldCount, landmarks: LANDMARKS.map(l => l.label) };
 window.renderFrame = async t => { update(t); await new Promise(r => requestAnimationFrame(() => r())); return true; };
