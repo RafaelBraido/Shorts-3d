@@ -14,3 +14,4 @@ corrida/out/shots/
 corrida/out/voice/
 corrida/out/audio.wav
 corrida/out/*.log
+corrida/data/seg.pkl
