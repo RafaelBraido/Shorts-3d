@@ -4,7 +4,15 @@ import shapely.wkb as W
 from shapely.geometry import LineString, Point, box
 R0=json.load(open("data/route21.json")); O=R0["origin"]; kx=111320*math.cos(math.radians(25.108)); ky=110574
 M=lambda c:[round((c[0]-O[0])*kx,1),round((c[1]-O[1])*ky,1)]
-rt=[M(c) for c in R0["route"][:len(R0["route"])//2+1]]            # só a ida (a volta é a mesma via)
+full=[M(c) for c in R0["route"]]; acc=0; idx=0
+for i in range(1,len(full)):
+    acc+=math.hypot(full[i][0]-full[i-1][0],full[i][1]-full[i-1][1])
+    if acc>=R0["L"][0]: idx=i; break
+rt=full[idx:]; acc=0; cut_i=len(rt)                      # só a volta, primeiros 6,5 km (trecho novo)
+for i in range(1,len(rt)):
+    acc+=math.hypot(rt[i][0]-rt[i-1][0],rt[i][1]-rt[i-1][1])
+    if acc>6500: cut_i=i; break
+rt=rt[:cut_i]
 line=LineString(rt); BUF=480; buf=line.buffer(BUF)
 # janelas de ~1,4 km ao longo da ida
 wins=[]; L=line.length; s=0
@@ -16,7 +24,12 @@ print(len(wins),"janelas, ida",round(L),"m"); t0=time.time()
 def simp(g,tol):
     g=g.simplify(tol/ky); gs=list(g.geoms) if g.geom_type.startswith("Multi") else [g]
     return [[[M(c) for c in p.exterior.coords]]+[[M(c) for c in i.coords] for i in p.interiors] for p in gs if p.geom_type=="Polygon"]
-B=[];P=[];R=[];Bs={"land_use":[],"water":[],"infrastructure":[],"land":[]}; seenB=set();seenR=set();seenP=set()
+EX=json.load(open("data/detail21.json")); B=EX["B"];P=EX["P"];R=EX["R"];Bs=EX["Bs"]
+for k in Bs:
+    for r in Bs[k]: r.setdefault("id",hash(str(r["p"][0][0][:3])))
+seenB={(round(sum(q[0] for q in b["p"][0])/len(b["p"][0]),1),round(sum(q[1] for q in b["p"][0])/len(b["p"][0]),1)) for b in B}
+seenR={(round(r["l"][0][0]),round(r["l"][0][1]),round(r["l"][-1][0]),round(r["l"][-1][1]),r["c"]) for r in R}; seenP={(p["n"],tuple(p["xy"])) for p in P}
+print("existente:",len(B),"prédios",len(R),"trechos")
 for wi,(x0,y0,x1,y1) in enumerate(wins):
     lo=inv(x0,y0); hi=inv(x1,y1); bb=(lo[0],lo[1],hi[0],hi[1])
     T=table("buildings","building",bb,["geometry","height","num_floors","class","names"])

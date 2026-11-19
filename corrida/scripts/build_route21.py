@@ -42,13 +42,24 @@ for p,q in zip(full,full[1:]):
         u=(TARGET-acc)/d; cut.append((p[0]+(q[0]-p[0])*u,p[1]+(q[1]-p[1])*u)); break
     cut.append(q); acc+=d
 print("ida cortada em",round(TARGET),"m; ponto de retorno",cut[-1])
-route=cut+cut[::-1][1:]
-import collections
-def summ(n):
-    out=[]
-    for nm,l in n:
-        if out and out[-1][0]==nm: out[-1][1]+=l
-        else: out.append([nm,l])
-    return [(a,round(b)) for a,b in out if b>150]
-print("IDA:",summ(nfull))
-json.dump({"origin":O,"route":[list(c) for c in route],"star":(-50.15314,-25.11161),"L":[TARGET,TARGET],"turn":list(cut[-1]),"mid":list(MID)},open("data/route21.json","w"))
+# nó da ida imediatamente antes do ponto de retorno (para a volta sair dele)
+cumn=[0]
+for u,v in zip(ida_nodes,ida_nodes[1:]): cumn.append(cumn[-1]+G[u][v]["L"])
+j=max(i for i in range(len(cumn)) if cumn[i]<=TARGET)
+Nj=ida_nodes[j]
+# volta: ruas da ida nos primeiros 4,5 km custam 3x (força uma rua paralela perto do Centro); no resto, mesma via
+pen=set()
+for i,(u,v) in enumerate(zip(ida_nodes,ida_nodes[1:])):
+    if cumn[i]<4500: pen.add((u,v)); pen.add((v,u))
+H=G.copy()
+for u,v in pen:
+    if H.has_edge(u,v): H[u][v]["w"]*=3.0
+pv=nx.shortest_path(H,Nj,START,weight="w"); cv,Lv,nv=coords(pv)
+# trecho final da ida (do nó Nj até o ponto de retorno), percorrido ao contrário
+tail=[]; acc=0; started=False
+k0=min(range(len(cut)),key=lambda i:math.dist(m(*cut[i]),m(*Nj))); tail=cut[k0:]
+route=cut+tail[::-1][1:]+cv[1:]
+Lv_tot=sum(math.dist(m(*p),m(*q)) for p,q in zip(tail,tail[1:]))+Lv
+print("volta",round(Lv_tot),"m; total",round(TARGET+Lv_tot),"m")
+print("VOLTA:",[(a,round(b)) for a,b in nv if b>150][:12])
+json.dump({"origin":O,"route":[list(c) for c in route],"star":(-50.15314,-25.11161),"L":[TARGET,Lv_tot],"turn":list(cut[-1]),"mid":list(MID)},open("data/route21.json","w"))

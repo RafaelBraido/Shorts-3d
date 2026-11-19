@@ -100,7 +100,7 @@ function addRoads(list, order0) {
   for (const c of order) { const ls = by[c]; if (!ls || !ROADSTYLE[c]) continue; const wd = WID[c] ?? 3, ex = EXP[c] ?? 0.5;
     addMesh(ribbonGeo(ls, wd + 2.2, ex), roadMat(ROADSTYLE[c][0]), o); addMesh(ribbonGeo(ls, wd, ex), roadMat(ROADSTYLE[c][1]), o + 1); o += 2; }
   if (by.foot) addMesh(ribbonGeo(by.foot, 0.9, 0.2), roadMat(0xe0c3ad), o); }
-const RGRID = new Map(); { const half = route.slice(0, (route.length >> 1) + 1); for (let q = 0; q < half.length; q++) { const k = Math.round(half[q][0] / 250) + ',' + Math.round(half[q][1] / 250); (RGRID.get(k) ?? RGRID.set(k, []).get(k)).push(half[q]); } }
+const RGRID = new Map(); { const half = route; for (let q = 0; q < half.length; q++) { const k = Math.round(half[q][0] / 250) + ',' + Math.round(half[q][1] / 250); (RGRID.get(k) ?? RGRID.set(k, []).get(k)).push(half[q]); } }
 const nearRoute = p => { const cx = Math.round(p[0] / 250), cy = Math.round(p[1] / 250); for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const r of RGRID.get((cx + i) + ',' + (cy + j)) ?? []) if (Math.hypot(r[0] - p[0], r[1] - p[1]) < 560) return true; return false; };
 const inDet = l => l.some(nearRoute);
 addRoads(CITY.R.filter(r => !inDet(r.l)), -12);
@@ -246,7 +246,7 @@ function update(t) {
 
   for (const lb of LABELS) { let a; if (lb.near != null) { a = (1 - smooth((Math.abs(s - lb.near) - 120) / 160)) * smooth((t - tF0 + 0.2) / 0.4) * (1 - smooth((t - E('d4', 0.2)) / 0.4)); } else a = smooth((t - lb.t0) / 0.28) * (1 - smooth((t - lb.t1) / 0.3));
     const q = _p.copy(lb.pos).project(camera); if (a <= 0.01 || q.z > 1 || q.z < -1) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; }
-    const px = clamp((q.x + 1) / 2 * W, 300, 780), py = (1 - q.y) / 2 * H, ly = clamp(py + (lb.dy ?? -14), 400, 980); if (lb.near != null && (py < 360 || py > 960)) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; } lb.el.style.opacity = a; lb.el.style.left = px + 'px'; lb.el.style.top = ly + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * a})`;
+    const hw = (lb.el.offsetWidth || 420) / 2 + 26, px = clamp((q.x + 1) / 2 * W, hw, W - hw), py = (1 - q.y) / 2 * H, ly = clamp(py + (lb.dy ?? -14), 400, 980); if (lb.near != null && (py < 360 || py > 960)) { lb.el.style.opacity = 0; if (lb.dotEl) lb.dotEl.style.opacity = 0; continue; } lb.el.style.opacity = a; lb.el.style.left = px + 'px'; lb.el.style.top = ly + 'px'; lb.el.style.transform = `translate(-50%,-100%) scale(${0.85 + 0.15 * a})`;
     if (lb.dotEl) { lb.dotEl.style.opacity = a; lb.dotEl.style.left = ((q.x + 1) / 2 * W) + 'px'; lb.dotEl.style.top = py + 'px'; } }
   const ch = CHUNKS.find(x => t >= x.t0 - 0.05 && t <= x.t1 + 0.18);
   if (ch) { const cur = ch.words.findIndex(w => t >= w.t0 && t < w.t1); const idx = cur < 0 ? (t >= ch.words[ch.words.length - 1].t1 ? ch.words.length - 1 : 0) : cur; const key = CHUNKS.indexOf(ch) + ':' + idx;
