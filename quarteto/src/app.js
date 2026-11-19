@@ -34,7 +34,7 @@ const nearest = p => { let best = 0, bd = 1e12; for (let i = 0; i < route.length
 /* ------------------------------ cena ------------------------------ */
 const canvas = document.getElementById('gl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
-renderer.setPixelRatio(1); renderer.setSize(W, H, false); renderer.setClearColor(0xe6ecf2, 1);
+renderer.setPixelRatio(1.5); renderer.setSize(W, H, false); renderer.setClearColor(0xe6ecf2, 1);
 const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0xe9eef3, 1e9, 2e9);
 const camera = new THREE.PerspectiveCamera(42, W / H, 1, 1e6);
 const HAZE = new THREE.Color(0xe9eef3);
@@ -106,6 +106,7 @@ addRoads(DET.R, -6);
 { const rails = DET.R.filter(r => r.t === 'rail').map(r => r.l); if (rails.length) addMesh(ribbonGeo(rails, 2.4, 0.5), roadMat(0x9aa0a8), 6); }
 
 // prédios extrudados (altura real quando existe; senão estimada pela área da planta)
+const CEN_ = ll([-50.1617, -25.0955]);
 const hash = (x, y) => fract(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453);
 const areaOf = r => { let a = 0; for (let i = 0; i < r.length - 1; i++) a += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]; return a / 2; };
 const LANDMARKS = [{ col: 0x5aa0ea, xy: ll([-50.15833, -25.10611]) }, { col: 0xf29b4b, xy: ll([-50.15516, -25.09976]) }, { col: 0xf2d04b, xy: ll([-50.15512, -25.09415]) }];
@@ -117,7 +118,8 @@ let bldCount = 0;
   const tri = (a, b, c, nrm, c1, c2, c3) => { E1.subVectors(b, a); E2.subVectors(c, a); N.crossVectors(E1, E2); if (N.dot(nrm) < 0) { [b, c] = [c, b]; [c2, c3] = [c3, c2]; }
     for (const [v, cc] of [[a, c1], [b, c2], [c, c3]]) { pos.push(v.x, v.y, v.z); nor.push(nrm.x, nrm.y, nrm.z); col.push(cc.r, cc.g, cc.b); } };
   DET.B.forEach((b, bi) => { const ring = b.p[0]; if (ring.length < 4) return; const [cx, cy] = cens[bi], ar = Math.abs(areaOf(ring)), r = hash(cx, cy);
-    let h = b.h || (b.f ? b.f * 3.2 : ar < 90 ? 3 + r * 1.6 : ar < 250 ? 3.6 + r * 3.2 : ar < 700 ? 5 + r * 11 : 9 + r * 22); const lm = lmIdx.get(bi); if (lm) h = Math.max(h, 18);
+    let h = b.h || (b.f ? b.f * 3.2 : ar < 90 ? 3 + r * 1.6 : ar < 250 ? 3.6 + r * 3.2 : ar < 700 ? 5 + r * 11 : 9 + r * 22); if (!b.h && !b.f) { const dc = Math.hypot(cx - CEN_[0], cy - CEN_[1]); h = Math.min(60, h * (1 + 1.3 * Math.exp(-dc / 1100) * (ar > 180 ? 1 : 0.35))); }
+    const lm = lmIdx.get(bi); if (lm) h = Math.max(h, 18);
     const wall = new THREE.Color().setHSL(0.09 + (r - 0.5) * 0.04, 0.1 + r * 0.1, 0.80 + (hash(cy, cx) - 0.5) * 0.06), roof = new THREE.Color().setHSL(0.08, 0.06, 0.88 - r * 0.05);
     if (lm) { wall.set(lm.col).multiplyScalar(0.92); roof.set(lm.col); }
     const base = wall.clone().multiplyScalar(0.78), pts = ring.slice(0, -1).map(p => [p[0], -p[1]]); const y0 = Math.min(...pts.map(p => demH(p[0], p[1]))) - 0.3;
