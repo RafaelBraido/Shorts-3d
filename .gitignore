@@ -25,3 +25,11 @@ quarteto/out/audio.wav
 quarteto/out/*.log
 corrida/data/seg_big.pkl
 corrida/data/dem_cop.bin
+corrida21/node_modules
+corrida21/data
+corrida21/out/frames/
+corrida21/out/shots/
+corrida21/out/voice/
+corrida21/out/audio.wav
+corrida21/out/*.log
+corrida/data/detail21.json
