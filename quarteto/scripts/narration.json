@@ -1,0 +1,102 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Dia vinte de novembro, tem prova quarteto em Ponta Grossa.",
+    "s": 1
+   }
+  ],
+  "gap": 0.45
+ },
+ {
+  "id": "h2",
+  "parts": [
+   {
+    "t": "Revezamento quatro por cinco, visto de cima.",
+    "s": 1
+   }
+  ],
+  "gap": 0.45
+ },
+ {
+  "id": "d1",
+  "parts": [
+   {
+    "t": "A largada é em frente ao Esquadrão da Vida.",
+    "s": 1
+   }
+  ],
+  "gap": 0.45
+ },
+ {
+  "id": "d2",
+  "parts": [
+   {
+    "t": "O primeiro ponto é em frente ao Muffato.",
+    "s": 1
+   }
+  ],
+  "gap": 0.45
+ },
+ {
+  "id": "d3",
+  "parts": [
+   {
+    "t": "O segundo, em frente à Daju.",
+    "s": 1
+   }
+  ],
+  "gap": 0.45
+ },
+ {
+  "id": "d4",
+  "parts": [
+   {
+    "t": "O terceiro, na esquina do Terminal Central, com a volta no Parque Ambiental.",
+    "s": 1
+   }
+  ],
+  "gap": 0.45
+ },
+ {
+  "id": "d5",
+  "parts": [
+   {
+    "t": "O quarto, na Rotatória dos Tropeiros.",
+    "s": 1
+   }
+  ],
+  "gap": 0.45
+ },
+ {
+  "id": "d6",
+  "parts": [
+   {
+    "t": "E a chegada é no Esquadrão da Vida.",
+    "s": 1
+   }
+  ],
+  "gap": 0.45
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "Cinco quilômetros e duzentos metros de percurso.",
+    "s": 1
+   }
+  ],
+  "gap": 0.45
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Décima primeira Resgatando Vidas na Corrida. Venha correr em equipe.",
+    "s": 1
+   }
+  ],
+  "gap": 0.45
+ }
+]

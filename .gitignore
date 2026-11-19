@@ -16,3 +16,12 @@ corrida/out/audio.wav
 corrida/out/*.log
 corrida/data/seg.pkl
 corrida/data/dem.bin
+quarteto/node_modules
+quarteto/data
+quarteto/out/frames/
+quarteto/out/shots/
+quarteto/out/voice/
+quarteto/out/audio.wav
+quarteto/out/*.log
+corrida/data/seg_big.pkl
+corrida/data/dem_cop.bin
