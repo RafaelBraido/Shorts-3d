@@ -1,0 +1,185 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Você já pensou por que o Mar da Galileia se chama Mar da Galileia?",
+    "s": 0.94
+   }
+  ]
+ },
+ {
+  "id": "h2",
+  "parts": [
+   {
+    "t": "Vem comigo, e vamos descobrir isso.",
+    "s": 0.98
+   }
+  ],
+  "gap": 0.2
+ },
+ {
+  "id": "d1",
+  "parts": [
+   {
+    "t": "Enquanto a câmera desce sobre o Oriente Médio, a verdade aparece:",
+    "s": 0.95
+   },
+   {
+    "t": "ele nem é um mar. É um grande lago de água doce.",
+    "s": 1.05
+   }
+  ]
+ },
+ {
+  "id": "n1",
+  "parts": [
+   {
+    "t": "Mas então, por que esse nome?",
+    "s": 1.0
+   }
+  ],
+  "gap": 0.5
+ },
+ {
+  "id": "n2",
+  "parts": [
+   {
+    "t": "Ele não se chama assim por causa de um oceano.",
+    "s": 1.04
+   }
+  ],
+  "gap": 0.3
+ },
+ {
+  "id": "n3",
+  "parts": [
+   {
+    "t": "Ele leva o nome da",
+    "s": 1.06
+   },
+   {
+    "t": "Galileia,",
+    "s": 1.3,
+    "pause": 0.12
+   },
+   {
+    "t": "a região montanhosa que o abraça.",
+    "s": 1.08
+   }
+  ],
+  "gap": 0.3
+ },
+ {
+  "id": "n4",
+  "parts": [
+   {
+    "t": "A palavra vem do hebraico",
+    "s": 0.97
+   },
+   {
+    "t": "galil:",
+    "s": 1.25,
+    "pause": 0.1
+   },
+   {
+    "t": "círculo.",
+    "s": 1.2
+   }
+  ]
+ },
+ {
+  "id": "n5",
+  "parts": [
+   {
+    "t": "E mar? Em hebraico, a mesma palavra, iam, serve para mar e para lago.",
+    "s": 0.96
+   }
+  ]
+ },
+ {
+  "id": "f0",
+  "parts": [
+   {
+    "t": "Anota os",
+    "s": 1.0
+   },
+   {
+    "t": "três fatos.",
+    "s": 1.22
+   }
+  ],
+  "gap": 0.45
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "Um:",
+    "s": 1.15,
+    "pause": 0.1
+   },
+   {
+    "t": "é o lago de água doce mais baixo do mundo,",
+    "s": 0.97
+   },
+   {
+    "t": "a duzentos e dez metros abaixo do nível do mar.",
+    "s": 1.02
+   }
+  ],
+  "gap": 0.3
+ },
+ {
+  "id": "f2",
+  "parts": [
+   {
+    "t": "Dois:",
+    "s": 1.15,
+    "pause": 0.1
+   },
+   {
+    "t": "cercado por montanhas, ele tem tempestades violentas e repentinas.",
+    "s": 0.97
+   },
+   {
+    "t": "Segundo os evangelhos, Jesus acalmou uma delas.",
+    "s": 1.0
+   }
+  ],
+  "gap": 0.3
+ },
+ {
+  "id": "f3",
+  "parts": [
+   {
+    "t": "Três:",
+    "s": 1.15,
+    "pause": 0.1
+   },
+   {
+    "t": "ele é alimentado pelo rio Jordão,",
+    "s": 0.98
+   },
+   {
+    "t": "que depois segue até o Mar Morto.",
+    "s": 0.98
+   }
+  ],
+  "gap": 0.3
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Qual lugar você quer ver na próxima?",
+    "s": 0.97
+   },
+   {
+    "t": "Segue pra parte dois.",
+    "s": 1.0
+   }
+  ],
+  "gap": 0.35
+ }
+]

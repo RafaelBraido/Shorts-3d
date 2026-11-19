@@ -1,0 +1,52 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Você sabia que um quarto dos Estados Unidos custou menos que o Neymar?",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "Em mil oitocentos e três, a França vendeu esse território enorme para os Estados Unidos.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f2",
+  "parts": [
+   {
+    "t": "Ele dobrou o tamanho do país: mais de dois milhões de quilômetros quadrados.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f3",
+  "parts": [
+   {
+    "t": "Agora o preço. Quinze milhões de dólares. O Neymar custou duzentos e vinte e dois milhões de euros. Dá para comprar mais de dezessete Louisianas.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Qual lugar você quer ver na próxima? Segue pra parte dois.",
+    "s": 1
+   }
+  ],
+  "gap": 0.2
+ }
+]

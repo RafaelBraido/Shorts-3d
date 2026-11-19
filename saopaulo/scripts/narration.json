@@ -1,0 +1,52 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Você sabia que a cidade de São Paulo tem mais gente que Portugal?",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "São Paulo tem onze milhões de habitantes. Portugal inteiro tem dez milhões de habitantes.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "f2",
+  "parts": [
+   {
+    "t": "E olha o tamanho: Portugal inteiro é muito maior que a Grande São Paulo.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "f3",
+  "parts": [
+   {
+    "t": "A Grande São Paulo tem vinte e um milhões de habitantes. O dobro de Portugal, em muito menos espaço.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Qual lugar você quer ver na próxima? Segue pra parte dois.",
+    "s": 1
+   }
+  ],
+  "gap": 0.2
+ }
+]

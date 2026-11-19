@@ -1,0 +1,82 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Este lago está cheio de peixes. E a água dele corre para um mar onde nenhum peixe vive.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "h2",
+  "parts": [
+   {
+    "t": "Entenda por quê.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "d1",
+  "parts": [
+   {
+    "t": "Este é o Mar da Galileia: água doce, cheia de peixes.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "d2",
+  "parts": [
+   {
+    "t": "O rio Jordão leva a água dele até o Mar Morto.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "s1",
+  "parts": [
+   {
+    "t": "Só que o Mar Morto não tem saída: a água entra, mas não sai.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "s2",
+  "parts": [
+   {
+    "t": "Ela evapora, e o sal fica.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "s3",
+  "parts": [
+   {
+    "t": "Com tanto sal, nenhum peixe sobrevive.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Por isso, o nome: Mar Morto.",
+    "s": 1
+   }
+  ],
+  "gap": 0.15
+ }
+]

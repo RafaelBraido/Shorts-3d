@@ -1,0 +1,52 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Você sabia que o Alasca custou menos que o Neymar?",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "Em mil oitocentos e sessenta e sete, a Rússia vendeu o Alasca para os Estados Unidos.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f2",
+  "parts": [
+   {
+    "t": "E olha o tamanho: um milhão e meio de quilômetros quadrados. Um quinto dos Estados Unidos continentais.",
+    "s": 1
+   }
+  ],
+  "gap": 0.1
+ },
+ {
+  "id": "f3",
+  "parts": [
+   {
+    "t": "Agora o preço. Sete vírgula dois milhões de dólares. O Neymar custou duzentos e vinte e dois milhões de euros. Dá para comprar mais de trinta Alascas.",
+    "s": 1
+   }
+  ],
+  "gap": 0.12
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Qual lugar você quer ver na próxima? Segue pra parte dois.",
+    "s": 1
+   }
+  ],
+  "gap": 0.2
+ }
+]

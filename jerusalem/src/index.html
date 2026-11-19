@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Piramides Egito x Sudao 3D</title>
+<meta name="viewport" content="width=1080">
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js"}}</script>
+<style>
+  :root{--blue:#2f55f0;--gold:#f6b73c;--ink:#0d1424}
+  html,body{margin:0;background:#000;overflow:hidden}
+  #stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:#02050d;font-family:"Inter","DejaVu Sans",system-ui,sans-serif}
+  canvas#gl{position:absolute;inset:0;width:1080px;height:1920px}
+  #ov{position:absolute;inset:0;pointer-events:none}
+  .vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,rgba(0,0,0,0) 45%,rgba(0,0,0,.55) 100%),linear-gradient(180deg,rgba(0,0,0,.62) 0,rgba(0,0,0,0) 26%,rgba(0,0,0,0) 70%,rgba(0,0,0,.55) 100%)}
+  #storm{position:absolute;inset:0;background:#06101f;opacity:0}
+  #flash{position:absolute;inset:0;background:#dfe9ff;opacity:0}
+  #bar{position:absolute;left:0;right:0;top:0;height:84px;background:rgba(8,12,24,.92);display:flex;align-items:center;font-weight:800;letter-spacing:3px;font-size:34px;color:#fff;text-transform:uppercase}
+  #bar .chip{background:var(--blue);height:100%;display:flex;align-items:center;padding:0 30px}
+  #bar .ttl{padding:0 28px;opacity:.95}
+  #cap{position:absolute;left:60px;right:60px;top:150px;text-align:center;font-weight:900;font-size:84px;line-height:1.16;color:#fff;text-transform:uppercase;text-shadow:0 4px 18px rgba(0,0,0,.75),0 0 4px rgba(0,0,0,.6);letter-spacing:1px}
+  #cap .w{display:inline-block;padding:0 14px;margin:2px 0;border-radius:16px}
+  #cap .w.on{background:var(--blue);box-shadow:0 6px 22px rgba(20,40,160,.55)}
+  .lab{position:absolute;transform:translate(-50%,-100%);background:var(--gold);color:#201400;font-weight:900;font-size:46px;letter-spacing:1px;padding:8px 22px;border-radius:12px;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.55);text-transform:uppercase;opacity:0}
+  .lab.sm{font-size:36px;padding:6px 16px;background:#ffe9a8}
+  .lab.dk{background:rgba(10,16,32,.92);color:#8fe3ff;border:3px solid #8fe3ff}
+  .dot{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border:5px solid #fff;border-radius:50%;box-shadow:0 0 0 4px rgba(0,0,0,.35);opacity:0}
+  #card{position:absolute;left:110px;right:110px;bottom:210px;background:rgba(13,20,36,.94);border-radius:34px;padding:34px 30px 38px;text-align:center;color:#fff;opacity:0;box-shadow:0 18px 50px rgba(0,0,0,.6);border:2px solid rgba(255,255,255,.08)}
+  #card .big{font-weight:900;font-size:132px;line-height:1;color:var(--gold);letter-spacing:2px}
+  #card .big.s{font-size:92px}
+  #card .sub{margin-top:14px;font-weight:700;font-size:38px;letter-spacing:3px;text-transform:uppercase;color:#e9eefc}
+  #card .heb{font-size:70px;color:#fff;margin-bottom:6px;font-family:"DejaVu Sans","Noto Sans Hebrew",sans-serif;direction:rtl}
+  #foot{position:absolute;left:0;right:0;bottom:70px;text-align:center;color:rgba(255,255,255,.65);font-weight:700;font-size:28px;letter-spacing:3px;text-transform:uppercase;opacity:0}
+  svg text{font-family:"Inter","DejaVu Sans",sans-serif}
+</style></head>
+<body><div id="stage">
+  <canvas id="gl" width="1080" height="1920"></canvas>
+  <div id="storm"></div>
+  <div class="vig"></div>
+  <svg id="ov" width="1080" height="1920" viewBox="0 0 1080 1920"></svg>
+  <div id="labels"></div>
+  <div id="flash"></div>
+  <div id="bar"><div class="chip" id="chip"></div><div class="ttl" id="ttl"></div></div>
+  <div id="cap"></div>
+  <div id="card"></div>
+  <div id="foot"></div>
+</div>
+<script type="module" src="/src/app.js"></script>
+</body></html>

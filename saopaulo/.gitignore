@@ -1,0 +1,13 @@
+node_modules/
+out/frames/
+out/shots/
+out/voice/
+out/audio.wav
+__pycache__/
+out/galileia_3d_master.mp4
+out/overlay/
+out/blender_bg/
+out/bl_test/
+
+assets/*_cnt.npy
+assets/mid_*_raw.jpg

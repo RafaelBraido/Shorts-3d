@@ -1,0 +1,82 @@
+[
+ {
+  "id": "h1",
+  "parts": [
+   {
+    "t": "Dia vinte de novembro, Ponta Grossa vai correr.",
+    "s": 1
+   }
+  ],
+  "gap": 0.7
+ },
+ {
+  "id": "h2",
+  "parts": [
+   {
+    "t": "Veja o percurso de cima.",
+    "s": 1
+   }
+  ],
+  "gap": 0.7
+ },
+ {
+  "id": "d1",
+  "parts": [
+   {
+    "t": "A largada é em frente ao Esquadrão da Vida, na Avenida dos Vereadores.",
+    "s": 1
+   }
+  ],
+  "gap": 0.7
+ },
+ {
+  "id": "d2",
+  "parts": [
+   {
+    "t": "A ida sobe a Rua Jacob Holzmann, uma subida de mais de trinta metros.",
+    "s": 1
+   }
+  ],
+  "gap": 0.7
+ },
+ {
+  "id": "d3",
+  "parts": [
+   {
+    "t": "Até a alça da Rua Quatorze de Julho, onde fica o retorno.",
+    "s": 1
+   }
+  ],
+  "gap": 0.7
+ },
+ {
+  "id": "d4",
+  "parts": [
+   {
+    "t": "A volta é pela Avenida Silva Jardim, até o Esquadrão da Vida.",
+    "s": 1
+   }
+  ],
+  "gap": 0.7
+ },
+ {
+  "id": "f1",
+  "parts": [
+   {
+    "t": "Três quilômetros, prova individual, corrida de rua.",
+    "s": 1
+   }
+  ],
+  "gap": 0.7
+ },
+ {
+  "id": "c1",
+  "parts": [
+   {
+    "t": "Décima primeira Resgatando Vidas na Corrida. Venha correr.",
+    "s": 1
+   }
+  ],
+  "gap": 0.7
+ }
+]
