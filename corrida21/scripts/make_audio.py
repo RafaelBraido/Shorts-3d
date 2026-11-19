@@ -68,7 +68,7 @@ for tm, d, up, g in [(0.1, 1.2, True, 0.6), (L["d1"]["start"], 1.0, True, 0.5), 
                      (L["d5"]["start"], 1.2, False, 0.45), (L["f1"]["start"] - 0.2, 1.0, True, 0.5), (L["c1"]["start"] - 0.3, 1.4, True, 0.6)]:
     place(sfx, whoosh(d, up), tm, g)
 for tm in [Wd("h1", "20", -0.1), Wd("d1", "largada", -0.1), Wd("d2", "ida", -0.1), Wd("d3", "Uvaranas", -0.1), Wd("d4", "laço", -0.1), Wd("d5", "volta", -0.1), Wd("d6", "chegada", -0.1), Wd("f1", "21", -0.1), Wd("c1", "Venha", -0.1)]: place(sfx, pop(), tm, 0.3)
-mix = voice + music * 0.5 * duck + steps * 0.8 + breath + heart * 0.6 + sfx * 0.45
+mix = voice + music * 0.5 * duck + sfx * 0.45
 fade = np.clip((total + 0.4 - t) / 0.8, 0, 1); mix = mix * fade
 mix = mix / max(np.abs(mix).max(), 1e-6) * 0.92
 with wave.open("out/audio.wav", "wb") as w: w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes((np.stack([mix, mix], 1) * 32767).astype(np.int16).tobytes())
