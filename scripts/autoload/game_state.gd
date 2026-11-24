@@ -23,6 +23,14 @@ const RODS: Array[Dictionary] = [
 const AMMO_PACK := 20
 const AMMO_PRICE := 40
 
+static var _mobile := -1
+
+## Verdadeiro em celular/tablet (ou com o argumento de usuário --touch para testar no PC).
+static func is_mobile() -> bool:
+	if _mobile < 0:
+		_mobile = 1 if (OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios") or "--touch" in OS.get_cmdline_user_args()) else 0
+	return _mobile == 1
+
 var persist := true
 var coins := 50
 var xp := 0

@@ -37,6 +37,8 @@ var menu_panel: PanelContainer
 var menu_tabs: TabContainer
 var menu_title: Label
 var menu_mode := "inv"
+var touch_mode := false
+var prompt_prefix := "[E] "
 
 var _hit_t := 0.0
 var _target_t := 0.0
@@ -47,6 +49,9 @@ var _equipped := 1
 
 func _ready() -> void:
 	add_to_group("hud")
+	touch_mode = GameState.is_mobile()
+	if touch_mode:
+		prompt_prefix = "Toque em USAR:  "
 	layer = 10
 	root = Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -193,8 +198,12 @@ func _build_status() -> void:
 	# moedas (canto inferior esquerdo, como no jogo de referência)
 	var box := PanelContainer.new()
 	box.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0.55), 6))
-	box.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	box.position = Vector2(16, -62)
+	if touch_mode:
+		box.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		box.position = Vector2(16, 12)
+	else:
+		box.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		box.position = Vector2(16, -62)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(box)
 	var vb := VBoxContainer.new()
@@ -349,6 +358,7 @@ func _build_toasts() -> void:
 func _build_help() -> void:
 	var l := _label("WASD mover | Shift correr | Espaço pular/nadar | 1 rifle | 2 vara | Botão direito mira | Clique pesca/atira | R recarrega | E interage | Tab mochila", 13, Color(1, 1, 1, 0.75), 3)
 	l.position = Vector2(14, 10)
+	l.visible = not touch_mode
 	root.add_child(l)
 
 # ------------------------------------------------------------------ API pública
@@ -590,3 +600,7 @@ func _refresh_menu() -> void:
 		arow.add_child(ab)
 	gear.add_child(arow)
 	menu_tabs.current_tab = clampi(prev, 0, menu_tabs.get_child_count() - 1)
+	if touch_mode:
+		for b in menu_panel.find_children("*", "Button", true, false):
+			(b as Button).custom_minimum_size = Vector2(0, 54)
+			(b as Button).add_theme_font_size_override("font_size", 20)

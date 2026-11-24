@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/World.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/HUD.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/FishManager.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/TouchControls.tscn" id="6"]
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1")
@@ -14,6 +15,8 @@ script = ExtResource("1")
 [node name="HUD" parent="." instance=ExtResource("4")]
 
 [node name="FishManager" parent="." instance=ExtResource("5")]
+
+[node name="TouchControls" parent="." instance=ExtResource("6")]
 
 [node name="Player" parent="." instance=ExtResource("3")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 7)

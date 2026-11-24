@@ -7,6 +7,7 @@ extends Node3D
 var rng := RandomNumberGenerator.new()
 var sun: DirectionalLight3D
 var ocean_near: MeshInstance3D
+var ocean_cell := 2.0
 var player_spawn := Vector3(0, 3, 0)
 var spawn_yaw := 0.0
 var dock_end := Vector3.ZERO
@@ -37,7 +38,9 @@ func _build_environment() -> void:
 	sun.light_energy = 1.0
 	sun.light_color = Color(1.0, 0.96, 0.88)
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 130.0
+	sun.directional_shadow_max_distance = 70.0 if GameState.is_mobile() else 130.0
+	if GameState.is_mobile():
+		sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	sun.shadow_blur = 1.5
 	add_child(sun)
 	var sky_mat := ShaderMaterial.new()
@@ -53,7 +56,7 @@ func _build_environment() -> void:
 	e.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	e.tonemap_exposure = 0.85
-	e.glow_enabled = true
+	e.glow_enabled = not GameState.is_mobile()
 	e.glow_intensity = 0.25
 	e.glow_bloom = 0.0
 	e.fog_enabled = true
@@ -97,8 +100,10 @@ func _build_ocean() -> void:
 	near_mat.set_shader_parameter("height_max", Terrain.TEX_MAX)
 	var pm := PlaneMesh.new()
 	pm.size = Vector2(480, 480)
-	pm.subdivide_width = 239
-	pm.subdivide_depth = 239
+	var cells := 119 if GameState.is_mobile() else 239   # celular: malha de ondas mais leve (4 m por célula)
+	ocean_cell = 480.0 / float(cells + 1)
+	pm.subdivide_width = cells
+	pm.subdivide_depth = cells
 	ocean_near = MeshInstance3D.new()
 	ocean_near.name = "OceanNear"
 	ocean_near.mesh = pm
@@ -122,7 +127,7 @@ func _process(_delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam and ocean_near:
 		var p := cam.global_position
-		ocean_near.global_position = Vector3(snappedf(p.x, 2.0), 0.0, snappedf(p.z, 2.0))
+		ocean_near.global_position = Vector3(snappedf(p.x, ocean_cell), 0.0, snappedf(p.z, ocean_cell))
 
 # ------------------------------------------------------------------ estruturas
 
@@ -264,7 +269,7 @@ func _build_vegetation() -> void:
 				continue
 			Props.add_rock(self, Vector3(p.x, h, p.y), rng.randf_range(0.4, 1.6), rng)
 		# grama em lâminas
-		var blades := int(9000 * area_factor) + 600
+		var blades := int((3500 if GameState.is_mobile() else 9000) * area_factor) + 400
 		for i in blades:
 			var p := c + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * r * 0.75
 			var h := Terrain.height_at(p.x, p.y)

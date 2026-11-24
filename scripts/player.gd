@@ -28,13 +28,15 @@ var _bob_t := 0.0
 var _step_t := 0.0
 var _swimming := false
 var _prompt_target: Node = null
+var touch_mode := false
 
 ## Verdadeiro quando o jogador não deve agir (menu aberto, mouse solto ou acabou de recapturar).
 var ui_open: bool:
-	get: return _menu_open or _block_t > 0.0 or Input.mouse_mode != Input.MOUSE_MODE_CAPTURED
+	get: return _menu_open or _block_t > 0.0 or (Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not touch_mode)
 
 func _ready() -> void:
 	add_to_group("player")
+	touch_mode = GameState.is_mobile()
 	collision_layer = 2
 	collision_mask = 1
 	floor_snap_length = 0.4
@@ -69,11 +71,13 @@ func _ready() -> void:
 	if hud:
 		hud.menu_toggled.connect(_on_menu_toggled)
 	_equip("rifle")
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if not touch_mode:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _on_menu_toggled(open: bool) -> void:
 	_menu_open = open
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open else Input.MOUSE_MODE_CAPTURED
+	if not touch_mode:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if open else Input.MOUSE_MODE_CAPTURED
 	_block_t = 0.2
 
 func add_shake(amount: float) -> void:
@@ -82,17 +86,23 @@ func add_shake(amount: float) -> void:
 func add_recoil(amount: float) -> void:
 	_recoil += amount
 
+## Gira a câmera (mouse no PC, arrasto de dedo no celular).
+func look(rel: Vector2) -> void:
+	if _menu_open:
+		return
+	var sens := (0.0045 if touch_mode else 0.0022) * (cam.fov / 75.0)
+	rotate_y(-rel.x * sens)
+	pitch = clampf(pitch - rel.y * sens, -1.45, 1.45)
+
 func _unhandled_input(e: InputEvent) -> void:
-	if e is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not _menu_open:
-		var sens := 0.0022 * (cam.fov / 75.0)
-		rotate_y(-e.relative.x * sens)
-		pitch = clampf(pitch - e.relative.y * sens, -1.45, 1.45)
+	if e is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and not _menu_open and not touch_mode:
+		look(e.relative)
 	if e is InputEventKey and e.pressed and e.keycode == KEY_ESCAPE:
 		if _menu_open:
 			hud.close_menus()
 		else:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	if e is InputEventMouseButton and e.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not _menu_open:
+	if e is InputEventMouseButton and e.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not _menu_open and not touch_mode:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		_block_t = 0.2
 	if e.is_action_pressed("inventory") and hud:
@@ -196,6 +206,6 @@ func _interaction() -> void:
 			best = n
 	_prompt_target = best
 	if hud:
-		hud.show_prompt("[E] " + best.get_prompt() if best != null else "")
+		hud.show_prompt(hud.prompt_prefix + best.get_prompt() if best != null else "")
 	if best != null and Input.is_action_just_pressed("interact"):
 		best.interact(self)

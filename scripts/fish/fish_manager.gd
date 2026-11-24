@@ -3,7 +3,6 @@ extends Node3D
 ## Mantém uma população de peixes ao redor do jogador, reciclando os que ficam distantes,
 ## coordena qual peixe interage com a boia e cria efeitos quando peixes são atingidos.
 
-const TARGET_COUNT := 46
 const SPAWN_MIN := 14.0
 const SPAWN_MAX := 52.0
 const DESPAWN_DIST := 72.0
@@ -13,16 +12,19 @@ var bait: Node3D = null            ## boia atual na água (definida pela vara)
 var bait_fish: Fish = null         ## peixe que está interagindo com a boia
 var bait_interest := 16.0          ## alcance de atração da isca
 var fishes: Array[Fish] = []
+var target_count := 46
 var _rng := RandomNumberGenerator.new()
 var _check_index := 0
 
 func _ready() -> void:
 	add_to_group("fish_manager")
 	_rng.randomize()
+	if GameState.is_mobile():
+		target_count = 28
 
 func populate_initial(center: Vector3) -> void:
 	var tries := 0
-	while fishes.size() < TARGET_COUNT and tries < 600:
+	while fishes.size() < target_count and tries < 600:
 		tries += 1
 		_spawn_group(_random_water_point(center, 8.0, 60.0))
 
@@ -110,7 +112,7 @@ func _physics_process(_delta: float) -> void:
 		var d := f.global_position.distance_to(player.global_position)
 		if d > DESPAWN_DIST:
 			remove_fish(f)
-	if fishes.size() < TARGET_COUNT and _rng.randf() < 0.1:
+	if fishes.size() < target_count and _rng.randf() < 0.1:
 		_spawn_group(_random_water_point(player.global_position, SPAWN_MIN, SPAWN_MAX))
 
 func on_fish_hit(f: Fish, point: Vector3) -> void:
