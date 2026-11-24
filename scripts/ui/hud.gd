@@ -574,6 +574,7 @@ func _refresh_menu() -> void:
 		_tab_weapons(true)
 		_tab_items(true)
 		_tab_rods(true)
+		_tab_casino()
 	else:
 		_tab_diary()
 		_tab_registry()
@@ -730,10 +731,13 @@ func _tab_weapons(shop: bool) -> void:
 func _tab_items(shop: bool) -> void:
 	var t := _tab("Itens")
 	var rows := [
-		["Lata de cerveja gelada", 15, "Para o Guardião do Farol.", func() -> bool: return Story.buy_beer(), false],
-		["Radar", 250, "Mostra a direção das ilhas (seta no canto da tela).", func() -> bool: return Story.buy_radar(), Story.has_radar()],
+		["Lata de cerveja gelada", 12, "Para o Guardião do Farol.", func() -> bool: return Story.buy_beer(), false],
+		["Radar", 10, "Mostra a direção das ilhas (seta no canto da tela).", func() -> bool: return Story.buy_radar(), Story.has_radar()],
 		["Isca profissional", 60, "Aumenta a sorte do próximo lance (ajuda a pescar atum).", func() -> bool: return Story.buy_pro_bait(), false],
 	]
+	if GameState.engine_level < GameState.ENGINES.size():
+		var eng: Dictionary = GameState.ENGINES[GameState.engine_level]
+		rows.append([eng["name"] + " (barco)", int(eng["price"]), "Aumenta a velocidade dos seus barcos.", func() -> bool: return GameState.buy_engine(), false])
 	for r in rows:
 		var row := HBoxContainer.new()
 		var info := _label("%s\n%s" % [r[0], r[2]], 15, Color.WHITE, 0)
@@ -750,6 +754,43 @@ func _tab_items(shop: bool) -> void:
 		row.add_child(b)
 		t.add_child(row)
 	t.add_child(_label("Você tem: %d cerveja(s), %d isca(s) profissional(is)." % [Story.count("beer"), Story.count("pro_bait")], 14, Color(0.8, 0.8, 0.8), 0))
+
+func _tab_casino() -> void:
+	var t := _tab("Cassino")
+	t.add_child(_label("Aposte à vontade (sem dinheiro de verdade, só moedas do jogo)!", 15, Color(1.0, 0.85, 0.5), 0))
+	t.add_child(_label("Cara ou coroa: 47% de chance de DOBRAR a aposta.", 15, Color.WHITE, 0))
+	var row := HBoxContainer.new()
+	for bet in [10, 50, 100, 500]:
+		var b := Button.new()
+		b.text = "Apostar $%d" % bet
+		b.disabled = GameState.coins < bet
+		var amount: int = bet
+		b.pressed.connect(func() -> void:
+			var win := GameState.gamble_coins(amount)
+			Sfx.play("coin" if win else "fail")
+			toast(("Ganhou +$%d!" % amount) if win else ("Perdeu $%d..." % amount), GOLD if win else Color(1.0, 0.5, 0.5))
+			_refresh_menu())
+		row.add_child(b)
+	t.add_child(row)
+	t.add_child(_label("Aposte um peixe da mochila: 50% de render o TRIPLO do valor, 50% de perdê-lo.", 15, Color.WHITE, 0))
+	if GameState.inventory.is_empty():
+		t.add_child(_label("(mochila vazia)", 14, Color(0.6, 0.6, 0.6), 0))
+	for i in GameState.inventory.size():
+		var e: Dictionary = GameState.inventory[i]
+		var fr := HBoxContainer.new()
+		var nm := _label("%s  %.2f kg  ($%d)" % [FishDB.data(e["species"])["name"], e["weight"], int(e["value"] * _sale_mult())], 15, FishDB.rarity_color(e["species"]), 0)
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		fr.add_child(nm)
+		var fb := Button.new()
+		fb.text = "Apostar peixe"
+		var idx := i
+		fb.pressed.connect(func() -> void:
+			var got := GameState.gamble_fish(idx)
+			Sfx.play("coin" if got > 0 else "fail")
+			toast(("O peixe rendeu $%d!" % got) if got > 0 else "Você perdeu o peixe...", GOLD if got > 0 else Color(1.0, 0.5, 0.5))
+			_refresh_menu())
+		fr.add_child(fb)
+		t.add_child(fr)
 
 func _tab_rods(shop: bool) -> void:
 	var gear := _tab("Varas" if shop else "Varas")

@@ -107,10 +107,10 @@ func objective() -> String:
 			return ["Fale com o Guardião do Farol (no banco, perto do farol).",
 				"Pesque 3 peixes com a vara (tecla 2): lance em água funda, fisgue e recolha. Venda na loja.",
 				"Volte ao Guardião do Farol.",
-				"Compre uma lata de cerveja ($15) na loja do Capitão Maré e entregue ao Guardião.",
+				"Compre uma lata de cerveja ($12) na loja do Capitão Maré e entregue ao Guardião.",
 				"Lance a lata vazia (isca) na Baía do Caranguejo e fisgue o Caranguejo‑Aranha. Termine-o a facadas!",
 				"Entregue a carapaça ao Guardião.",
-				"Compre o Radar ($250) na loja do Capitão Maré."][step]
+				"Compre o Radar ($10) na loja do Capitão Maré."][step]
 		2:
 			return ["Navegue com o barco até a Ilha da Floresta e fale com Marina, à beira do lago.",
 				"Colete 5 sanguessugas espalhadas pela ilha (%d/5)." % count("leech"),
@@ -329,17 +329,17 @@ func respawn_pos() -> Vector3:
 # ------------------------------------------------------------------ compras especiais (loja)
 
 func buy_beer() -> bool:
-	if GameState.coins < 15:
+	if GameState.coins < 12:
 		return false
-	GameState.coins -= 15
+	GameState.coins -= 12
 	GameState.coins_changed.emit(GameState.coins)
 	add_item("beer")
 	return true
 
 func buy_radar() -> bool:
-	if has_radar() or GameState.coins < 250:
+	if has_radar() or GameState.coins < 10:
 		return false
-	GameState.coins -= 250
+	GameState.coins -= 10
 	GameState.coins_changed.emit(GameState.coins)
 	flags["radar"] = true
 	GameState.notify.emit("Radar comprado!")
@@ -393,7 +393,7 @@ func _talk_guardian() -> Dictionary:
 		2: return _d(who, ["Três peixes! Já parece pescador.",
 				"Agora, um favor: uma criatura de pernas longas, o Caranguejo‑Aranha, vem atormentando a ilha. Ninguém pesca em paz.",
 				"Resolva isso e eu lhe entrego as chaves do meu barco a motor.",
-				"Mas conversa de barriga seca... traga uma lata de cerveja gelada da loja do Capitão Maré ($15). Aí eu conto o segredo."],
+				"Mas conversa de barriga seca... traga uma lata de cerveja gelada da loja do Capitão Maré ($12). Aí eu conto o segredo."],
 				func() -> void: advance(3))
 		3:
 			if has("beer"):
@@ -403,7 +403,7 @@ func _talk_guardian() -> Dictionary:
 						take_item("beer")
 						add_item("empty_can")
 						advance(4))
-			return _d(who, ["Sem a cerveja não tem conversa. A loja do Capitão Maré vende por $15."])
+			return _d(who, ["Sem a cerveja não tem conversa. A loja do Capitão Maré vende por $12."])
 		4: return _d(who, ["Lance a lata vazia na Baía do Caranguejo, com a vara equipada (tecla 2). Fisgou? Segure firme e mate o bicho a facadas (tecla 1)."])
 		5:
 			if has("crab_shell"):

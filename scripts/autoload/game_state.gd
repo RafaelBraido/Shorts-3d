@@ -38,6 +38,7 @@ var owned_weapons: Array[String] = ["knife"]
 var current_weapon := "knife"
 var ammo: Dictionary = {}               ## weapon_id -> {"mag": int, "reserve": int}
 var dynamite := 0
+var engine_level := 0                   ## 0 = motor comum, 1 = reforçado, 2 = motores duplos
 var pending_story: Dictionary = {}      ## dados do save entregues ao autoload Story
 var inventory: Array[Dictionary] = []  ## {species, weight, value, dead}
 var codex: Dictionary = {}              ## species_id -> {count, best}
@@ -173,6 +174,47 @@ func buy_dynamite() -> bool:
 	save_game()
 	return true
 
+const ENGINES := [{"name": "Motor reforçado", "price": 230, "speed": 1.35}, {"name": "Motores duplos", "price": 860, "speed": 1.7}]
+
+func buy_engine() -> bool:
+	if engine_level >= ENGINES.size():
+		return false
+	var e: Dictionary = ENGINES[engine_level]
+	if coins < int(e["price"]):
+		return false
+	coins -= int(e["price"])
+	engine_level += 1
+	coins_changed.emit(coins)
+	notify.emit("Barco melhorado: %s" % e["name"])
+	save_game()
+	return true
+
+func engine_speed_mult() -> float:
+	return 1.0 if engine_level == 0 else float(ENGINES[engine_level - 1]["speed"])
+
+## Cassino: cara ou coroa com ~47% de chance (paga o dobro).
+func gamble_coins(bet: int) -> bool:
+	if bet <= 0 or coins < bet:
+		return false
+	var win := randf() < 0.47
+	coins += bet if win else -bet
+	coins_changed.emit(coins)
+	save_game()
+	return win
+
+## Aposta um peixe da mochila: 50% de render o TRIPLO do valor, 50% de perdê-lo.
+func gamble_fish(index: int) -> int:
+	if index < 0 or index >= inventory.size():
+		return -1
+	var value: int = int(inventory[index]["value"] * _mult())
+	inventory.remove_at(index)
+	inventory_changed.emit()
+	var win := randf() < 0.5
+	if win:
+		add_coins(value * 3)
+	save_game()
+	return value * 3 if win else 0
+
 func use_dynamite() -> bool:
 	if dynamite <= 0:
 		return false
@@ -205,7 +247,7 @@ func save_game() -> void:
 		return
 	var data := {
 		"coins": coins, "xp": xp, "level": level, "rod_tier": rod_tier,
-		"owned_rods": owned_rods, "owned_weapons": owned_weapons, "ammo": ammo, "dynamite": dynamite,
+		"owned_rods": owned_rods, "owned_weapons": owned_weapons, "ammo": ammo, "dynamite": dynamite, "engine_level": engine_level,
 		"story": get_node("/root/Story").to_dict() if has_node("/root/Story") else pending_story,
 		"inventory": inventory, "codex": codex, "total_caught": total_caught,
 	}
@@ -240,6 +282,7 @@ func load_game() -> void:
 		owned_weapons.append("knife")
 	ammo = d.get("ammo", {})
 	dynamite = int(d.get("dynamite", 0))
+	engine_level = clampi(int(d.get("engine_level", 0)), 0, 2)
 	pending_story = d.get("story", {})
 	inventory.clear()
 	for e in d.get("inventory", []):

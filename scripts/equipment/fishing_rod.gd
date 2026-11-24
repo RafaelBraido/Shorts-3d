@@ -162,7 +162,7 @@ func _process(delta: float) -> void:
 				_fallback_done = true
 				var forced := "atum" if (Story.chapter == 4 and Story.step == 1 and luck_bonus > 0.0 and randf() < 0.7) else ""
 				manager.spawn_near_bait(bobber.global_position, float(GameState.rod().get("luck", 0.0)) + luck_bonus, forced)
-			if pressed or Input.is_action_just_pressed("cancel"):
+			if pressed or Input.is_action_just_pressed("cancel") or Input.is_action_just_pressed("reload"):
 				reel_in()
 		S.BITE:
 			_bite_t -= delta
@@ -346,17 +346,22 @@ func _catch() -> void:
 	var prev: Dictionary = GameState.codex.get(id, {"count": 0, "best": 0.0})
 	var is_new: bool = int(prev["count"]) == 0
 	var is_record: bool = w > float(prev["best"]) and not is_new
-	var entry := GameState.add_fish(id, w, false)
-	Story.on_fish_caught(id, f.global_position)
+	var value := FishDB.price_for(id, w)
 	Sfx.play("catch")
 	Net.send_announce("pescou %s de %.1f kg!" % [FishDB.data(id)["name"], w])
-	hud.show_catch(id, w, int(entry["value"]), is_new, is_record)
+	hud.show_catch(id, w, value, is_new, is_record)
 	_show_trophy(id, f.length_m)
-	# o peixe salta até o jogador e some
-	var dest := cam.global_position + (-cam.global_transform.basis.z) * 1.0 + Vector3(0, -0.4, 0)
+	# o peixe salta até o jogador, cai no chão e SE DEBATE: é preciso matá-lo e coletá-lo
+	var fwd := -cam.global_transform.basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized()
+	var dest := player.global_position + fwd * 1.6 + Vector3(0, 1.4, 0)
 	var tw := f.create_tween()
 	tw.tween_property(f, "global_position", dest, 0.4).set_trans(Tween.TRANS_QUAD)
-	tw.tween_callback(manager.consume_fish.bind(f))
+	tw.tween_callback(func() -> void:
+		LandedFish.spawn(get_tree().current_scene, id, w, dest, Vector3(0, 1.0, 0) + fwd * 0.5)
+		manager.consume_fish(f)
+		hud.toast("O peixe está se debatendo! Mate-o (faca, tiro ou soco com E) e colete.", Color(1.0, 0.9, 0.5)))
 	fish = null
 	_clear_bobber()
 	state = S.RESULT

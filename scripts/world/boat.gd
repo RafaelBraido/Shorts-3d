@@ -102,6 +102,7 @@ func leave(forced: bool) -> void:
 
 func _physics_process(delta: float) -> void:
 	_t += delta
+	max_speed = (24.0 if kind == "military" else 16.0) * GameState.engine_speed_mult()
 	if driver != null:
 		var v := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		var throttle := -v.y
