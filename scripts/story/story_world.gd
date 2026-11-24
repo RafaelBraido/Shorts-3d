@@ -239,7 +239,7 @@ static func _island5(w: Node3D, z: Dictionary) -> void:
 	disc.height = 0.2
 	disc.radial_segments = 20
 	disc.rings = 1
-	var lava_mat := Props.mat(Color(1.0, 0.35, 0.05), 0.4, 0.0, 3.0)
+	var lava_mat := Props.mat(Color(0.85, 0.18, 0.02), 0.4, 0.0, 1.4)
 	Props.mesh_node(w, disc, lava_mat, lava_c + Vector3(0, 0.15, 0)).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var glow := OmniLight3D.new()
 	glow.light_color = Color(1.0, 0.4, 0.1)
@@ -277,7 +277,7 @@ static func _island5(w: Node3D, z: Dictionary) -> void:
 		var r := Terrain.CRATER_R * 1.8
 		while r < Terrain.VOLCANO_R - 2.0:
 			var p := c + Vector2.from_angle(ang + sin(r * 0.5) * 0.12) * r
-			var bm := Props.box(w, Vector3(2.0, 0.1, 2.4), Vector3(p.x, Terrain.height_at(p.x, p.y) + 0.08, p.y), Color(1.0, 0.35, 0.05), null, Vector3(0, -ang, 0))
+			var bm := Props.box(w, Vector3(1.3, 0.08, 2.6), Vector3(p.x, Terrain.height_at(p.x, p.y) + 0.06, p.y), Color(0.85, 0.18, 0.02), null, Vector3(0, -ang, 0))
 			bm.material_override = lava_mat
 			bm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			r += 2.2

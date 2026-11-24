@@ -62,7 +62,7 @@ func _dark(rough: float = 0.4) -> StandardMaterial3D:
 	return Props.mat(Color(0.08, 0.08, 0.09), rough, 0.6)
 
 func _steel(rough: float = 0.35) -> StandardMaterial3D:
-	return Props.mat(Color(0.35, 0.36, 0.4), rough, 0.85)
+	return Props.mat(Color(0.66, 0.68, 0.74), rough, 0.45)
 
 func _bx(s: Vector3) -> BoxMesh:
 	var b := BoxMesh.new()

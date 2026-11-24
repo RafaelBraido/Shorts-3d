@@ -64,7 +64,9 @@ func setup(boss_id: String) -> void:
 		"piranha": model = BossModels.piranha(4.4)
 		"piranha_minion": model = BossModels.piranha(1.1)
 		"puffer": model = BossModels.puffer()
-		"albatross": model = BossModels.albatross()
+		"albatross":
+			model = BossModels.albatross()
+			model.scale = Vector3.ONE * 1.6
 		"whale": model = BossModels.whale(false)
 		"mutant": model = BossModels.whale(true)
 	add_child(model)
@@ -92,8 +94,8 @@ func start_fight() -> void:
 		"mutant":
 			state = "idle"
 			global_position = Story.zones["lava"] + Vector3(0, -0.5, 0)
-			model.scale = Vector3.ONE * 1.1
-			model.rotation.x = -0.5
+			model.scale = Vector3.ONE * 1.8
+			model.rotation.x = -0.45
 		"piranha":
 			state = "swim"
 	var hud := get_tree().get_first_node_in_group("hud")
@@ -413,7 +415,7 @@ func _ai_whale(delta: float) -> void:
 				_cd = 4.0
 				_t = 0.0
 				_spout()
-	global_position.y = lerpf(global_position.y, -1.9 + sin(_anim * 0.9) * 0.3, 0.05)
+	global_position.y = lerpf(global_position.y, -1.1 + sin(_anim * 0.9) * 0.3, 0.05)
 
 func _face_dir_whale(delta: float) -> void:
 	_face(_dir, 1.6, delta)
@@ -435,7 +437,7 @@ func _spout() -> void:
 func _ai_mutant(delta: float) -> void:
 	var to_p := _flat_to_player()
 	_face(to_p, 1.5, delta)
-	model.position.y = 1.6 + sin(_anim * 1.3) * 0.25
+	model.position.y = 5.0 + sin(_anim * 1.3) * 0.3
 	var dist := to_p.length()
 	if state == "idle":
 		_t -= 0.0
@@ -450,9 +452,9 @@ func _ai_mutant(delta: float) -> void:
 	if _special_cd <= 0.0:
 		_special_cd = 9.0
 		var tw := create_tween()
-		tw.tween_property(model, "scale", Vector3.ONE * 1.25, 0.8)
+		tw.tween_property(model, "scale", Vector3.ONE * 2.05, 0.8)
 		tw.tween_callback(_stomp)
-		tw.tween_property(model, "scale", Vector3.ONE * 1.1, 0.3)
+		tw.tween_property(model, "scale", Vector3.ONE * 1.8, 0.3)
 
 func _stomp() -> void:
 	if _dead:
