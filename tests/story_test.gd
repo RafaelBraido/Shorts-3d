@@ -82,6 +82,7 @@ func _run() -> void:
 	var crab: Boss = Story.boss
 	ok(crab != null and crab.id == "crab", "Caranguejo‑Aranha emergiu")
 	player.global_position = crab.global_position + Vector3(2.5, 1.0, 0)
+	player.hp = player.max_hp
 	var hp0: float = player.hp
 	await wait(3.0)
 	ok(player.hp < hp0, "o caranguejo atacou o jogador (hp %.0f -> %.0f)" % [hp0, player.hp])
@@ -120,6 +121,7 @@ func _run() -> void:
 			minions += 1
 	ok(piranha != null and minions == 4, "Piranha Gigante + %d filhotes" % minions)
 	player.global_position = Vector3(lake.x + Terrain.LAKE_R + 1.0, 3.0, lake.z)
+	player.hp = player.max_hp
 	var hp1: float = player.hp
 	await wait(6.0)
 	ok(player.hp < hp1, "piranhas atacaram (hp %.0f -> %.0f)" % [hp1, player.hp])
@@ -144,6 +146,7 @@ func _run() -> void:
 	var puffer: Boss = Story.boss
 	ok(puffer != null and puffer.id == "puffer", "Baiacu Gigante emergiu")
 	player.global_position = puffer.global_position + Vector3(6, 2, 0)
+	player.hp = player.max_hp
 	var hp2: float = player.hp
 	await wait(6.0)
 	ok(player.hp < hp2, "baiacu rolou sobre o jogador (hp %.0f -> %.0f)" % [hp2, player.hp])
@@ -167,6 +170,7 @@ func _run() -> void:
 	ok(bird != null and bird.id == "albatross" and not Story.is_fish_in_bag("atum"), "oferenda chamou o Albatroz")
 	player.global_position = z["altar"] + Vector3(3, 1, 0)
 	var orbs_before := get_tree().get_nodes_in_group("targets").size()
+	player.hp = player.max_hp
 	var hp3: float = player.hp
 	await wait(7.0)
 	ok(player.hp < hp3 or true, "albatroz em combate (hp %.0f -> %.0f)" % [hp3, player.hp])
@@ -201,6 +205,7 @@ func _run() -> void:
 	var mut: Boss = Story.boss
 	ok(mut != null and mut.id == "mutant" and Story.step == 5, "carcaça na lava -> Baleia Mutante de Magma")
 	player.global_position = z["lava"] + Vector3(8, 1, 0)
+	player.hp = player.max_hp
 	var hp4: float = player.hp
 	await wait(8.0)
 	ok(player.hp < hp4, "baleia mutante atacou (hp %.0f -> %.0f)" % [hp4, player.hp])
