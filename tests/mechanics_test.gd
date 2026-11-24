@@ -67,8 +67,10 @@ func _run() -> void:
 	var spot2 := spot + Vector3(3, 2, 0)
 	var lf2 := LandedFish.spawn(main, "dourado", 5.0, spot2, Vector3.ZERO)
 	await wait(1.0)
+	var vy0 := lf2.linear_velocity.y
 	lf2.hit(0.1, lf2.global_position - Vector3(0, 0.3, 0))
-	ok(lf2.linear_velocity.y > 1.0 or lf2.global_position.y > spot2.y - 1.8, "acertar o peixe o lança no ar")
+	await wait(0.05)
+	ok(lf2.linear_velocity.y > vy0 + 4.0, "acertar o peixe o lança no ar (vy %.1f -> %.1f m/s)" % [vy0, lf2.linear_velocity.y])
 	lf2.hit(100.0, lf2.global_position)
 	ok(lf2.dead, "arma mata o peixe")
 	lf2.queue_free()
@@ -104,7 +106,7 @@ func _run() -> void:
 		ok_silent(GameState.coins == before + (10 if w else -10))
 	ok(wins > 10 and wins < 50, "cara ou coroa paga/perde certo (%d vitórias em %d)" % [wins, total])
 	GameState.add_fish("atum", 50.0)
-	var val := GameState.inventory[GameState.inventory.size() - 1]["value"]
+	var val: int = GameState.inventory[GameState.inventory.size() - 1]["value"]
 	var c0 := GameState.coins
 	var r := GameState.gamble_fish(GameState.inventory.size() - 1)
 	ok(r == 0 or r == val * 3, "apostar peixe: perde (0) ou triplica (%d)" % r)
