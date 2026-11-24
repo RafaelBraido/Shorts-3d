@@ -218,6 +218,7 @@ func _shoot_ray() -> void:
 		Fx.splash(scene, end, 1.0)
 		Sfx.play_at("splash", scene, end, -2.0)
 	Fx.tracer(scene, muzzle.global_position, end)
+	Net.send_shot(muzzle.global_position, end)
 
 func _start_reload() -> void:
 	if reloading or GameState.ammo_mag >= GameState.MAG_SIZE:

@@ -12,3 +12,12 @@ func _ready() -> void:
 	manager.player = player
 	manager.populate_initial(world.dock_end)
 	GameState.notify.emit("Bem-vindo! Fale com o Capitão Maré na cabana vermelha.")
+	# atalhos de linha de comando: godot -- --host  |  godot -- --join=IP  |  --name=Fulano
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--name="):
+			Net.player_name = a.substr(7)
+	for a in OS.get_cmdline_user_args():
+		if a == "--host":
+			Net.host()
+		elif a.begins_with("--join="):
+			Net.join(a.substr(7))

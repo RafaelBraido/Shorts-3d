@@ -39,6 +39,7 @@ var menu_title: Label
 var menu_mode := "inv"
 var touch_mode := false
 var prompt_prefix := "[E] "
+var _net_ip := "127.0.0.1"
 
 var _hit_t := 0.0
 var _target_t := 0.0
@@ -74,6 +75,8 @@ func _ready() -> void:
 	GameState.rod_changed.connect(_refresh_status)
 	GameState.notify.connect(func(m: String) -> void: toast(m, GOLD))
 	GameState.inventory_changed.connect(_refresh_menu_if_open)
+	Net.status.connect(func(m: String) -> void: toast(m, Color(0.6, 0.9, 1.0)))
+	Net.players_changed.connect(_refresh_menu_if_open)
 	GameState.coins_changed.connect(func(_c: int) -> void: _refresh_menu_if_open())
 	_refresh_status()
 	set_equipped(1)
@@ -382,6 +385,7 @@ func hit_marker() -> void:
 
 func set_scope(amount: float) -> void:
 	_scope_amount = amount
+	(scope.material as ShaderMaterial).set_shader_parameter("aspect", root.size.x / maxf(root.size.y, 1.0))
 	scope.visible = amount > 0.01
 	scope.modulate.a = amount
 	crosshair.visible = amount < 0.5
@@ -472,6 +476,9 @@ func toggle_inventory() -> void:
 func open_inventory() -> void:
 	_open("inv")
 
+func open_network() -> void:
+	_open("net")
+
 func open_shop() -> void:
 	_open("shop")
 
@@ -506,6 +513,10 @@ func _refresh_menu() -> void:
 	for c in menu_tabs.get_children():
 		menu_tabs.remove_child(c)
 		c.queue_free()
+	if menu_mode == "net":
+		_build_net_tab()
+		_touchify()
+		return
 	var shop := menu_mode == "shop"
 	menu_title.text = "Loja do Capitão Maré   —   $%d" % GameState.coins if shop else "Mochila   —   $%d   ·   Nível %d" % [GameState.coins, GameState.level]
 	# --- peixes
@@ -600,7 +611,63 @@ func _refresh_menu() -> void:
 		arow.add_child(ab)
 	gear.add_child(arow)
 	menu_tabs.current_tab = clampi(prev, 0, menu_tabs.get_child_count() - 1)
-	if touch_mode:
-		for b in menu_panel.find_children("*", "Button", true, false):
-			(b as Button).custom_minimum_size = Vector2(0, 54)
-			(b as Button).add_theme_font_size_override("font_size", 20)
+	_touchify()
+
+func _touchify() -> void:
+	if not touch_mode:
+		return
+	for b in menu_panel.find_children("*", "Button", true, false):
+		(b as Button).custom_minimum_size = Vector2(0, 54)
+		(b as Button).add_theme_font_size_override("font_size", 20)
+	for e in menu_panel.find_children("*", "LineEdit", true, false):
+		(e as LineEdit).custom_minimum_size = Vector2(0, 54)
+		(e as LineEdit).add_theme_font_size_override("font_size", 20)
+
+func _local_ips() -> String:
+	var out: PackedStringArray = []
+	for a in IP.get_local_addresses():
+		if a.count(".") == 3 and not a.begins_with("127.") and not a.begins_with("169.254."):
+			out.append(a)
+	return ", ".join(out) if not out.is_empty() else "(não encontrado)"
+
+func _build_net_tab() -> void:
+	menu_title.text = "Multijogador cooperativo"
+	var vb := _tab("Multijogador")
+	vb.add_child(_label("Seu nome:", 16, Color.WHITE, 0))
+	var name_e := LineEdit.new()
+	name_e.text = Net.player_name
+	name_e.max_length = 16
+	name_e.editable = not Net.active
+	name_e.text_changed.connect(func(t: String) -> void: Net.player_name = t)
+	vb.add_child(name_e)
+	if Net.active:
+		var st := "Você é o ANFITRIÃO (porta %d)." % Net.PORT if Net.is_host else "Conectado à partida."
+		vb.add_child(_label(st, 17, GOLD, 0))
+		if Net.is_host:
+			vb.add_child(_label("IP para os amigos (mesma rede Wi-Fi/LAN): " + _local_ips(), 15, Color(0.85, 0.95, 1.0), 0))
+			vb.add_child(_label("Pela internet: libere a porta UDP %d no roteador (ou use uma VPN, como Tailscale/ZeroTier)." % Net.PORT, 14, Color(0.8, 0.8, 0.8), 0))
+		vb.add_child(_label("Jogadores na ilha: %d" % Net.peer_count(), 16, Color.WHITE, 0))
+		vb.add_child(_label("  • %s (você)" % Net.player_name, 15, Color(0.7, 1.0, 0.7), 0))
+		for id in Net.names:
+			vb.add_child(_label("  • %s" % Net.names[id], 15, Color.WHITE, 0))
+		var leave := Button.new()
+		leave.text = "Desconectar"
+		leave.pressed.connect(func() -> void: Net.leave())
+		vb.add_child(leave)
+	else:
+		var host_b := Button.new()
+		host_b.text = "Hospedar partida (porta %d)" % Net.PORT
+		host_b.pressed.connect(func() -> void: Net.host())
+		vb.add_child(host_b)
+		vb.add_child(_label("Ou entre na partida de um amigo:", 16, Color.WHITE, 0))
+		var ip_e := LineEdit.new()
+		ip_e.text = _net_ip
+		ip_e.placeholder_text = "IP do anfitrião, ex.: 192.168.0.10"
+		ip_e.text_changed.connect(func(t: String) -> void: _net_ip = t)
+		vb.add_child(ip_e)
+		var join_b := Button.new()
+		join_b.text = "Entrar"
+		join_b.pressed.connect(func() -> void: Net.join(_net_ip))
+		vb.add_child(join_b)
+	vb.add_child(_label("Em cooperativo todos veem a mesma ilha, os outros jogadores, os tiros e os avisos de captura. Peixes, dinheiro e mochila são individuais.", 13, Color(0.75, 0.75, 0.75), 0))
+

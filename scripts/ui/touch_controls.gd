@@ -53,6 +53,8 @@ func _ready() -> void:
 	_add("jump", "PULAR", "hold", "jump", 46.0)
 	_add("run", "CORRER", "toggle", "run", 42.0)
 	_add("reload", "RECARGA", "tap", "reload", 44.0)
+	_add("crouch", "ABAIXAR", "toggle", "crouch", 40.0)
+	_add("net", "REDE", "tap", "__net", 32.0)
 	_add("use", "USAR", "tap", "interact", 54.0)
 	_add("item1", "1 RIFLE", "tap", "weapon_toggle", 32.0)
 	_add("item2", "2 VARA", "tap", "fish_toggle", 32.0)
@@ -83,6 +85,8 @@ func _layout() -> void:
 	btns["jump"].pos = Vector2(s.x - 100, s.y - 340)
 	btns["run"].pos = Vector2(s.x - 270, s.y - 250)
 	btns["reload"].pos = Vector2(s.x - 400, s.y - 190)
+	btns["crouch"].pos = Vector2(s.x - 410, s.y - 75)
+	btns["net"].pos = Vector2(s.x - 40, 48)
 	btns["use"].pos = Vector2(s.x - 250, s.y - 400)
 	btns["item1"].pos = Vector2(s.x - 290, 48)
 	btns["item2"].pos = Vector2(s.x - 205, 48)
@@ -168,6 +172,9 @@ func _btn_down(b: Btn) -> void:
 			if b.action == "__bag":
 				if hud:
 					hud.toggle_inventory()
+			elif b.action == "__net":
+				if hud:
+					hud.open_network()
 			else:
 				Input.action_press(b.action)
 				get_tree().create_timer(0.1).timeout.connect(func() -> void: Input.action_release(b.action))

@@ -316,6 +316,7 @@ func _catch() -> void:
 	var is_record: bool = w > float(prev["best"]) and not is_new
 	var entry := GameState.add_fish(id, w, false)
 	Sfx.play("catch")
+	Net.send_announce("pescou %s de %.1f kg!" % [FishDB.data(id)["name"], w])
 	hud.show_catch(id, w, int(entry["value"]), is_new, is_record)
 	_show_trophy(id, f.length_m)
 	# o peixe salta até o jogador e some

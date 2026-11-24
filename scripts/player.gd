@@ -8,6 +8,10 @@ const RUN := 8.5
 const SWIM := 3.4
 const JUMP_SPEED := 5.0
 const EYE_HEIGHT := 1.55
+const CROUCH_EYE := 0.95
+const CROUCH_SPEED := 2.4
+const STAND_H := 1.8
+const CROUCH_H := 1.1
 
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
 var pitch := 0.0
@@ -29,6 +33,9 @@ var _step_t := 0.0
 var _swimming := false
 var _prompt_target: Node = null
 var touch_mode := false
+var crouching := false
+var _capsule: CapsuleShape3D
+var _col: CollisionShape3D
 
 ## Verdadeiro quando o jogador não deve agir (menu aberto, mouse solto ou acabou de recapturar).
 var ui_open: bool:
@@ -48,6 +55,8 @@ func _ready() -> void:
 	col.shape = cap
 	col.position.y = 0.9
 	add_child(col)
+	_capsule = cap
+	_col = col
 	cam = Camera3D.new()
 	cam.position.y = EYE_HEIGHT
 	cam.current = true
@@ -107,6 +116,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		_block_t = 0.2
 	if e.is_action_pressed("inventory") and hud:
 		hud.toggle_inventory()
+	if e.is_action_pressed("multiplayer") and hud:
+		hud.open_network()
 
 func _physics_process(d: float) -> void:
 	_block_t = maxf(_block_t - d, 0.0)
@@ -116,8 +127,11 @@ func _physics_process(d: float) -> void:
 	var wading := feet < -0.25 and not _swimming
 	var v := Vector2.ZERO if in_menu else Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var dir := (transform.basis * Vector3(v.x, 0, v.y)).normalized()
-	var running := Input.is_action_pressed("run") and not in_menu and rifle != null and not rifle.scoped
+	_update_crouch(in_menu)
+	var running := Input.is_action_pressed("run") and not in_menu and rifle != null and not rifle.scoped and not crouching
 	var speed := RUN if running else WALK
+	if crouching:
+		speed = CROUCH_SPEED
 	if wading:
 		speed *= 0.65
 	if _swimming:
@@ -129,7 +143,7 @@ func _physics_process(d: float) -> void:
 	else:
 		if not is_on_floor():
 			velocity.y -= gravity * d
-		elif Input.is_action_just_pressed("jump") and not in_menu:
+		elif Input.is_action_just_pressed("jump") and not in_menu and not crouching:
 			velocity.y = JUMP_SPEED
 	var accel := clampf(12.0 * d, 0.0, 1.0)
 	velocity.x = lerpf(velocity.x, dir.x * speed, accel)
@@ -143,10 +157,27 @@ func _physics_process(d: float) -> void:
 		global_position = spawn_point
 		velocity = Vector3.ZERO
 	_footsteps(d, dir.length() > 0.1, running, wading)
+	Net.tick(d, self, rotation.y, pitch, item, crouching)
 	_update_camera(d, dir.length() > 0.1, running)
 	if not in_menu:
 		_hotbar()
 		_interaction()
+
+## Agachar: segurar Ctrl/C (PC) ou alternar no botão ABAIXAR (celular). Só levanta se houver espaço livre acima.
+func _update_crouch(in_menu: bool) -> void:
+	var want := Input.is_action_pressed("crouch") and not in_menu and not _swimming
+	if want == crouching:
+		return
+	if not want and not _can_stand():
+		return
+	crouching = want
+	var h := CROUCH_H if crouching else STAND_H
+	_capsule.height = h
+	_col.position.y = h * 0.5
+
+func _can_stand() -> bool:
+	var q := PhysicsRayQueryParameters3D.create(global_position + Vector3(0, CROUCH_H - 0.1, 0), global_position + Vector3(0, STAND_H + 0.1, 0), 1)
+	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 func _footsteps(d: float, moving: bool, running: bool, wading: bool) -> void:
 	if not moving or not (is_on_floor() or wading) or _swimming:
@@ -154,7 +185,7 @@ func _footsteps(d: float, moving: bool, running: bool, wading: bool) -> void:
 		return
 	_step_t -= d
 	if _step_t <= 0.0:
-		_step_t = 0.28 if running else 0.45
+		_step_t = 0.28 if running else (0.7 if crouching else 0.45)
 		if wading:
 			Sfx.play("splash", -20.0, randf_range(1.3, 1.6))
 		else:
@@ -170,7 +201,8 @@ func _update_camera(d: float, moving: bool, running: bool) -> void:
 	elif _swimming:
 		_bob_t += d * 2.0
 		bob = sin(_bob_t) * 0.04
-	cam.position.y = lerpf(cam.position.y, EYE_HEIGHT + bob, clampf(14.0 * d, 0.0, 1.0))
+	var eye := CROUCH_EYE if crouching else EYE_HEIGHT
+	cam.position.y = lerpf(cam.position.y, eye + bob, clampf(10.0 * d, 0.0, 1.0))
 	cam.rotation.x = pitch + _recoil
 	cam.rotation.z = (randf() - 0.5) * _shake
 	cam.rotation.y = (randf() - 0.5) * _shake * 0.6
