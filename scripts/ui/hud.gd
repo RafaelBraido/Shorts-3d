@@ -40,6 +40,30 @@ var menu_mode := "inv"
 var touch_mode := false
 var prompt_prefix := "[E] "
 var _net_ip := "127.0.0.1"
+var hp_bar: Dictionary
+var hp_label: Label
+var obj_panel: PanelContainer
+var obj_chapter: Label
+var obj_text: Label
+var radar: Control
+var boss_panel: PanelContainer
+var boss_name: Label
+var boss_bar: Dictionary
+var dlg_panel: PanelContainer
+var dlg_name: Label
+var dlg_text: Label
+var dlg_btn: Button
+var dlg_lines: Array = []
+var dlg_index := 0
+var dlg_after: Callable
+var dlg_open := false
+var pages_layer: ColorRect
+var pages_label: Label
+var credits_layer: ColorRect
+var death_layer: ColorRect
+var death_label: Label
+var damage_flash: ColorRect
+var _player: Node3D = null
 
 var _hit_t := 0.0
 var _target_t := 0.0
@@ -69,6 +93,11 @@ func _ready() -> void:
 	_build_toasts()
 	_build_menu()
 	_build_help()
+	_build_story_ui()
+	Story.dialogue_requested.connect(show_dialogue)
+	Story.pages_requested.connect(show_pages)
+	Story.ending_started.connect(show_credits)
+	Story.changed.connect(_refresh_story)
 	GameState.coins_changed.connect(func(_c: int) -> void: _refresh_status())
 	GameState.xp_changed.connect(func(_x: int, _n: int, _l: int) -> void: _refresh_status())
 	GameState.ammo_changed.connect(_refresh_status)
@@ -79,7 +108,11 @@ func _ready() -> void:
 	Net.players_changed.connect(_refresh_menu_if_open)
 	GameState.coins_changed.connect(func(_c: int) -> void: _refresh_menu_if_open())
 	_refresh_status()
+	_refresh_story()
 	set_equipped(1)
+	refresh_hotbar()
+	if not Story.intro_done:
+		call_deferred("_start_intro")
 
 # ------------------------------------------------------------------ helpers
 
@@ -218,43 +251,42 @@ func _build_status() -> void:
 	vb.add_child(level_label)
 	xp_bar = _bar(Vector2(140, 10), Color(0.35, 0.8, 1.0))
 	vb.add_child(xp_bar["bg"])
+	hp_label = _label("♥ 100", 14, Color(1.0, 0.45, 0.45))
+	vb.add_child(hp_label)
+	hp_bar = _bar(Vector2(140, 10), Color(0.9, 0.2, 0.2))
+	vb.add_child(hp_bar["bg"])
 
 func _refresh_status() -> void:
 	coins_label.text = "$%d" % GameState.coins
 	level_label.text = "Nível %d   (%d / %d XP)" % [GameState.level, GameState.xp, GameState.xp_needed()]
 	_set_bar(xp_bar, float(GameState.xp) / float(GameState.xp_needed()))
-	if ammo_label:
-		ammo_label.text = "%d / %d" % [GameState.ammo_mag, GameState.ammo_reserve]
+	refresh_hotbar()
 
 func _build_hotbar() -> void:
 	var hb := HBoxContainer.new()
 	hb.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	hb.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	hb.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	hb.position = Vector2(-80, -90)
+	hb.position = Vector2(-140, -90)
 	hb.add_theme_constant_override("separation", 10)
 	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hb)
-	var names := ["1  Rifle", "2  Vara"]
-	for i in 2:
+	for i in 3:
 		var p := PanelContainer.new()
-		p.custom_minimum_size = Vector2(88, 64)
+		p.custom_minimum_size = Vector2(96, 64)
 		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var v := VBoxContainer.new()
 		v.alignment = BoxContainer.ALIGNMENT_CENTER
 		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		p.add_child(v)
-		var l := _label(names[i], 15)
+		var l := _label("", 14)
+		l.name = "Title"
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		v.add_child(l)
 		var sub := _label("", 13, Color(0.9, 0.9, 0.9))
+		sub.name = "Sub"
 		sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		v.add_child(sub)
-		if i == 0:
-			ammo_label = sub
-		else:
-			sub.text = "Bambu"
-			sub.name = "RodSub"
 		hb.add_child(p)
 		slots.append(p)
 	prompt_label = _label("", 20, Color(1, 1, 1))
@@ -266,14 +298,30 @@ func _build_hotbar() -> void:
 	prompt_label.position.x = -300
 	root.add_child(prompt_label)
 
+func _slot_set(i: int, title: String, sub: String) -> void:
+	if i >= slots.size():
+		return
+	(slots[i].find_child("Title", true, false) as Label).text = title
+	(slots[i].find_child("Sub", true, false) as Label).text = sub
+
+func refresh_hotbar() -> void:
+	if slots.size() < 3:
+		return
+	var wid := GameState.current_weapon
+	var w: Dictionary = WeaponDB.data(wid)
+	var sub := "∞"
+	if w["kind"] == "gun":
+		sub = "%d / %d" % [GameState.ammo_mag(wid), GameState.ammo_reserve(wid)]
+	_slot_set(0, "1  " + String(w["name"]).split(" ")[0], sub)
+	_slot_set(1, "2  Vara", String(GameState.rod()["name"]).replace("Vara de ", "").replace("Vara ", ""))
+	_slot_set(2, "3  Dinamite", "x%d" % GameState.dynamite)
+
 func set_equipped(slot: int) -> void:
 	_equipped = slot
 	for i in slots.size():
 		var on := i == slot - 1
 		slots[i].add_theme_stylebox_override("panel", _style(Color(0.95, 0.75, 0.2, 0.35) if on else Color(0, 0, 0, 0.5), 6, GOLD if on else Color(1, 1, 1, 0.25), 2))
-	var rs := slots[1].find_child("RodSub", true, false) as Label
-	if rs:
-		rs.text = String(GameState.rod()["name"]).replace("Vara de ", "").replace("Vara ", "")
+	refresh_hotbar()
 
 func _build_fishing_ui() -> void:
 	power_bar = _bar(Vector2(260, 18), Color(1.0, 0.8, 0.2))
@@ -425,6 +473,8 @@ func show_catch(id: String, weight: float, value: int, is_new: bool, is_record: 
 	_catch_t = 4.5
 
 func _process(delta: float) -> void:
+	if radar != null:
+		radar.queue_redraw()
 	if _hit_t > 0.0:
 		_hit_t = maxf(_hit_t - delta, 0.0)
 		crosshair.queue_redraw()
@@ -518,41 +568,58 @@ func _refresh_menu() -> void:
 		_touchify()
 		return
 	var shop := menu_mode == "shop"
-	menu_title.text = "Loja do Capitão Maré   —   $%d" % GameState.coins if shop else "Mochila   —   $%d   ·   Nível %d" % [GameState.coins, GameState.level]
-	# --- peixes
-	var fish_tab := _tab("Vender" if shop else "Mochila")
+	menu_title.text = "Loja   —   $%d" % GameState.coins if shop else "Mochila   —   $%d   ·   Nível %d" % [GameState.coins, GameState.level]
+	_tab_fish(shop)
+	if shop:
+		_tab_weapons(true)
+		_tab_items(true)
+		_tab_rods(true)
+	else:
+		_tab_diary()
+		_tab_registry()
+		_tab_weapons(false)
+		_tab_rods(false)
+	menu_tabs.current_tab = clampi(prev, 0, menu_tabs.get_child_count() - 1)
+	_touchify()
+
+func _sale_mult() -> float:
+	return 1.4 if Story.flags.get("lighter", false) else 1.0
+
+func _tab_fish(shop: bool) -> void:
+	var fish_tab := _tab("Vender" if shop else "Peixes")
 	if GameState.inventory.is_empty():
 		fish_tab.add_child(_label("Nenhum peixe na mochila. Lance a vara na água (tecla 2)!", 16, Color(0.85, 0.85, 0.85), 0))
-	else:
+		return
+	if shop:
+		var sa := Button.new()
+		var total := 0
+		for e in GameState.inventory:
+			total += int(e["value"] * _sale_mult())
+		sa.text = "Vender tudo  ($%d)%s" % [total, "  — assados +40%!" if _sale_mult() > 1.0 else ""]
+		sa.pressed.connect(func() -> void:
+			var got := GameState.sell_all()
+			Sfx.play("coin")
+			toast("Vendeu tudo por $%d" % got, GOLD))
+		fish_tab.add_child(sa)
+	for i in GameState.inventory.size():
+		var e: Dictionary = GameState.inventory[i]
+		var row := HBoxContainer.new()
+		var nm := _label("%s%s" % [FishDB.data(e["species"])["name"], " (abatido)" if e["dead"] else ""], 17, FishDB.rarity_color(e["species"]), 0)
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(nm)
+		row.add_child(_label("%.2f kg    $%d   " % [e["weight"], int(e["value"] * _sale_mult())], 16, Color.WHITE, 0))
 		if shop:
-			var sa := Button.new()
-			var total := 0
-			for e in GameState.inventory:
-				total += int(e["value"])
-			sa.text = "Vender tudo  ($%d)" % total
-			sa.pressed.connect(func() -> void:
-				var got := GameState.sell_all()
+			var b := Button.new()
+			b.text = "Vender"
+			var idx := i
+			b.pressed.connect(func() -> void:
+				var got := GameState.sell_fish(idx)
 				Sfx.play("coin")
-				toast("Vendeu tudo por $%d" % got, GOLD))
-			fish_tab.add_child(sa)
-		for i in GameState.inventory.size():
-			var e: Dictionary = GameState.inventory[i]
-			var row := HBoxContainer.new()
-			var nm := _label("%s%s" % [FishDB.data(e["species"])["name"], " (abatido)" if e["dead"] else ""], 17, FishDB.rarity_color(e["species"]), 0)
-			nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			row.add_child(nm)
-			row.add_child(_label("%.2f kg    $%d   " % [e["weight"], e["value"]], 16, Color.WHITE, 0))
-			if shop:
-				var b := Button.new()
-				b.text = "Vender"
-				var idx := i
-				b.pressed.connect(func() -> void:
-					var got := GameState.sell_fish(idx)
-					Sfx.play("coin")
-					toast("+$%d" % got, GOLD))
-				row.add_child(b)
-			fish_tab.add_child(row)
-	# --- registro
+				toast("+$%d" % got, GOLD))
+			row.add_child(b)
+		fish_tab.add_child(row)
+
+func _tab_registry() -> void:
 	var reg := _tab("Registro")
 	var found := 0
 	for id in FishDB.ids():
@@ -569,8 +636,123 @@ func _refresh_menu() -> void:
 		row.add_child(nm)
 		row.add_child(_label("%s    %s" % [FishDB.rarity_name(id), ("recorde %.2f kg  ·  x%d" % [c["best"], c["count"]]) if known else "não capturado"], 15, Color(0.9, 0.9, 0.9), 0))
 		reg.add_child(row)
-	# --- varas / munição
-	var gear := _tab("Varas e munição" if shop else "Equipamento")
+
+func _tab_diary() -> void:
+	var d := _tab("Diário")
+	d.add_child(_label(Story.chapter_name(), 20, GOLD, 0))
+	var o := _label("Objetivo: " + Story.objective(), 16, Color.WHITE, 0)
+	o.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	o.custom_minimum_size = Vector2(640, 0)
+	d.add_child(o)
+	d.add_child(_label("Itens-chave:", 16, Color(0.8, 0.9, 1.0), 0))
+	var any := false
+	for id in Story.items:
+		if Story.count(id) > 0:
+			any = true
+			d.add_child(_label("  • %s x%d" % [Story.item_name(id), Story.count(id)], 15, Color.WHITE, 0))
+	if not any:
+		d.add_child(_label("  (nenhum)", 15, Color(0.6, 0.6, 0.6), 0))
+	if Story.has_radar():
+		d.add_child(_label("Radar: instalado (seta no canto da tela)", 15, Color(0.6, 1.0, 0.7), 0))
+	if Story.flags.get("lighter", false):
+		d.add_child(_label("Isqueiro dourado: peixes vendem +40%", 15, Color(1.0, 0.8, 0.4), 0))
+	if Story.flags.get("keys_motorboat", false):
+		d.add_child(_label("Chaves da lancha a motor ✓", 15, Color(0.6, 1.0, 0.7), 0))
+	if Story.flags.get("keys_military", false):
+		d.add_child(_label("Chaves da lancha militar ✓", 15, Color(0.6, 1.0, 0.7), 0))
+
+func _player_node() -> Node3D:
+	if _player == null or not is_instance_valid(_player):
+		_player = get_tree().get_first_node_in_group("player")
+	return _player
+
+func _tab_weapons(shop: bool) -> void:
+	var t := _tab("Armas" if shop else "Armas")
+	for wid in WeaponDB.ORDER:
+		var w: Dictionary = WeaponDB.data(wid)
+		var row := HBoxContainer.new()
+		var info_txt := String(w["name"])
+		if w["kind"] == "gun":
+			info_txt += "\nDano %.1f%s · pente %d · %s" % [w["damage"], " x%d" % w["pellets"] if int(w["pellets"]) > 1 else "", w["mag"], "automática" if w.get("auto", false) else "semi-automática"]
+			if wid in GameState.owned_weapons:
+				info_txt += "\nMunição: %d no pente · %d de reserva" % [GameState.ammo_mag(wid), GameState.ammo_reserve(wid)]
+		else:
+			info_txt += "\nCorpo a corpo · dano %.1f" % w["damage"]
+		var info := _label(info_txt, 15, Color(1.0, 0.9, 0.6) if wid in GameState.owned_weapons else Color(0.8, 0.8, 0.8), 0)
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(info)
+		var id: String = wid
+		if wid in GameState.owned_weapons:
+			if w["kind"] == "gun" and shop:
+				var ab := Button.new()
+				ab.text = "+%d balas $%d" % [w["ammo_pack"], w["ammo_price"]]
+				ab.disabled = GameState.coins < int(w["ammo_price"])
+				ab.pressed.connect(func() -> void:
+					if GameState.buy_ammo(id):
+						Sfx.play("coin")
+						_refresh_menu())
+				row.add_child(ab)
+			var eb := Button.new()
+			eb.text = "Equipada" if GameState.current_weapon == wid else "Equipar"
+			eb.disabled = GameState.current_weapon == wid
+			eb.pressed.connect(func() -> void:
+				var p := _player_node()
+				if p:
+					p.rifle.set_weapon(id)
+					p._equip("rifle")
+				_refresh_menu())
+			row.add_child(eb)
+		else:
+			var bb := Button.new()
+			bb.text = "Comprar $%d" % w["price"]
+			bb.disabled = not shop or GameState.coins < int(w["price"])
+			bb.pressed.connect(func() -> void:
+				if GameState.buy_weapon(id):
+					Sfx.play("coin")
+					_refresh_menu())
+			row.add_child(bb)
+		t.add_child(row)
+	var drow := HBoxContainer.new()
+	var dl := _label("Dinamite (explosivo, dano em área) — você tem %d" % GameState.dynamite, 15, Color(1.0, 0.7, 0.5), 0)
+	dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	drow.add_child(dl)
+	if shop:
+		var db := Button.new()
+		db.text = "Comprar $%d" % WeaponDB.DYNAMITE_PRICE
+		db.disabled = GameState.coins < WeaponDB.DYNAMITE_PRICE
+		db.pressed.connect(func() -> void:
+			if GameState.buy_dynamite():
+				Sfx.play("coin")
+				_refresh_menu())
+		drow.add_child(db)
+	t.add_child(drow)
+
+func _tab_items(shop: bool) -> void:
+	var t := _tab("Itens")
+	var rows := [
+		["Lata de cerveja gelada", 15, "Para o Guardião do Farol.", func() -> bool: return Story.buy_beer(), false],
+		["Radar", 250, "Mostra a direção das ilhas (seta no canto da tela).", func() -> bool: return Story.buy_radar(), Story.has_radar()],
+		["Isca profissional", 60, "Aumenta a sorte do próximo lance (ajuda a pescar atum).", func() -> bool: return Story.buy_pro_bait(), false],
+	]
+	for r in rows:
+		var row := HBoxContainer.new()
+		var info := _label("%s\n%s" % [r[0], r[2]], 15, Color.WHITE, 0)
+		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(info)
+		var b := Button.new()
+		b.text = "Comprado" if r[4] else "Comprar $%d" % r[1]
+		b.disabled = r[4] or GameState.coins < int(r[1])
+		var cb: Callable = r[3]
+		b.pressed.connect(func() -> void:
+			if cb.call():
+				Sfx.play("coin")
+				_refresh_menu())
+		row.add_child(b)
+		t.add_child(row)
+	t.add_child(_label("Você tem: %d cerveja(s), %d isca(s) profissional(is)." % [Story.count("beer"), Story.count("pro_bait")], 14, Color(0.8, 0.8, 0.8), 0))
+
+func _tab_rods(shop: bool) -> void:
+	var gear := _tab("Varas" if shop else "Varas")
 	for t in GameState.RODS.size():
 		var r: Dictionary = GameState.RODS[t]
 		var row := HBoxContainer.new()
@@ -584,7 +766,7 @@ func _refresh_menu() -> void:
 			b.disabled = t == GameState.rod_tier
 			b.pressed.connect(func() -> void:
 				GameState.equip_rod(tier)
-				set_equipped(_equipped)
+				refresh_hotbar()
 				_refresh_menu())
 		else:
 			b.text = "Comprar $%d (Nv %d)" % [r["price"], r["level"]]
@@ -592,26 +774,10 @@ func _refresh_menu() -> void:
 			b.pressed.connect(func() -> void:
 				if GameState.buy_rod(tier):
 					Sfx.play("coin")
-					set_equipped(_equipped)
+					refresh_hotbar()
 					_refresh_menu())
 		row.add_child(b)
 		gear.add_child(row)
-	var arow := HBoxContainer.new()
-	var ai := _label("Munição do rifle: %d no pente · %d de reserva" % [GameState.ammo_mag, GameState.ammo_reserve], 16, Color.WHITE, 0)
-	ai.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	arow.add_child(ai)
-	if shop:
-		var ab := Button.new()
-		ab.text = "Comprar %d balas  $%d" % [GameState.AMMO_PACK, GameState.AMMO_PRICE]
-		ab.disabled = GameState.coins < GameState.AMMO_PRICE
-		ab.pressed.connect(func() -> void:
-			if GameState.buy_ammo():
-				Sfx.play("coin")
-				_refresh_menu())
-		arow.add_child(ab)
-	gear.add_child(arow)
-	menu_tabs.current_tab = clampi(prev, 0, menu_tabs.get_child_count() - 1)
-	_touchify()
 
 func _touchify() -> void:
 	if not touch_mode:
@@ -671,3 +837,283 @@ func _build_net_tab() -> void:
 		vb.add_child(join_b)
 	vb.add_child(_label("Em cooperativo todos veem a mesma ilha, os outros jogadores, os tiros e os avisos de captura. Peixes, dinheiro e mochila são individuais.", 13, Color(0.75, 0.75, 0.75), 0))
 
+
+# ------------------------------------------------------------------ história: interface
+
+func _build_story_ui() -> void:
+	# objetivo atual (canto superior esquerdo)
+	obj_panel = PanelContainer.new()
+	obj_panel.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0.5), 8))
+	obj_panel.position = Vector2(14, 150 if touch_mode else 38)
+	obj_panel.custom_minimum_size = Vector2(330, 0)
+	obj_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(obj_panel)
+	var ov := VBoxContainer.new()
+	ov.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	obj_panel.add_child(ov)
+	obj_chapter = _label("", 14, GOLD, 3)
+	ov.add_child(obj_chapter)
+	obj_text = _label("", 14, Color.WHITE, 3)
+	obj_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	obj_text.custom_minimum_size = Vector2(310, 0)
+	ov.add_child(obj_text)
+	# radar / guia do objetivo (canto superior direito)
+	radar = Control.new()
+	radar.custom_minimum_size = Vector2(120, 130)
+	radar.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	radar.position = Vector2(-140, 100 if touch_mode else 64)
+	radar.size = Vector2(120, 130)
+	radar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	radar.draw.connect(_draw_radar)
+	root.add_child(radar)
+	# barra do chefe (topo central)
+	boss_panel = PanelContainer.new()
+	boss_panel.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0.55), 6))
+	boss_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	boss_panel.position = Vector2(-280, 14)
+	boss_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_panel.visible = false
+	root.add_child(boss_panel)
+	var bv := VBoxContainer.new()
+	bv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	boss_panel.add_child(bv)
+	boss_name = _label("", 18, Color(1.0, 0.5, 0.4))
+	boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bv.add_child(boss_name)
+	boss_bar = _bar(Vector2(560, 18), Color(0.85, 0.12, 0.12))
+	bv.add_child(boss_bar["bg"])
+	# flash de dano e tela de morte
+	damage_flash = ColorRect.new()
+	damage_flash.color = Color(0.8, 0.0, 0.0, 0.0)
+	damage_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(damage_flash)
+	death_layer = ColorRect.new()
+	death_layer.color = Color(0.35, 0.0, 0.0, 0.7)
+	death_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	death_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	death_layer.visible = false
+	root.add_child(death_layer)
+	death_label = _label("VOCÊ MORREU", 48, Color(1, 0.8, 0.8), 8)
+	death_label.set_anchors_preset(Control.PRESET_CENTER)
+	death_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	death_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	death_label.position = Vector2(-300, -40)
+	death_label.custom_minimum_size = Vector2(600, 0)
+	death_layer.add_child(death_label)
+	_build_dialogue()
+	_build_pages()
+
+func _build_dialogue() -> void:
+	dlg_panel = PanelContainer.new()
+	dlg_panel.add_theme_stylebox_override("panel", _style(Color(0.04, 0.06, 0.1, 0.94), 14, GOLD, 2))
+	dlg_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	dlg_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	dlg_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	dlg_panel.position = Vector2(-380, -30)
+	dlg_panel.custom_minimum_size = Vector2(760, 0)
+	dlg_panel.visible = false
+	root.add_child(dlg_panel)
+	var v := VBoxContainer.new()
+	dlg_panel.add_child(v)
+	dlg_name = _label("", 20, GOLD, 0)
+	v.add_child(dlg_name)
+	dlg_text = _label("", 19, Color.WHITE, 0)
+	dlg_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dlg_text.custom_minimum_size = Vector2(730, 80)
+	v.add_child(dlg_text)
+	dlg_btn = Button.new()
+	dlg_btn.text = "Continuar  ▶"
+	dlg_btn.custom_minimum_size = Vector2(0, 52 if touch_mode else 36)
+	dlg_btn.pressed.connect(_dlg_next)
+	v.add_child(dlg_btn)
+
+func _build_pages() -> void:
+	pages_layer = ColorRect.new()
+	pages_layer.color = Color(0.02, 0.03, 0.06, 1.0)
+	pages_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pages_layer.visible = false
+	root.add_child(pages_layer)
+	var v := VBoxContainer.new()
+	v.set_anchors_preset(Control.PRESET_CENTER)
+	v.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	v.grow_vertical = Control.GROW_DIRECTION_BOTH
+	v.custom_minimum_size = Vector2(900, 0)
+	v.position = Vector2(-450, -100)
+	pages_layer.add_child(v)
+	pages_label = _label("", 26, Color(0.95, 0.95, 1.0), 0)
+	pages_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	pages_label.custom_minimum_size = Vector2(880, 160)
+	pages_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(pages_label)
+	var b := Button.new()
+	b.text = "Continuar  ▶"
+	b.custom_minimum_size = Vector2(0, 56)
+	b.pressed.connect(_pages_next)
+	v.add_child(b)
+
+func _start_intro() -> void:
+	Story.start_intro(func() -> void:
+		Story.advance(0))
+
+func _refresh_story() -> void:
+	if obj_text == null:
+		return
+	obj_chapter.text = Story.chapter_name()
+	obj_text.text = Story.objective()
+	obj_panel.visible = true
+
+func set_health(hp: float, max_hp: float) -> void:
+	_set_bar(hp_bar, hp / max_hp)
+	hp_label.text = "♥ %d" % int(ceilf(hp))
+
+func flash_damage() -> void:
+	damage_flash.color = Color(0.85, 0.0, 0.0, 0.45)
+	var tw := damage_flash.create_tween()
+	tw.tween_property(damage_flash, "color:a", 0.0, 0.5)
+
+func show_death(lost: int) -> void:
+	death_label.text = "VOCÊ MORREU\n(-$%d)" % lost
+	death_layer.visible = true
+
+func hide_death() -> void:
+	death_layer.visible = false
+
+func set_boss_bar(nm: String, frac: float) -> void:
+	if frac < 0.0:
+		boss_panel.visible = false
+		return
+	boss_name.text = nm
+	_set_bar(boss_bar, frac)
+	boss_panel.visible = true
+
+# --- diálogo
+func show_dialogue(speaker: String, lines: Array, after: Callable) -> void:
+	dlg_name.text = speaker
+	dlg_lines = lines
+	dlg_index = 0
+	dlg_after = after
+	dlg_text.text = String(lines[0])
+	dlg_btn.text = "Continuar  ▶" if lines.size() > 1 else "Fechar"
+	dlg_panel.visible = true
+	dlg_open = true
+	menu_toggled.emit(true)
+	Sfx.play("reel", -8.0, 1.4)
+
+func _dlg_next() -> void:
+	dlg_index += 1
+	if dlg_index < dlg_lines.size():
+		dlg_text.text = String(dlg_lines[dlg_index])
+		dlg_btn.text = "Continuar  ▶" if dlg_index < dlg_lines.size() - 1 else "Fechar"
+		return
+	dlg_panel.visible = false
+	dlg_open = false
+	menu_toggled.emit(false)
+	if dlg_after.is_valid():
+		dlg_after.call()
+
+# --- páginas da introdução
+var _pages: Array = []
+var _page_i := 0
+var _pages_after: Callable
+
+func show_pages(lines: Array, after: Callable) -> void:
+	_pages = lines
+	_page_i = 0
+	_pages_after = after
+	pages_label.text = String(lines[0])
+	pages_layer.visible = true
+	menu_toggled.emit(true)
+
+func _pages_next() -> void:
+	_page_i += 1
+	if _page_i < _pages.size():
+		pages_label.text = String(_pages[_page_i])
+		return
+	pages_layer.visible = false
+	menu_toggled.emit(false)
+	if _pages_after.is_valid():
+		_pages_after.call()
+
+# --- créditos
+func show_credits() -> void:
+	if credits_layer != null:
+		credits_layer.queue_free()
+	credits_layer = ColorRect.new()
+	credits_layer.color = Color(0.0, 0.02, 0.06, 1.0)
+	credits_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(credits_layer)
+	menu_toggled.emit(true)
+	Sfx.play("catch")
+	var box := VBoxContainer.new()
+	box.custom_minimum_size = Vector2(900, 0)
+	box.add_theme_constant_override("separation", 22)
+	credits_layer.add_child(box)
+	var lines := [
+		["FISH IT", 56, GOLD],
+		["Você deixou o arquipélago caótico para trás", 24, Color.WHITE],
+		["e navegou, finalmente, de volta ao continente.", 24, Color.WHITE],
+		["", 20, Color.WHITE],
+		["Ilha 1 — o Farol: Caranguejo‑Aranha", 22, Color(0.8, 0.9, 1.0)],
+		["Ilha 2 — a Floresta: Piranha Gigante", 22, Color(0.8, 0.9, 1.0)],
+		["Ilha 3 — Tropical: Baiacu Gigante", 22, Color(0.8, 0.9, 1.0)],
+		["Ilha 4 — os Penhascos: Albatroz Gigante", 22, Color(0.8, 0.9, 1.0)],
+		["Ilha 5 — o Vulcão: Baleia‑da‑Groenlândia e Baleia Mutante de Magma", 22, Color(0.8, 0.9, 1.0)],
+		["", 20, Color.WHITE],
+		["Peixes capturados: %d" % GameState.total_caught, 24, Color(0.6, 1.0, 0.7)],
+		["Dinheiro: $%d" % GameState.coins, 24, Color(0.6, 1.0, 0.7)],
+		["", 20, Color.WHITE],
+		["Obrigado por jogar!", 34, GOLD],
+		["Você pode continuar no mesmo save para completar o registro de peixes.", 20, Color(0.85, 0.85, 0.85)],
+	]
+	for l in lines:
+		var lab := _label(String(l[0]), int(l[1]), l[2], 0)
+		lab.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lab.custom_minimum_size = Vector2(900, 0)
+		box.add_child(lab)
+	var btn := Button.new()
+	btn.text = "Continuar jogando"
+	btn.custom_minimum_size = Vector2(0, 56)
+	btn.pressed.connect(_end_credits)
+	box.add_child(btn)
+	var vp := root.size
+	box.position = Vector2((vp.x - 900.0) * 0.5, vp.y)
+	var tw := box.create_tween()
+	tw.tween_property(box, "position:y", vp.y * 0.12, 9.0).set_trans(Tween.TRANS_SINE)
+
+func _end_credits() -> void:
+	if credits_layer:
+		credits_layer.queue_free()
+		credits_layer = null
+	Story.finish_game()
+	var p := _player_node()
+	if p:
+		if p.vehicle != null:
+			p.vehicle.leave(true)
+		p.global_position = Story.zones.get("spawn1", Vector3(0, 3, 0))
+	menu_toggled.emit(false)
+
+# --- radar / guia
+func _draw_radar() -> void:
+	var player := _player_node()
+	var cam := get_viewport().get_camera_3d()
+	var target := Story.objective_pos()
+	var c := Vector2(60, 58)
+	radar.draw_circle(c, 46.0, Color(0, 0, 0, 0.45))
+	radar.draw_arc(c, 46.0, 0.0, TAU, 40, Color(1, 1, 1, 0.5), 2.0)
+	var font := ThemeDB.fallback_font
+	radar.draw_string(font, Vector2(0, 124), "RADAR" if Story.has_radar() else "GUIA", HORIZONTAL_ALIGNMENT_CENTER, 120.0, 13, Color(0.7, 1.0, 0.8))
+	if player == null or cam == null or target == Vector3.INF:
+		radar.draw_string(font, Vector2(0, 62), "—", HORIZONTAL_ALIGNMENT_CENTER, 120.0, 20, Color(1, 1, 1, 0.6))
+		return
+	var d := target - player.global_position
+	d.y = 0.0
+	var b := cam.global_transform.basis
+	var fwd := Vector3(-b.z.x, 0, -b.z.z).normalized()
+	var right := Vector3(b.x.x, 0, b.x.z).normalized()
+	var rel := atan2(d.dot(right), d.dot(fwd))
+	var tip := c + Vector2(sin(rel), -cos(rel)) * 36.0
+	var left := c + Vector2(sin(rel - 2.5), -cos(rel - 2.5)) * 16.0
+	var rgt := c + Vector2(sin(rel + 2.5), -cos(rel + 2.5)) * 16.0
+	radar.draw_colored_polygon(PackedVector2Array([tip, left, c, rgt]), Color(1.0, 0.85, 0.25, 0.95))
+	radar.draw_string(font, Vector2(0, 112), "%d m" % int(d.length()), HORIZONTAL_ALIGNMENT_CENTER, 120.0, 14, Color.WHITE)

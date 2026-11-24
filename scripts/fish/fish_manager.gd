@@ -38,7 +38,14 @@ func _random_water_point(center: Vector3, rmin: float, rmax: float, min_depth: f
 			return p
 	return Vector3.INF
 
+func remove_hooks() -> void:
+	for f in fishes.duplicate():
+		if is_instance_valid(f) and f.species_id == "boss_hook":
+			remove_fish(f)
+
 func _pick_species_for(p: Vector3, luck: float = 0.0) -> String:
+	if Story.wants_seahorse(p) and _rng.randf() < 0.5:
+		return "cavalo_marinho"
 	var depth := Terrain.depth_at(p.x, p.z)
 	for i in 8:
 		var id := FishDB.pick_species(luck, _rng)
@@ -85,11 +92,11 @@ func remove_fish(f: Fish) -> void:
 func consume_fish(f: Fish) -> void:
 	remove_fish(f)
 
-func spawn_near_bait(pos: Vector3, luck: float) -> Fish:
+func spawn_near_bait(pos: Vector3, luck: float, species: String = "") -> Fish:
 	var p := _random_water_point(pos, 6.0, 11.0, 1.2)
 	if p == Vector3.INF:
 		return null
-	var id := _pick_species_for(p, luck)
+	var id := species if species != "" else _pick_species_for(p, luck)
 	var f := _spawn_one(id, p)
 	if f != null:
 		f.leader = null

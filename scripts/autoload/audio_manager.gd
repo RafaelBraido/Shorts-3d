@@ -217,6 +217,14 @@ func _build_sounds() -> void:
 		a[i] = (sin(TAU * f * t) + 0.4 * sin(TAU * f * 2.0 * t)) * env * (0.7 + 0.3 * sin(TAU * 28.0 * t)) * 0.3
 	sounds["gull"] = _make(a)
 
+	# Motor de barco (laço de 1 s com ciclos inteiros: 55 Hz + harmônicos + ruído)
+	a = _buf(1.0)
+	for i in a.size():
+		var t := float(i) / RATE
+		var saw := fposmod(t * 55.0, 1.0) * 2.0 - 1.0
+		a[i] = saw * 0.35 + sin(TAU * 110.0 * t) * 0.25 + sin(TAU * 27.0 * t) * 0.25 + _noise() * 0.06
+	sounds["motor"] = _make(a, true)
+
 	# Ondas do oceano (laço contínuo): ruído filtrado modulado, com emenda suave.
 	sounds["ocean"] = _make(_loop_noise(6.0, 0.045, 0.5, 0.35), true)
 	# Vento (laço contínuo).

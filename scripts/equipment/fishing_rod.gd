@@ -39,6 +39,8 @@ var _reel_tick := 0.0
 var _start_xz := Vector2.ZERO
 var _fight := 0.5
 var _result_t := 0.0
+var _lure := ""           ## id do chefe-isca em andamento ("" = pesca normal)
+var luck_bonus := 0.0
 
 func setup(p: Node3D, c: Camera3D, h: Node, m: FishManager) -> void:
 	player = p
@@ -114,6 +116,9 @@ func _clear_bobber() -> void:
 	if manager:
 		manager.bait = null
 		manager.bait_fish = null
+		manager.remove_hooks()
+	_lure = ""
+	luck_bonus = 0.0
 	if bobber != null and is_instance_valid(bobber):
 		bobber.queue_free()
 	bobber = null
@@ -153,9 +158,10 @@ func _process(delta: float) -> void:
 			pass
 		S.WAITING:
 			_wait_t += delta
-			if not _fallback_done and _wait_t > 14.0 and manager.bait_fish == null:
+			if not _fallback_done and _wait_t > 14.0 and manager.bait_fish == null and _lure == "":
 				_fallback_done = true
-				manager.spawn_near_bait(bobber.global_position, float(GameState.rod().get("luck", 0.0)))
+				var forced := "atum" if (Story.chapter == 4 and Story.step == 1 and luck_bonus > 0.0 and randf() < 0.7) else ""
+				manager.spawn_near_bait(bobber.global_position, float(GameState.rod().get("luck", 0.0)) + luck_bonus, forced)
 			if pressed or Input.is_action_just_pressed("cancel"):
 				reel_in()
 		S.BITE:
@@ -203,7 +209,19 @@ func _on_landed(in_water: bool) -> void:
 		_fallback_done = false
 		manager.bait = bobber
 		manager.bait_interest = 14.0 + float(GameState.rod().get("luck", 0.0)) * 10.0
-		hud.toast("Aguardando um peixe morder...", Color(0.8, 0.95, 1.0))
+		_lure = Story.lure_cast(bobber.global_position)
+		if _lure != "":
+			manager.bait_interest = 40.0
+			manager.spawn_near_bait(bobber.global_position, 0.0, "boss_hook")
+			hud.toast("A isca cheira a problema... algo GRANDE se aproxima!", Color(1.0, 0.7, 0.4))
+		else:
+			if Story.count("pro_bait") > 0:
+				Story.take_item("pro_bait")
+				luck_bonus = 1.0
+				manager.bait_interest += 10.0
+				hud.toast("Isca profissional usada: mais sorte neste lance!", Color(0.7, 1.0, 0.8))
+			else:
+				hud.toast("Aguardando um peixe morder...", Color(0.8, 0.95, 1.0))
 	else:
 		hud.toast("Precisa cair na água fundo!", Color(1.0, 0.7, 0.4))
 		reel_in()
@@ -300,7 +318,10 @@ func _fail(msg: String) -> void:
 	Sfx.play("fail")
 	hud.toast(msg, Color(1.0, 0.45, 0.4))
 	if fish != null and is_instance_valid(fish):
-		fish.release()
+		if fish.species_id == "boss_hook":
+			manager.consume_fish(fish)
+		else:
+			fish.release()
 	fish = null
 	_clear_bobber()
 	state = S.RESULT
@@ -309,12 +330,24 @@ func _fail(msg: String) -> void:
 func _catch() -> void:
 	hud.show_reel(false, 0, 0, false)
 	var f := fish
+	if f.species_id == "boss_hook":
+		var water_pos := bobber.global_position
+		var lure := _lure
+		Sfx.play("catch")
+		manager.consume_fish(f)
+		fish = null
+		_clear_bobber()
+		state = S.RESULT
+		_result_t = 1.5
+		Story.on_lure_success(lure, water_pos)
+		return
 	var id := f.species_id
 	var w := f.weight
 	var prev: Dictionary = GameState.codex.get(id, {"count": 0, "best": 0.0})
 	var is_new: bool = int(prev["count"]) == 0
 	var is_record: bool = w > float(prev["best"]) and not is_new
 	var entry := GameState.add_fish(id, w, false)
+	Story.on_fish_caught(id, f.global_position)
 	Sfx.play("catch")
 	Net.send_announce("pescou %s de %.1f kg!" % [FishDB.data(id)["name"], w])
 	hud.show_catch(id, w, int(entry["value"]), is_new, is_record)

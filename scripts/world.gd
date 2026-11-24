@@ -14,6 +14,8 @@ var dock_end := Vector3.ZERO
 var shop_pos := Vector3.ZERO
 var dock_start := Vector3.ZERO
 var dock_dir := Vector2(0, 1)
+var volcano_dock_pos := Vector3.ZERO
+var volcano_dock_dir := Vector2(0.3, 1.0)
 var _keepouts: Array[Dictionary] = []   # {"p": Vector2, "r": float}
 
 func _ready() -> void:
@@ -23,6 +25,7 @@ func _ready() -> void:
 	_build_terrain()
 	_build_ocean()
 	_build_structures()
+	StoryWorld.build(self)
 	_build_vegetation()
 	_build_targets()
 
@@ -183,17 +186,18 @@ func _build_structures() -> void:
 		var ty := Terrain.height_at(tp.x, tp.y)
 		Props.cylinder(self, 0.05, 0.07, 1.6, Vector3(tp.x, ty + 0.8, tp.y), Color(0.35, 0.22, 0.12), 6)
 		Props.add_fire(self, Vector3(tp.x, ty + 1.65, tp.y), 0.35, false)
-	# farol na ilha 2
-	var li: Dictionary = Terrain.ISLANDS[1]
-	var lp: Vector2 = li["c"]
-	var lh := _flat_height(lp, 2.5)
-	Props.build_lighthouse(self, Vector3(lp.x, lh - 0.2, lp.y))
-	_keepouts.append({"p": lp, "r": 6.0})
-	# cabaninha na ilha 3
-	var cp: Vector2 = Terrain.ISLANDS[2]["c"] + Vector2(6, -4)
-	var ch := _flat_height(cp, 3.5) - 0.1
-	Props.build_shop(self, Vector3(cp.x, ch, cp.y), 0.8)
-	_keepouts.append({"p": cp, "r": 9.0})
+
+func spawn_motorboat() -> void:
+	if get_tree().get_nodes_in_group("boats_motor").is_empty():
+		var p := Vector2(dock_end.x, dock_end.z) + dock_dir * 5.0
+		var b := Boat.spawn(self, Vector3(p.x, 0, p.y), atan2(dock_dir.x, dock_dir.y), "motor")
+		b.add_to_group("boats_motor")
+
+func spawn_military_boat() -> void:
+	if get_tree().get_nodes_in_group("boats_military").is_empty() and volcano_dock_pos != Vector3.ZERO:
+		var p := Vector2(volcano_dock_pos.x, volcano_dock_pos.z) + volcano_dock_dir * 6.0
+		var b := Boat.spawn(self, Vector3(p.x, 0, p.y), atan2(volcano_dock_dir.x, volcano_dock_dir.y), "military")
+		b.add_to_group("boats_military")
 
 func _on_shop_interacted(_player: Node) -> void:
 	var hud := get_tree().get_first_node_in_group("hud")
@@ -223,19 +227,26 @@ func _build_vegetation() -> void:
 		var r: float = isl["r"]
 		var area_factor := (r / 68.0) * (r / 68.0)
 		# palmeiras (praia e borda do gramado)
+		var style: String = isl["style"]
 		var palms := int(46 * area_factor) + 6
+		if style == "cliffs":
+			palms = 0
+		elif style == "volcano":
+			palms = 16
 		var placed := 0
 		var tries := 0
 		while placed < palms and tries < palms * 30:
 			tries += 1
 			var p := c + Vector2.from_angle(rng.randf() * TAU) * rng.randf() * r * 0.8
 			var h := Terrain.height_at(p.x, p.y)
-			if h < 0.8 or h > 3.6 or _slope(p.x, p.y) > 0.45 or not _free_spot(p):
+			if h < 0.8 or h > (1.8 if style == "volcano" else 3.6) or _slope(p.x, p.y) > 0.45 or not _free_spot(p):
 				continue
 			Props.add_palm(self, palm_meshes[rng.randi() % palm_meshes.size()], Vector3(p.x, h, p.y), rng)
 			placed += 1
 		# pinheiros (interior mais alto)
 		var pines := int(34 * area_factor) + 3
+		if style in ["cliffs", "volcano", "tropical"]:
+			pines = 0
 		placed = 0
 		tries = 0
 		while placed < pines and tries < pines * 40:
@@ -247,7 +258,7 @@ func _build_vegetation() -> void:
 			Props.add_pine(self, Vector3(p.x, h, p.y), rng)
 			placed += 1
 		# arbustos e árvores com flores rosas
-		for i in int(30 * area_factor) + 4:
+		for i in (0 if style in ["volcano", "cliffs"] else int(30 * area_factor) + 4):
 			var p := c + Vector2.from_angle(rng.randf() * TAU) * rng.randf() * r * 0.7
 			var h := Terrain.height_at(p.x, p.y)
 			if h < 1.3 or not _free_spot(p) or _slope(p.x, p.y) > 0.5:
@@ -270,6 +281,8 @@ func _build_vegetation() -> void:
 			Props.add_rock(self, Vector3(p.x, h, p.y), rng.randf_range(0.4, 1.6), rng)
 		# grama em lâminas
 		var blades := int((3500 if GameState.is_mobile() else 9000) * area_factor) + 400
+		if style in ["volcano", "cliffs", "tropical"]:
+			blades = 0
 		for i in blades:
 			var p := c + Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * r * 0.75
 			var h := Terrain.height_at(p.x, p.y)

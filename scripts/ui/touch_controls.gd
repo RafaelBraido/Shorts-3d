@@ -58,6 +58,7 @@ func _ready() -> void:
 	_add("use", "USAR", "tap", "interact", 54.0)
 	_add("item1", "1 RIFLE", "tap", "weapon_toggle", 32.0)
 	_add("item2", "2 VARA", "tap", "fish_toggle", 32.0)
+	_add("item3", "3 BOMBA", "tap", "bomb_toggle", 32.0)
 	_add("bag", "MOCHILA", "tap", "__bag", 32.0)
 	get_viewport().size_changed.connect(_layout)
 	_layout()
@@ -86,11 +87,12 @@ func _layout() -> void:
 	btns["run"].pos = Vector2(s.x - 270, s.y - 250)
 	btns["reload"].pos = Vector2(s.x - 400, s.y - 190)
 	btns["crouch"].pos = Vector2(s.x - 410, s.y - 75)
-	btns["net"].pos = Vector2(s.x - 40, 48)
 	btns["use"].pos = Vector2(s.x - 250, s.y - 400)
-	btns["item1"].pos = Vector2(s.x - 290, 48)
-	btns["item2"].pos = Vector2(s.x - 205, 48)
-	btns["bag"].pos = Vector2(s.x - 120, 48)
+	btns["item1"].pos = Vector2(s.x - 340, 48)
+	btns["item2"].pos = Vector2(s.x - 270, 48)
+	btns["item3"].pos = Vector2(s.x - 200, 48)
+	btns["bag"].pos = Vector2(s.x - 130, 48)
+	btns["net"].pos = Vector2(s.x - 60, 48)
 
 func _on_menu_toggled(open: bool) -> void:
 	visible = not open
@@ -192,9 +194,11 @@ func _process(_delta: float) -> void:
 	if player == null:
 		player = get_tree().get_first_node_in_group("player")
 	var rifle: bool = player != null and player.item == "rifle"
-	btns["fire"].label = "ATIRAR" if rifle else "PESCAR"
-	btns["aim"].visible = rifle
-	btns["reload"].visible = rifle
+	var gun: bool = rifle and player.rifle.is_gun()
+	var it: String = player.item if player != null else "rifle"
+	btns["fire"].label = "PESCAR" if it == "rod" else ("JOGAR" if it == "bomb" else ("ATIRAR" if gun else "GOLPEAR"))
+	btns["aim"].visible = gun
+	btns["reload"].visible = gun
 	btns["use"].visible = hud != null and hud.prompt_label.text != ""
 	# joystick -> ações de movimento (com zona morta)
 	var v := stick_vec

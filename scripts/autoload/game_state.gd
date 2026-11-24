@@ -11,7 +11,6 @@ signal ammo_changed
 signal notify(message: String)
 
 const SAVE_PATH := "user://fishit_save.json"
-const MAG_SIZE := 8
 
 ## Varas disponíveis: estatísticas usadas pelo FishingRod.
 const RODS: Array[Dictionary] = [
@@ -20,8 +19,6 @@ const RODS: Array[Dictionary] = [
 	{"name": "Vara de Carbono", "price": 900, "level": 6, "cast_range": 36.0, "strength": 1.7, "reel": 1.55, "luck": 0.35, "color": Color(0.1, 0.1, 0.12)},
 	{"name": "Vara Dourada", "price": 3000, "level": 10, "cast_range": 46.0, "strength": 2.2, "reel": 1.9, "luck": 0.6, "color": Color(0.95, 0.7, 0.12)},
 ]
-const AMMO_PACK := 20
-const AMMO_PRICE := 40
 
 static var _mobile := -1
 
@@ -37,8 +34,11 @@ var xp := 0
 var level := 1
 var rod_tier := 0
 var owned_rods: Array[int] = [0]
-var ammo_mag := MAG_SIZE
-var ammo_reserve := 40
+var owned_weapons: Array[String] = ["knife"]
+var current_weapon := "knife"
+var ammo: Dictionary = {}               ## weapon_id -> {"mag": int, "reserve": int}
+var dynamite := 0
+var pending_story: Dictionary = {}      ## dados do save entregues ao autoload Story
 var inventory: Array[Dictionary] = []  ## {species, weight, value, dead}
 var codex: Dictionary = {}              ## species_id -> {count, best}
 var total_caught := 0
@@ -79,13 +79,18 @@ func add_fish(species_id: String, weight: float, dead: bool = false) -> Dictiona
 	total_caught += 1
 	inventory_changed.emit()
 	add_xp(FishDB.xp_for(species_id, weight))
+	if has_node("/root/Story"):
+		get_node("/root/Story").check_progress()
 	save_game()
 	return entry
+
+func _mult() -> float:
+	return 1.4 if get_node("/root/Story").flags.get("lighter", false) else 1.0
 
 func sell_fish(index: int) -> int:
 	if index < 0 or index >= inventory.size():
 		return 0
-	var value: int = inventory[index]["value"]
+	var value: int = int(inventory[index]["value"] * _mult())
 	inventory.remove_at(index)
 	add_coins(value)
 	inventory_changed.emit()
@@ -95,7 +100,7 @@ func sell_fish(index: int) -> int:
 func sell_all() -> int:
 	var total := 0
 	for e in inventory:
-		total += int(e["value"])
+		total += int(e["value"] * _mult())
 	inventory.clear()
 	if total > 0:
 		add_coins(total)
@@ -124,30 +129,74 @@ func equip_rod(tier: int) -> void:
 		rod_changed.emit()
 		save_game()
 
-func buy_ammo() -> bool:
-	if coins < AMMO_PRICE:
+func ammo_mag(id: String) -> int:
+	return int(ammo.get(id, {}).get("mag", 0))
+
+func ammo_reserve(id: String) -> int:
+	return int(ammo.get(id, {}).get("reserve", 0))
+
+func buy_weapon(id: String) -> bool:
+	if id in owned_weapons or not WeaponDB.W.has(id):
 		return false
-	coins -= AMMO_PRICE
-	ammo_reserve += AMMO_PACK
+	var w: Dictionary = WeaponDB.W[id]
+	if coins < int(w["price"]):
+		return false
+	coins -= int(w["price"])
+	owned_weapons.append(id)
+	ammo[id] = {"mag": int(w["mag"]), "reserve": int(w.get("start_reserve", 0))}
+	coins_changed.emit(coins)
+	ammo_changed.emit()
+	notify.emit("Comprou: %s" % w["name"])
+	save_game()
+	return true
+
+func buy_ammo(id: String) -> bool:
+	if not (id in owned_weapons) or not WeaponDB.W[id].has("ammo_price"):
+		return false
+	var w: Dictionary = WeaponDB.W[id]
+	if coins < int(w["ammo_price"]):
+		return false
+	coins -= int(w["ammo_price"])
+	ammo[id]["reserve"] = int(ammo[id]["reserve"]) + int(w["ammo_pack"])
 	coins_changed.emit(coins)
 	ammo_changed.emit()
 	save_game()
 	return true
 
-func reload_rifle() -> bool:
-	if ammo_mag >= MAG_SIZE or ammo_reserve <= 0:
+func buy_dynamite() -> bool:
+	if coins < WeaponDB.DYNAMITE_PRICE:
 		return false
-	var need := MAG_SIZE - ammo_mag
-	var take := mini(need, ammo_reserve)
-	ammo_mag += take
-	ammo_reserve -= take
+	coins -= WeaponDB.DYNAMITE_PRICE
+	dynamite += 1
+	coins_changed.emit(coins)
+	ammo_changed.emit()
+	save_game()
+	return true
+
+func use_dynamite() -> bool:
+	if dynamite <= 0:
+		return false
+	dynamite -= 1
 	ammo_changed.emit()
 	return true
 
-func consume_bullet() -> bool:
-	if ammo_mag <= 0:
+func reload_weapon(id: String) -> bool:
+	if not ammo.has(id):
 		return false
-	ammo_mag -= 1
+	var mag_size: int = int(WeaponDB.W[id]["mag"])
+	var a: Dictionary = ammo[id]
+	if int(a["mag"]) >= mag_size or int(a["reserve"]) <= 0:
+		return false
+	var take := mini(mag_size - int(a["mag"]), int(a["reserve"]))
+	a["mag"] = int(a["mag"]) + take
+	a["reserve"] = int(a["reserve"]) - take
+	ammo_changed.emit()
+	return true
+
+func consume_bullet(id: String) -> bool:
+	if int(ammo.get(id, {}).get("mag", 0)) <= 0:
+		return false
+	ammo[id]["mag"] = int(ammo[id]["mag"]) - 1
 	ammo_changed.emit()
 	return true
 
@@ -156,7 +205,8 @@ func save_game() -> void:
 		return
 	var data := {
 		"coins": coins, "xp": xp, "level": level, "rod_tier": rod_tier,
-		"owned_rods": owned_rods, "ammo_mag": ammo_mag, "ammo_reserve": ammo_reserve,
+		"owned_rods": owned_rods, "owned_weapons": owned_weapons, "ammo": ammo, "dynamite": dynamite,
+		"story": get_node("/root/Story").to_dict() if has_node("/root/Story") else pending_story,
 		"inventory": inventory, "codex": codex, "total_caught": total_caught,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -182,8 +232,15 @@ func load_game() -> void:
 		owned_rods.append(int(t))
 	if not (rod_tier in owned_rods):
 		owned_rods.append(rod_tier)
-	ammo_mag = clampi(int(d.get("ammo_mag", MAG_SIZE)), 0, MAG_SIZE)
-	ammo_reserve = int(d.get("ammo_reserve", ammo_reserve))
+	owned_weapons.clear()
+	for w in d.get("owned_weapons", ["knife"]):
+		if WeaponDB.W.has(String(w)):
+			owned_weapons.append(String(w))
+	if owned_weapons.is_empty():
+		owned_weapons.append("knife")
+	ammo = d.get("ammo", {})
+	dynamite = int(d.get("dynamite", 0))
+	pending_story = d.get("story", {})
 	inventory.clear()
 	for e in d.get("inventory", []):
 		if typeof(e) == TYPE_DICTIONARY and FishDB.SPECIES.has(String(e.get("species", ""))):

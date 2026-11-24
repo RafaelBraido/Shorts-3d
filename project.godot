@@ -13,6 +13,7 @@ config/features=PackedStringArray("4.3")
 GameState="*res://scripts/autoload/game_state.gd"
 Sfx="*res://scripts/autoload/audio_manager.gd"
 Net="*res://scripts/autoload/network.gd"
+Story="*res://scripts/autoload/story.gd"
 
 [display]
 
@@ -87,6 +88,10 @@ crouch={
 multiplayer={
 "deadzone": 0.2,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194333,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)]
+}
+bomb_toggle={
+"deadzone": 0.2,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":51,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)]
 }
 
 [input_devices]

@@ -275,7 +275,7 @@ static func add_fire(parent: Node, pos: Vector3, size: float = 1.0, with_logs: b
 
 ## Cria a cabana. A origem é o centro do terreno sob a cabana; "front" aponta para +Z local.
 ## Retorna {"root": Node3D, "counter": Node3D (ponto de interação)}.
-static func build_shop(parent: Node, pos: Vector3, yaw: float) -> Dictionary:
+static func build_shop(parent: Node, pos: Vector3, yaw: float, keeper: String = "Capitão Maré", sign_text: String = "LOJA DO PESCADOR") -> Dictionary:
 	var root := Node3D.new()
 	root.name = "ShopHut"
 	root.position = pos
@@ -343,12 +343,12 @@ static func build_shop(parent: Node, pos: Vector3, yaw: float) -> Dictionary:
 	bc.position = Vector3(2.7, fl + 0.45, 1.9)
 	body.add_child(bc)
 	# NPC lojista
-	var npc := _build_npc(root)
+	var npc := _build_npc(root, keeper)
 	npc.position = Vector3(0, fl, -2.05)
 	# placa
 	var sign_board := box(root, Vector3(3.4, 0.7, 0.12), Vector3(0, fl + H + 0.1, D / 2.0 + 0.15), Color(0.3, 0.18, 0.09))
 	var lbl := Label3D.new()
-	lbl.text = "LOJA DO PESCADOR"
+	lbl.text = sign_text
 	lbl.font_size = 56
 	lbl.pixel_size = 0.0045
 	lbl.modulate = Color(1.0, 0.9, 0.55)
@@ -366,13 +366,13 @@ static func build_shop(parent: Node, pos: Vector3, yaw: float) -> Dictionary:
 	# ponto de interação
 	var it := Node3D.new()
 	it.set_script(load("res://scripts/world/interactable.gd"))
-	it.set("prompt", "Falar com o Capitão Maré (Loja)")
+	it.set("prompt", "Falar com %s (Loja)" % keeper)
 	it.set("radius", 4.2)
 	root.add_child(it)
 	it.position = Vector3(0, fl + 1.0, 0.2)
 	return {"root": root, "interact": it, "floor_y": pos.y + fl}
 
-static func _build_npc(parent: Node) -> Node3D:
+static func _build_npc(parent: Node, keeper: String = "Capitão Maré") -> Node3D:
 	var n := Node3D.new()
 	n.name = "ShopKeeper"
 	parent.add_child(n)
@@ -387,7 +387,7 @@ static func _build_npc(parent: Node) -> Node3D:
 	sphere(n, 0.035, Vector3(-0.08, 1.67, 0.17), Color(0.05, 0.05, 0.05))
 	sphere(n, 0.035, Vector3(0.08, 1.67, 0.17), Color(0.05, 0.05, 0.05))
 	var l := Label3D.new()
-	l.text = "Capitão Maré"
+	l.text = keeper
 	l.font_size = 40
 	l.pixel_size = 0.004
 	l.outline_size = 8

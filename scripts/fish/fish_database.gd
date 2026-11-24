@@ -41,13 +41,29 @@ const SPECIES := {
 	"tubarao": {"accent": Color(0.15, 0.2, 0.24), "name": "Tubarão-tigre", "rarity": 4, "kg": [120.0, 400.0], "price": 12, "xp": 300, "length": 3.0,
 		"body_h": 0.13, "body_w": 0.12, "color": Color(0.38, 0.45, 0.5), "belly": Color(0.92, 0.94, 0.94), "fin": Color(0.3, 0.36, 0.4),
 		"tail": 0.3, "dorsal": 0.2, "pattern": "stripe", "speed": 3.0, "skittish": 0.0, "school": 1, "fight": 1.0, "depth": 3.0},
+	"cavalo_marinho": {"name": "Cavalo-marinho", "rarity": 2, "kg": [0.02, 0.1], "price": 400, "xp": 80, "length": 0.15, "quest": true,
+		"body_h": 0.2, "body_w": 0.07, "color": Color(0.95, 0.72, 0.15), "belly": Color(1.0, 0.9, 0.5), "fin": Color(1.0, 0.6, 0.1),
+		"tail": 0.05, "dorsal": 0.12, "pattern": "spots", "accent": Color(0.7, 0.35, 0.05), "speed": 0.8, "skittish": 0.1, "school": 1, "fight": 0.2, "depth": 1.5},
+	"tubarao_azul": {"name": "Tubarão-azul", "rarity": 3, "kg": [60.0, 200.0], "price": 10, "xp": 200, "length": 2.6,
+		"body_h": 0.12, "body_w": 0.1, "color": Color(0.12, 0.3, 0.75), "belly": Color(0.92, 0.95, 0.98), "fin": Color(0.1, 0.22, 0.55),
+		"tail": 0.3, "dorsal": 0.2, "pattern": "none", "speed": 3.4, "skittish": 0.0, "school": 1, "fight": 0.95, "depth": 3.0},
+	"piranha_giant": {"name": "Piranha Gigante", "rarity": 4, "kg": [500.0, 500.0], "price": 0, "xp": 0, "length": 1.0, "hidden": true,
+		"body_h": 0.24, "body_w": 0.1, "color": Color(0.22, 0.28, 0.3), "belly": Color(0.95, 0.4, 0.1), "fin": Color(0.8, 0.15, 0.08),
+		"tail": 0.3, "dorsal": 0.14, "pattern": "spots", "accent": Color(0.05, 0.05, 0.08), "speed": 5.0, "skittish": 0.0, "school": 1, "fight": 1.0, "depth": 1.0},
+	"boss_hook": {"name": "Presa misteriosa", "rarity": 0, "kg": [1.0, 1.0], "price": 0, "xp": 0, "length": 0.6, "hidden": true,
+		"body_h": 0.14, "body_w": 0.08, "color": Color(0.6, 0.1, 0.1), "belly": Color(0.9, 0.7, 0.5), "fin": Color(0.5, 0.1, 0.1),
+		"tail": 0.2, "dorsal": 0.12, "pattern": "none", "speed": 2.5, "skittish": 0.0, "school": 1, "fight": 0.75, "depth": 1.0},
 	"koi_dourado": {"accent": Color(1.0, 0.97, 0.9), "name": "Carpa Dourada Lendária", "rarity": 4, "kg": [6.0, 20.0], "price": 90, "xp": 350, "length": 0.8,
 		"body_h": 0.17, "body_w": 0.11, "color": Color(1.0, 0.78, 0.1), "belly": Color(1.0, 0.92, 0.5), "fin": Color(1.0, 0.65, 0.05),
 		"tail": 0.4, "dorsal": 0.22, "pattern": "spots", "speed": 1.6, "skittish": 0.2, "school": 1, "fight": 0.9, "depth": 1.5},
 }
 
 static func ids() -> Array:
-	return SPECIES.keys()
+	var out: Array = []
+	for k in SPECIES:
+		if not SPECIES[k].get("hidden", false):
+			out.append(k)
+	return out
 
 static func data(id: String) -> Dictionary:
 	return SPECIES[id]
@@ -84,6 +100,8 @@ static func pick_species(luck: float = 0.0, rng: RandomNumberGenerator = null) -
 	var total := 0.0
 	var weights := {}
 	for id in SPECIES:
+		if SPECIES[id].get("hidden", false) or SPECIES[id].get("quest", false):
+			continue
 		var r: int = SPECIES[id]["rarity"]
 		var w: float = RARITY_WEIGHT[r] * (1.0 + luck * float(r) * 1.2)
 		weights[id] = w

@@ -12,12 +12,34 @@ const CELLS := 240             ## HALF*2/STEP
 const VERTS := CELLS + 1
 
 const ISLANDS: Array[Dictionary] = [
-	{"c": Vector2(0, 0), "r": 68.0, "peak": 4.8},
-	{"c": Vector2(116, -44), "r": 36.0, "peak": 3.6},
-	{"c": Vector2(-104, 66), "r": 36.0, "peak": 3.2},
-	{"c": Vector2(30, 120), "r": 26.0, "peak": 2.6},
-	{"c": Vector2(-72, -110), "r": 30.0, "peak": 3.0},
+	{"c": Vector2(0, 0), "r": 68.0, "peak": 4.8, "style": "main", "name": "Ilha do Farol"},
+	{"c": Vector2(116, -44), "r": 36.0, "peak": 3.6, "style": "forest", "name": "Ilha da Floresta"},
+	{"c": Vector2(-104, 66), "r": 36.0, "peak": 2.6, "style": "tropical", "name": "Ilha Tropical"},
+	{"c": Vector2(30, 120), "r": 26.0, "peak": 6.5, "style": "cliffs", "name": "Ilha dos Penhascos"},
+	{"c": Vector2(-72, -110), "r": 46.0, "peak": 3.4, "style": "volcano", "name": "Ilha do Vulcão"},
 ]
+
+## Lago da ilha da floresta e vulcão da ilha 5 (usados pela geração e pela história).
+const LAKE_CENTER := Vector2(112, -40)
+const LAKE_R := 13.0
+const VOLCANO_R := 19.0       ## raio do cone
+const VOLCANO_TOP := 15.0
+const CRATER_FLOOR := 10.5
+const CRATER_R := 4.5
+
+static func island_center(i: int) -> Vector2:
+	return ISLANDS[i]["c"]
+
+## Índice da ilha mais próxima (relativo ao raio) em (x, z); -1 se longe de todas.
+static func island_index_at(x: float, z: float) -> int:
+	var best := -1
+	var best_d := 1.15
+	for i in ISLANDS.size():
+		var d := Vector2(x, z).distance_to(ISLANDS[i]["c"]) / float(ISLANDS[i]["r"])
+		if d < best_d:
+			best_d = d
+			best = i
+	return best
 
 static var _noise: FastNoiseLite
 static var _detail: FastNoiseLite
@@ -53,10 +75,33 @@ static func raw_height(x: float, z: float) -> float:
 		else:
 			var u := clampf((raw - 0.35) / 0.42, 0.0, 1.0)
 			hh = peak * (0.3 * u + 0.7 * smoothstep(0.0, 1.0, u))
+			if isl["style"] == "cliffs":
+				# penhasco: paredão até um platô plano, com uma rampa voltada para a ilha principal
+				var dv := Vector2(x, z) - Vector2(isl["c"])
+				var ramp_ang := atan2(-float(isl["c"].y), -float(isl["c"].x))
+				var da := absf(angle_difference(atan2(dv.y, dv.x), ramp_ang))
+				var rw := smoothstep(0.34, 0.16, da)
+				var wall_h := peak * smoothstep(0.35, 0.5, raw)
+				var ramp_h := peak * smoothstep(0.30, 0.64, raw)
+				hh = lerpf(wall_h, ramp_h, rw)
+				h = maxf(h, hh + _detail.get_noise_2d(x * 0.2, z * 0.2) * 0.15 * smoothstep(0.0, 0.6, u))
+				continue
 			var bump := _detail.get_noise_2d(x * 0.07, z * 0.07) * 0.7 + _noise.get_noise_2d(x * 0.025, z * 0.025) * 1.1
 			hh += bump * smoothstep(0.0, 0.6, u)
 			hh += peak * 0.35 * smoothstep(0.62, 1.0, raw)
 		h = maxf(h, hh)
+	# lago na ilha da floresta
+	var ld := Vector2(x, z).distance_to(LAKE_CENTER)
+	if ld < LAKE_R and h > -3.0:
+		h = lerpf(h, -3.2, smoothstep(LAKE_R, LAKE_R * 0.55, ld))
+	# vulcão (ilha 5): cone com cratera
+	var vd := Vector2(x, z).distance_to(ISLANDS[4]["c"])
+	if vd < VOLCANO_R:
+		var cone := VOLCANO_TOP * pow(1.0 - vd / VOLCANO_R, 1.15) + 3.0
+		if vd < CRATER_R * 2.0:
+			var t2 := vd / (CRATER_R * 2.0)
+			cone = minf(cone, CRATER_FLOOR + t2 * t2 * (VOLCANO_TOP - CRATER_FLOOR + 2.0))
+		h = maxf(h, cone + _detail.get_noise_2d(x * 0.15, z * 0.15) * 0.4)
 	return h
 
 static func _ensure_heights() -> void:
@@ -90,6 +135,20 @@ static func is_inside_map(p: Vector3, margin: float = 6.0) -> bool:
 
 static func _color_for(h: float, slope: float, x: float, z: float) -> Color:
 	var n := _detail.get_noise_2d(x * 0.35, z * 0.35) * 0.5
+	var idx := island_index_at(x, z)
+	var style: String = ISLANDS[idx]["style"] if idx >= 0 else "main"
+	if h > 0.4 and style == "volcano":
+		var vd := Vector2(x, z).distance_to(ISLANDS[4]["c"])
+		var rock := Color(0.2, 0.18, 0.18).lerp(Color(0.32, 0.27, 0.25), clampf(0.5 + n, 0.0, 1.0))
+		if vd < CRATER_R * 1.6:
+			rock = rock.lerp(Color(0.9, 0.25, 0.05), smoothstep(CRATER_R * 1.6, CRATER_R * 0.9, vd))
+		if vd > VOLCANO_R * 0.95 and h < 2.5:
+			rock = Color(0.55, 0.5, 0.35)
+		return rock
+	if h > 1.0 and style == "cliffs":
+		return Color(0.5, 0.47, 0.42).lerp(Color(0.38, 0.4, 0.3), clampf(0.5 + n, 0.0, 1.0) * (0.0 if slope > 0.3 else 1.0))
+	if h > 0.9 and style == "tropical":
+		return Color(0.86, 0.72, 0.42).lerp(Color(0.74, 0.6, 0.34), clampf(0.5 + n, 0.0, 1.0)) if h < 2.0 else Color(0.35, 0.5, 0.2)
 	var sand_wet := Color(0.5, 0.42, 0.28)
 	var sand := Color(0.78, 0.66, 0.4)
 	var grass := Color(0.3, 0.46, 0.2)

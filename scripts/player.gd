@@ -34,6 +34,11 @@ var _swimming := false
 var _prompt_target: Node = null
 var touch_mode := false
 var crouching := false
+var hp := 100.0
+var max_hp := 100.0
+var vehicle: Node = null           ## barco que o jogador está pilotando
+var dead := false
+var _since_hit := 99.0
 var _capsule: CapsuleShape3D
 var _col: CollisionShape3D
 
@@ -47,6 +52,7 @@ func _ready() -> void:
 	collision_layer = 2
 	collision_mask = 1
 	floor_snap_length = 0.4
+	floor_max_angle = deg_to_rad(52.0)
 	spawn_point = global_position
 	var col := CollisionShape3D.new()
 	var cap := CapsuleShape3D.new()
@@ -121,7 +127,24 @@ func _unhandled_input(e: InputEvent) -> void:
 
 func _physics_process(d: float) -> void:
 	_block_t = maxf(_block_t - d, 0.0)
+	if dead:
+		return
+	_since_hit += d
+	if hp < max_hp and _since_hit > 6.0:
+		hp = minf(hp + 6.0 * d, max_hp)
+		if hud:
+			hud.set_health(hp, max_hp)
 	var in_menu := _menu_open
+	if vehicle != null:
+		velocity = Vector3.ZERO
+		global_position = vehicle.seat_pos()
+		crouching = false
+		_update_camera(d, false, false)
+		Net.tick(d, self, rotation.y, pitch, item, false)
+		if not in_menu:
+			_hotbar()
+			_interaction()
+		return
 	var feet := global_position.y
 	_swimming = feet < -1.0
 	var wading := feet < -0.25 and not _swimming
@@ -132,6 +155,9 @@ func _physics_process(d: float) -> void:
 	var speed := RUN if running else WALK
 	if crouching:
 		speed = CROUCH_SPEED
+	if Story.carrying != "":
+		speed *= 0.55
+		running = false
 	if wading:
 		speed *= 0.65
 	if _swimming:
@@ -143,7 +169,7 @@ func _physics_process(d: float) -> void:
 	else:
 		if not is_on_floor():
 			velocity.y -= gravity * d
-		elif Input.is_action_just_pressed("jump") and not in_menu and not crouching:
+		elif Input.is_action_just_pressed("jump") and not in_menu and not crouching and Story.carrying == "":
 			velocity.y = JUMP_SPEED
 	var accel := clampf(12.0 * d, 0.0, 1.0)
 	velocity.x = lerpf(velocity.x, dir.x * speed, accel)
@@ -211,16 +237,80 @@ func _update_camera(d: float, moving: bool, running: bool) -> void:
 
 func _hotbar() -> void:
 	if Input.is_action_just_pressed("weapon_toggle"):
-		_equip("rifle")
+		if item == "rifle":
+			_cycle_weapon()
+		else:
+			_equip("rifle")
 	if Input.is_action_just_pressed("fish_toggle"):
 		_equip("rod")
+	if Input.is_action_just_pressed("bomb_toggle"):
+		if GameState.dynamite > 0:
+			_equip("bomb")
+		elif hud:
+			hud.toast("Você não tem dinamite. Compre na loja.", Color(1.0, 0.7, 0.4))
+
+func _cycle_weapon() -> void:
+	var owned: Array = []
+	for w in WeaponDB.ORDER:
+		if w in GameState.owned_weapons:
+			owned.append(w)
+	if owned.size() <= 1:
+		return
+	var i := owned.find(rifle.weapon_id)
+	rifle.set_weapon(owned[(i + 1) % owned.size()])
+	Sfx.play("reload", -14.0, 1.4)
 
 func _equip(which: String) -> void:
 	item = which
-	rifle.equip(which == "rifle")
+	if which == "bomb":
+		rifle.set_weapon("dynamite")
+	elif which == "rifle" and rifle.weapon_id == "dynamite":
+		rifle.set_weapon(GameState.current_weapon)
+	rifle.equip(which == "rifle" or which == "bomb")
 	rod.equip(which == "rod")
 	if hud:
-		hud.set_equipped(1 if which == "rifle" else 2)
+		hud.set_equipped(1 if which == "rifle" else (2 if which == "rod" else 3))
+
+## Carregar a carcaça impede de usar armas.
+func vehicle_blocks_fire() -> bool:
+	return Story.carrying != ""
+
+func take_damage(amount: float, from: Vector3 = Vector3.ZERO) -> void:
+	if dead:
+		return
+	hp -= amount
+	_since_hit = 0.0
+	add_shake(0.04)
+	Sfx.play("impact", 2.0, 0.6)
+	if hud:
+		hud.set_health(maxf(hp, 0.0), max_hp)
+		hud.flash_damage()
+	if hp <= 0.0:
+		_die()
+
+func _die() -> void:
+	dead = true
+	Sfx.play("fail")
+	if vehicle != null:
+		vehicle.leave(true)
+	if rod.state != FishingRod.S.IDLE:
+		rod.cancel()
+	var lost := int(GameState.coins * 0.1)
+	GameState.coins -= lost
+	GameState.coins_changed.emit(GameState.coins)
+	Story.carrying = ""
+	Story.take_item("whale_carcass", Story.count("whale_carcass"))
+	if hud:
+		hud.show_death(lost)
+	await get_tree().create_timer(2.5).timeout
+	global_position = Story.respawn_pos()
+	velocity = Vector3.ZERO
+	hp = max_hp
+	_since_hit = 99.0
+	dead = false
+	if hud:
+		hud.set_health(hp, max_hp)
+		hud.hide_death()
 
 func _interaction() -> void:
 	var best: Node = null
