@@ -117,7 +117,7 @@ function renderToday() {
     <div class="today">
       <section class="hero" id="hero" aria-label="Como foi o dia">
         <p class="hero-q">Como foi o seu dia?</p>
-        <div class="pebble idle" id="pebble" aria-hidden="true">${face(d.mood, 150)}</div>
+        <div class="pebble idle" id="pebble" aria-hidden="true"><div class="spin" id="spin"><div class="front" id="front">${face(d.mood, 150)}</div><div class="back"></div></div></div>
         <p class="hero-word" id="moodword" aria-live="polite">${d.touched ? MOOD_WORDS[d.mood] : ''}</p>
         <p class="hero-hint" id="moodhint">Deslize a linha para escolher como foi o dia</p>
         <div class="slider">
@@ -173,24 +173,15 @@ function renderToday() {
   const hero = $('#hero'), pebble = $('#pebble');
   const range = $('#mood');
   /* a bolinha anda para a esquerda/direita junto com a linha, rolando (nota 3 = centro) */
-  // Parada, a bolinha fica no meio. Enquanto você mexe na linha ela dá um balanço rápido
-  // para o lado em que você vai (rolando) e volta ao centro assim que você para.
+  // Ao mexer na linha a bolinha gira 360 graus no próprio eixo (aparecem as costas e ela volta à frente).
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let swingTimer = 0;
-  const placeBall = (dir = 0) => {
-    clearTimeout(swingTimer);
-    const pad = parseFloat(getComputedStyle(hero).paddingLeft) || 0;
-    const free = Math.max(0, (hero.clientWidth - 2 * pad - pebble.offsetWidth) / 2);
-    const set = (x) => {
-      pebble.style.translate = `${x}px 0`;
-      pebble.style.rotate = `${((x / (pebble.offsetWidth / 2)) * 180) / Math.PI}deg`;
-    };
-    if (!dir || calm) return set(0);
-    set(dir * free * 0.85);
-    swingTimer = setTimeout(() => set(0), 140);
+  let spinning = false;
+  const spin = () => {
+    if (calm || spinning) return;
+    spinning = true;
+    $('#spin').animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(360deg)' }], { duration: 560, easing: 'cubic-bezier(0.45, 0, 0.2, 1)' })
+      .onfinish = () => { spinning = false; };
   };
-  const onResize = () => { if (!pebble.isConnected) return removeEventListener('resize', onResize); placeBall(); };
-  addEventListener('resize', onResize);
   const updateMood = (dir = 0) => {
     const m = d.mood;
     hero.style.setProperty('--tint', moodColor(m));
@@ -199,8 +190,8 @@ function renderToday() {
     $('#moodword').textContent = d.touched ? MOOD_WORDS[m] : '';
     $('#moodhint').textContent = d.touched ? '' : 'Deslize a linha para escolher como foi o dia';
     tideMood = d.touched ? m : 3; tide?.setMood(tideMood);
-    pebble.innerHTML = face(m, 150);
-    placeBall(dir);
+    $('#front').innerHTML = face(m, 150);
+    if (dir) spin();
     range.setAttribute('aria-valuetext', `${m}, ${MOOD_WORDS[m]}`);
   };
   range.addEventListener('input', () => { const prev = d.mood; d.mood = +range.value; d.touched = true; updateMood(Math.sign(d.mood - prev)); refreshSave(true); });
@@ -512,59 +503,38 @@ function bindPeek(root) {
   }));
 }
 
-/** Mostra a tela de criar/digitar a senha. Só resolve quando o diário estiver aberto. */
+/** Tela de senha: só o campo. Na primeira vez a senha digitada vira a senha do diário. */
 function showLock() {
   return new Promise((resolve) => {
     const creating = store.status() === 'nopass';
     document.body.classList.add('locked');
     tide?.setMood(3);
     document.title = 'Maré';
-    view.innerHTML = `
-      <section class="lock" aria-labelledby="lt">
-        <div class="lock-icon">${icon(creating ? 'key-round' : 'lock', 30)}</div>
-        <h1 id="lt">${creating ? 'Crie uma senha' : 'Diário trancado'}</h1>
-        <p>${creating ? 'Só você vai saber. Ela tranca e embaralha tudo o que você escrever neste aparelho. Se esquecer, não dá para recuperar, então escolha uma que você lembre.' : 'Digite a sua senha para abrir.'}</p>
-        <form id="lockform">
-          ${pwField('pw', creating ? 'Nova senha' : 'Senha', creating ? 'new-password' : 'current-password')}
-          ${creating ? pwField('pw2', 'Repita a senha', 'new-password') : ''}
-          <p class="err" id="lockerr" role="alert"></p>
-          <button class="btn main" id="lockgo" type="submit">${creating ? 'Criar senha e entrar' : 'Abrir'}</button>
-        </form>
-        ${creating ? `<p class="small">Mínimo de ${MIN_PW} caracteres.</p>` : '<button class="btn quiet small" id="forgot" type="button">Esqueci a senha</button>'}
-      </section>`;
-    bindPeek(view);
-    $('#pw').focus();
-    const err = (m) => { $('#lockerr').textContent = m; };
-    const form = $('#lockform'), go = $('#lockgo');
-    const finish = () => { document.body.classList.remove('locked'); resolve(); };
-
+    view.innerHTML = `<form class="lock" id="lockform" autocomplete="off"><label class="sr" for="pw">Senha</label><input id="pw" type="password" autocomplete="${creating ? 'new-password' : 'current-password'}" placeholder="Senha" enterkeyhint="go" autocapitalize="off" spellcheck="false"></form>`;
+    const inp = $('#pw'), form = $('#lockform');
+    inp.focus();
+    const bad = (hint) => {
+      inp.value = ''; inp.disabled = false; inp.classList.remove('bad'); void inp.offsetWidth; inp.classList.add('bad');
+      if (hint) { inp.placeholder = hint; setTimeout(() => { inp.placeholder = 'Senha'; }, 2200); }
+      inp.focus();
+    };
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      err('');
-      const pw = $('#pw').value;
+      const pw = inp.value;
+      if (!pw) return;
       if (creating) {
-        if (pw.length < MIN_PW) return err(`Use pelo menos ${MIN_PW} caracteres.`);
-        if (pw !== $('#pw2').value) return err('As duas senhas não são iguais.');
-        go.disabled = true; go.textContent = 'Trancando…';
-        try { await store.create(pw); finish(); }
-        catch { err('O navegador não deixou guardar os dados. Saia do modo privado e tente de novo.'); go.disabled = false; go.textContent = 'Criar senha e entrar'; }
+        if (pw.length < MIN_PW) return bad(`mínimo ${MIN_PW} caracteres`);
+        inp.disabled = true;
+        try { await store.create(pw); document.body.classList.remove('locked'); resolve(); }
+        catch { bad('o navegador não deixou guardar'); }
         return;
       }
-      const wait = cooldownUntil - Date.now();
-      if (wait > 0) return err(`Muitas tentativas. Espere ${Math.ceil(wait / 1000)} segundos.`);
-      go.disabled = true; go.textContent = 'Abrindo…';
-      const ok = await store.unlock(pw);
-      if (ok) { fails = 0; finish(); return; }
+      if (cooldownUntil - Date.now() > 0) return bad('espere um pouco');
+      inp.disabled = true;
+      if (await store.unlock(pw)) { fails = 0; document.body.classList.remove('locked'); resolve(); return; }
       fails++;
       if (fails >= 3) cooldownUntil = Date.now() + Math.min(60, (fails - 2) * 5) * 1000;
-      err('Senha errada. Tente de novo.');
-      $('#pw').select(); go.disabled = false; go.textContent = 'Abrir';
-    });
-
-    $('#forgot')?.addEventListener('click', async () => {
-      if (await confirmDialog({ title: 'Esqueceu a senha?', text: 'Sem a senha não dá para abrir o diário: ele está embaralhado. A única saída é apagar tudo e começar de novo. Se você tiver um backup baixado (JSON), poderá importá-lo depois.', confirmLabel: 'Apagar tudo', danger: true, typeWord: 'apagar' })) {
-        store.clearAll(); fails = 0; resolve(showLock());
-      }
+      bad();
     });
   });
 }

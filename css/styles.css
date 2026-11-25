@@ -121,8 +121,8 @@ main { flex: 1; width: 100%; max-width: 1120px; margin-inline: auto; padding: 8p
 .hero-q { font: italic 400 1.2rem/1.3 var(--serif); color: var(--ink-2); }
 .pebble {
   position: relative; margin: 22px auto 14px; width: min(50vw, 220px); aspect-ratio: 1; border-radius: 50%;
-  display: grid; place-items: center; background: var(--tint); color: oklch(0.2 0.03 255);
-  transition: --tint 300ms var(--ease), color 200ms var(--ease), translate 170ms var(--ease), rotate 170ms var(--ease);
+  display: grid; place-items: center; color: oklch(0.2 0.03 255); perspective: 700px;
+  transition: --tint 300ms var(--ease), color 200ms var(--ease);
 }
 .pebble.light-text { color: oklch(0.99 0.004 235); }
 .pebble.idle { opacity: 0.55; }
@@ -331,3 +331,19 @@ dialog .btnrow { justify-content: flex-end; }
 .err { color: var(--danger); font-size: 0.9375rem; min-height: 1.4em; text-align: center; }
 .lock .small { font-size: 0.875rem; }
 dialog .pwrow input { background: var(--paper); }
+
+/* bolinha com frente e costas (gira 360 no eixo) */
+.pebble .spin { position: absolute; inset: 0; transform-style: preserve-3d; }
+.pebble .front, .pebble .back { position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center; }
+.pebble .front { background: var(--tint); }
+.pebble .back { transform: rotateY(180deg); background: radial-gradient(circle at 62% 30%, color-mix(in oklch, var(--tint) 86%, white), color-mix(in oklch, var(--tint) 70%, black)); }
+
+/* tela de senha: só o campo */
+.locked .top, .locked .foot { display: none; }
+.lock { max-width: none; margin: 0; min-height: 80dvh; display: grid; place-items: center; }
+.lock input { width: min(320px, 80vw); min-height: 60px; text-align: center; font-size: 1.25rem; letter-spacing: 0.18em; padding: 0 18px; border: 1.5px solid var(--line); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); transition: border-color 150ms var(--ease), opacity 150ms var(--ease); }
+.lock input::placeholder { letter-spacing: 0; color: var(--ink-2); opacity: 0.7; }
+.lock input:focus { outline: none; border-color: var(--focus); }
+.lock input:disabled { opacity: 0.6; }
+.lock input.bad { border-color: var(--danger); animation: shake 380ms var(--ease); }
+@keyframes shake { 20%, 60% { translate: -9px 0; } 40%, 80% { translate: 9px 0; } }
