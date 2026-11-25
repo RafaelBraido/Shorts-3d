@@ -39,6 +39,8 @@ var current_weapon := "fists"
 var ammo: Dictionary = {}               ## weapon_id -> {"mag": int, "reserve": int}
 var dynamite := 0
 const SKINS := {"cream": Color(0.93, 0.8, 0.56), "teal": Color(0.15, 0.85, 0.8), "blue": Color(0.2, 0.25, 0.95), "pink": Color(0.95, 0.5, 0.7), "gold": Color(0.95, 0.78, 0.2)}
+const LOOK_DEFAULT := {"skin": Color(0.93, 0.8, 0.56), "shirt": Color(0.2, 0.45, 0.85), "hat": Color(0.95, 0.8, 0.2)}
+var look: Dictionary = LOOK_DEFAULT.duplicate()
 var skins_owned: Array[String] = ["cream"]
 var skin := "cream"
 var bag_extra := 0                      ## espaços extras de mochila comprados
@@ -246,14 +248,43 @@ func gamble_fish(index: int) -> int:
 	return value * 3 if win else 0
 
 func skin_color() -> Color:
-	return SKINS[skin]
+	return look["skin"] if skin == "cream" else SKINS[skin]
+
+## Muda uma cor do personagem ("skin" | "shirt" | "hat") e atualiza luvas e avatar de rede.
+func set_look(part: String, c: Color) -> void:
+	look[part] = c
+	_refresh_hands()
+	save_game()
+	var net := get_node_or_null("/root/Net")
+	if net:
+		net.send_look()
+
+func reset_look() -> void:
+	look = LOOK_DEFAULT.duplicate()
+	_refresh_hands()
+	save_game()
+	var net := get_node_or_null("/root/Net")
+	if net:
+		net.send_look()
+
+func randomize_look() -> void:
+	for k in ["skin", "shirt", "hat"]:
+		look[k] = Color.from_hsv(randf(), randf_range(0.35, 0.85), randf_range(0.6, 1.0)) if k != "skin" else Color.from_hsv(randf_range(0.02, 0.1), randf_range(0.2, 0.55), randf_range(0.45, 0.95))
+	_refresh_hands()
+	save_game()
+	var net := get_node_or_null("/root/Net")
+	if net:
+		net.send_look()
+
+func _refresh_hands() -> void:
+	for n in Engine.get_main_loop().root.find_children("*", "MeshInstance3D", true, false):
+		if n.is_in_group("hand_mesh"):
+			n.material_override = Props.mat(skin_color(), 0.9)
 
 func equip_skin(id: String) -> void:
 	if id in skins_owned:
 		skin = id
-		for n in Engine.get_main_loop().root.find_children("*", "MeshInstance3D", true, false):
-			if n.is_in_group("hand_mesh"):
-				n.material_override = Props.mat(SKINS[id], 0.9)
+		_refresh_hands()
 		save_game()
 
 ## Roleta (37 casas): vermelho/preto pagam 2x, verde (0) paga 36x (35x de lucro).
@@ -333,7 +364,7 @@ func save_game() -> void:
 		return
 	var data := {
 		"coins": coins, "xp": xp, "level": level, "rod_tier": rod_tier,
-		"owned_rods": owned_rods, "owned_weapons": owned_weapons, "ammo": ammo, "dynamite": dynamite, "engine_level": engine_level, "bag_extra": bag_extra, "skins_owned": skins_owned, "skin": skin,
+		"owned_rods": owned_rods, "owned_weapons": owned_weapons, "ammo": ammo, "dynamite": dynamite, "engine_level": engine_level, "bag_extra": bag_extra, "skins_owned": skins_owned, "skin": skin, "look": {"skin": look["skin"].to_html(), "shirt": look["shirt"].to_html(), "hat": look["hat"].to_html()},
 		"story": get_node("/root/Story").to_dict() if has_node("/root/Story") else pending_story,
 		"inventory": inventory, "codex": codex, "total_caught": total_caught,
 	}
@@ -374,6 +405,10 @@ func load_game() -> void:
 			skins_owned.append(String(sk))
 	if skins_owned.is_empty():
 		skins_owned.append("cream")
+	var lk: Dictionary = d.get("look", {})
+	for k in ["skin", "shirt", "hat"]:
+		if lk.has(k):
+			look[k] = Color.html(String(lk[k]))
 	skin = String(d.get("skin", "cream")) if String(d.get("skin", "cream")) in skins_owned else "cream"
 	pending_story = d.get("story", {})
 	inventory.clear()

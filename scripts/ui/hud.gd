@@ -57,6 +57,8 @@ var dlg_lines: Array = []
 var dlg_index := 0
 var dlg_after: Callable
 var dlg_open := false
+var dlg_rich: RichTextLabel
+var dlg_npc: Node3D = null
 var pages_layer: ColorRect
 var pages_label: Label
 var credits_layer: ColorRect
@@ -533,6 +535,8 @@ func show_tip(id: String, title: String, text: String) -> void:
 
 func _process(delta: float) -> void:
 	_tick_extra(delta)
+	if dlg_open:
+		_place_bubble()
 	if _tip_t > 0.0:
 		_tip_t -= delta
 		if _tip_t <= 0.0:
@@ -603,6 +607,12 @@ func open_shop(tab_name: String = "") -> void:
 	_open("shop")
 
 func _open(mode: String) -> void:
+	_ks_t = 0.0
+	if _ks_panel:
+		_ks_panel.modulate.a = 0.0
+	_insp_t = 0.0
+	if _insp_panel:
+		_insp_panel.visible = false
 	menu_mode = mode
 	menu_panel.visible = true
 	_refresh_menu()
@@ -647,6 +657,7 @@ func _refresh_menu() -> void:
 		_tab_casino()
 	else:
 		_tab_diary()
+		_tab_character()
 		_tab_registry()
 		_tab_weapons(false)
 		_tab_rods(false)
@@ -704,6 +715,38 @@ func _tab_fish(shop: bool) -> void:
 			_refresh_menu())
 		row.add_child(eat)
 		fish_tab.add_child(row)
+
+func _tab_character() -> void:
+	var t := _tab("Personagem")
+	t.add_child(_label("Personalização do personagem", 20, GOLD, 0))
+	t.add_child(_label("Suas mãos usam a cor da pele; os outros jogadores veem pele, roupa e chapéu.", 14, Color(0.85, 0.85, 0.85), 0))
+	for part in [["skin", "Pele"], ["shirt", "Roupa"], ["hat", "Chapéu"]]:
+		var row := HBoxContainer.new()
+		var lb := _label(String(part[1]), 17, Color.WHITE, 0)
+		lb.custom_minimum_size = Vector2(110, 0)
+		row.add_child(lb)
+		var cp := ColorPickerButton.new()
+		cp.color = GameState.look[part[0]]
+		cp.custom_minimum_size = Vector2(200, 40)
+		cp.edit_alpha = false
+		var key: String = part[0]
+		cp.color_changed.connect(func(c: Color) -> void: GameState.set_look(key, c))
+		row.add_child(cp)
+		t.add_child(row)
+	var br := HBoxContainer.new()
+	var rb := Button.new()
+	rb.text = "Redefinir"
+	rb.pressed.connect(func() -> void:
+		GameState.reset_look()
+		_refresh_menu())
+	br.add_child(rb)
+	var rnd := Button.new()
+	rnd.text = "Aleatório"
+	rnd.pressed.connect(func() -> void:
+		GameState.randomize_look()
+		_refresh_menu())
+	br.add_child(rnd)
+	t.add_child(br)
 
 func _tab_registry() -> void:
 	var reg := _tab("Registro")
@@ -1112,21 +1155,29 @@ func _build_story_ui() -> void:
 
 func _build_dialogue() -> void:
 	dlg_panel = PanelContainer.new()
-	dlg_panel.add_theme_stylebox_override("panel", _style(Color(0.04, 0.06, 0.1, 0.94), 14, GOLD, 2))
+	dlg_panel.add_theme_stylebox_override("panel", _style(Color(0.97, 0.97, 0.99, 0.96), 16, Color(0.2, 0.2, 0.3), 3))
 	dlg_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	dlg_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	dlg_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	dlg_panel.position = Vector2(-380, -30)
-	dlg_panel.custom_minimum_size = Vector2(760, 0)
+	dlg_panel.custom_minimum_size = Vector2(540, 0)
 	dlg_panel.visible = false
 	root.add_child(dlg_panel)
 	var v := VBoxContainer.new()
 	dlg_panel.add_child(v)
-	dlg_name = _label("", 20, GOLD, 0)
+	dlg_name = _label("", 17, Color(0.7, 0.45, 0.05), 0)
 	v.add_child(dlg_name)
-	dlg_text = _label("", 19, Color.WHITE, 0)
-	dlg_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dlg_text.custom_minimum_size = Vector2(730, 80)
+	dlg_rich = RichTextLabel.new()
+	dlg_rich.bbcode_enabled = true
+	dlg_rich.fit_content = true
+	dlg_rich.scroll_active = false
+	dlg_rich.custom_minimum_size = Vector2(500, 60)
+	dlg_rich.add_theme_color_override("default_color", Color(0.08, 0.08, 0.12))
+	dlg_rich.add_theme_font_size_override("normal_font_size", 19)
+	dlg_rich.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(dlg_rich)
+	dlg_text = _label("", 1, Color.WHITE, 0)
+	dlg_text.visible = false
 	v.add_child(dlg_text)
 	dlg_btn = Button.new()
 	dlg_btn.text = "Continuar  ▶"
@@ -1161,6 +1212,12 @@ func _build_pages() -> void:
 func _start_intro() -> void:
 	Story.start_intro(func() -> void:
 		Story.advance(0)
+		show_tip("move", "Como se Mover", "Use o joystick para se mover." if touch_mode else "Use [W/A/S/D] para se mover. [Shift] corre, [Espaço] pula, [Ctrl] agacha.")
+		await get_tree().create_timer(10.0).timeout
+		tip_panel.visible = false
+		show_tip("interact", "Como Interagir", "Aperte [E] olhando para um item para pegá-lo. Experimente em um marisco.")
+		await get_tree().create_timer(10.0).timeout
+		tip_panel.visible = false
 		show_tip("think", "Como Pensar", "Você pode esquecer quais criaturas já pescou. Tente pensar apertando [Tab]."))
 
 func _refresh_story() -> void:
@@ -1214,17 +1271,49 @@ func show_dialogue(speaker: String, lines: Array, after: Callable) -> void:
 	dlg_lines = lines
 	dlg_index = 0
 	dlg_after = after
-	dlg_text.text = String(lines[0])
+	dlg_npc = Story.talk_target if (Story.talk_target != null and is_instance_valid(Story.talk_target)) else null
+	_dlg_set(String(lines[0]))
 	dlg_btn.text = "Continuar  ▶" if lines.size() > 1 else "Fechar"
 	dlg_panel.visible = true
 	dlg_open = true
 	menu_toggled.emit(true)
 	Sfx.play("reel", -8.0, 1.4)
 
+const KEYWORDS := ["Caranguejo‑Aranha", "criatura", "cerveja", "lata vazia", "lata", "isca", "radar", "barco", "Piranha Gigante", "sanguessugas", "Baiacu Gigante", "cenoura",
+	"Albatroz", "atum", "Baleia‑da‑Groenlândia", "Baleia Mutante", "lava", "Tubarão‑Azul", "isqueiro", "peixes", "peixe", "pescar", "vara", "chaves", "Cavalo‑marinho", "cavalo‑marinho"]
+
+func _dlg_set(text: String) -> void:
+	var t := text
+	for k in KEYWORDS:
+		var re := RegEx.new()
+		re.compile("(?i)" + k)
+		var out := ""
+		var last := 0
+		for m in re.search_all(t):
+			out += t.substr(last, m.get_start() - last) + "[color=#c98a00][b]%s[/b][/color]" % m.get_string()
+			last = m.get_end()
+		t = out + t.substr(last)
+	dlg_rich.text = t
+	dlg_text.text = text
+	_place_bubble()
+
+## Posiciona o balão sobre a cabeça do NPC (como no jogo real); sem NPC/celular, fica embaixo.
+func _place_bubble() -> void:
+	if dlg_npc == null or touch_mode:
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null or cam.is_position_behind(dlg_npc.global_position):
+		return
+	var sp := cam.unproject_position(dlg_npc.global_position + Vector3(0, 2.7, 0))
+	var vs := root.size
+	dlg_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	dlg_panel.grow_vertical = Control.GROW_DIRECTION_END
+	dlg_panel.position = Vector2(clampf(sp.x - 270.0, 10.0, vs.x - 560.0), clampf(sp.y - dlg_panel.size.y - 8.0, 10.0, vs.y - 160.0))
+
 func _dlg_next() -> void:
 	dlg_index += 1
 	if dlg_index < dlg_lines.size():
-		dlg_text.text = String(dlg_lines[dlg_index])
+		_dlg_set(String(dlg_lines[dlg_index]))
 		dlg_btn.text = "Continuar  ▶" if dlg_index < dlg_lines.size() - 1 else "Fechar"
 		return
 	dlg_panel.visible = false

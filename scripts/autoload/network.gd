@@ -88,6 +88,7 @@ func _on_peer_connected(id: int) -> void:
 	names[id] = "Jogador %d" % id
 	av.set_display_name(names[id])
 	set_player_name.rpc_id(id, player_name)
+	set_look_rpc.rpc_id(id, GameState.look["skin"], GameState.look["shirt"], GameState.look["hat"])
 	status.emit("Jogador %d entrou na ilha." % id)
 	players_changed.emit()
 
@@ -114,6 +115,10 @@ func send_shot(from: Vector3, to: Vector3) -> void:
 	if active and not avatars.is_empty():
 		fx_shot.rpc(from, to)
 
+func send_look() -> void:
+	if active and not avatars.is_empty():
+		set_look_rpc.rpc(GameState.look["skin"], GameState.look["shirt"], GameState.look["hat"])
+
 func send_announce(text: String) -> void:
 	if active and not avatars.is_empty():
 		announce.rpc(text)
@@ -136,6 +141,12 @@ func set_player_name(n: String) -> void:
 	if avatars.has(id):
 		avatars[id].set_display_name(n)
 	players_changed.emit()
+
+@rpc("any_peer", "reliable")
+func set_look_rpc(skin: Color, shirt: Color, hat: Color) -> void:
+	var av: RemotePlayer = avatars.get(multiplayer.get_remote_sender_id())
+	if av:
+		av.apply_look(skin, shirt, hat)
 
 @rpc("any_peer", "unreliable")
 func fx_shot(from: Vector3, to: Vector3) -> void:

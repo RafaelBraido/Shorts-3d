@@ -30,6 +30,7 @@ func get_prompt() -> String:
 	return prompt
 
 func interact(_player: Node) -> void:
+	Story.talk_target = self
 	Story.talk(npc_id)
 	# vira para o jogador
 	var pl := get_tree().get_first_node_in_group("player") as Node3D

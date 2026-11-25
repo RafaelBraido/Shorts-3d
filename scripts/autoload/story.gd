@@ -31,6 +31,7 @@ var volcano_fish := 0
 var carrying := ""                  ## "whale_carcass" enquanto o jogador carrega a carcaça
 var zones: Dictionary = {}          ## nome -> Vector3 (registrado por StoryWorld)
 var world: Node = null
+var talk_target: Node3D = null
 var boss: Node = null               ## chefe ativo
 var lures_used: Dictionary = {}
 

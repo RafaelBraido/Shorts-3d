@@ -2,7 +2,14 @@
 
 Jogo 3D em primeira pessoa de **pesca, sobrevivência e tiro** num arquipélago tropical (estilo low-poly, inspirado no trailer *How to Fish*), com **modo história completo (5 ilhas + final)**, **multiplayer cooperativo** e **versão para celular em paisagem**.
 
-**Abrir:** Godot 4.3+ → Importar → `project.godot` → F5.
+## Baixar e jogar (builds prontos em `dist/`)
+| Plataforma | Arquivo | Como |
+|---|---|---|
+| **Windows 64-bit** | `dist/FishIt-Windows.zip` | extrair e abrir `FishIt.exe` (se o Windows avisar, "Mais informações > Executar assim mesmo"; o programa não é assinado). Placa antiga: `Jogar-Compativel.bat` |
+| **Linux 64-bit** | `dist/FishIt-Linux.tar.gz` | `tar xzf` e `./jogar.sh` |
+| **Android (arm64)** | `dist/FishIt-debug.apk` | instalar o APK (permitir apps desconhecidos); roda em paisagem com controles de toque |
+
+**Abrir o projeto:** Godot 4.3+ → Importar → `project.godot` → F5.
 
 ## A história
 Você, de barco e bebendo, perde o controle e naufraga numa ilha. Sem recursos, armas ou barco, precisa aprender a pescar, ganhar dinheiro, comprar armas e derrotar o monstro de cada ilha, entregando uma parte dele como prova para o radar mostrar a próxima ilha — até voltar ao continente.
@@ -22,7 +29,7 @@ Depois dos créditos o jogo continua no mesmo save (completar registro de peixes
 |---|---|
 | WASD / mouse | mover / olhar |
 | Shift / Espaço / Ctrl ou C | correr / pular (nadar) / agachar |
-| 1 / 2 / 3 | arma (repetir 1 troca de arma) / vara / dinamite |
+| 1 / 2 / 3 / 4 (ou X) | arma (repetir 1 troca) / vara / dinamite / mãos |
 | Botão direito (segurar) | mirar (a sniper usa luneta) |
 | Botão esquerdo | atirar · golpear · lançar a vara (segurar = força) · fisgar |
 | R | recarregar |
@@ -60,4 +67,6 @@ tests/                   PlayTest, TouchTest, NetTest, StoryTest (história inte
 ```
 
 ## Testes automáticos
-`godot --headless --path . res://tests/StoryTest.tscn` percorre os 5 capítulos e o final (82 verificações). `PlayTest`, `TouchTest`, `NetTest` e `TourTest` cobrem pesca/tiro, toque, rede e visual.
+`godot --headless --path . res://tests/StoryTest.tscn` percorre os 5 capítulos e o final (83 verificações). `MechTest`, `Mech2Test`, `Mech3Test` e `Mech4Test` cobrem as mecânicas (peixe que se debate, gaivota, cassino, mochila, iscas, grelha, killscore, personalização...). `TouchTest`, `NetTest` e os `*Shot`/`TourTest` cobrem toque, rede e screenshots.
+
+Exportar: `godot --headless --export-release "Windows Desktop" build/pc/FishIt.exe` (e `"Linux"`; `--export-debug "Android"` para o APK). Presets em `export_presets.cfg`.

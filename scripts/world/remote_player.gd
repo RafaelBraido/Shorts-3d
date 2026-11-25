@@ -14,6 +14,9 @@ var _body: Node3D
 var _head: Node3D
 var _hold: Node3D
 var _label: Label3D
+var _body_mi: MeshInstance3D
+var _head_mi: MeshInstance3D
+var _hat_mi: MeshInstance3D
 
 func _ready() -> void:
 	var hue := fmod(float(peer_id) * 0.37, 1.0)
@@ -23,12 +26,12 @@ func _ready() -> void:
 	var cap := CapsuleMesh.new()
 	cap.radius = 0.28
 	cap.height = 1.2
-	Props.mesh_node(_body, cap, Props.mat(shirt), Vector3(0, 0.75, 0))
+	_body_mi = Props.mesh_node(_body, cap, Props.mat(shirt), Vector3(0, 0.75, 0))
 	_head = Node3D.new()
 	_head.position = Vector3(0, 1.5, 0)
 	add_child(_head)
-	Props.sphere(_head, 0.2, Vector3.ZERO, Color(0.9, 0.7, 0.55))
-	Props.cylinder(_head, 0.24, 0.24, 0.05, Vector3(0, 0.17, 0), Color(0.95, 0.85, 0.2), 14)
+	_head_mi = Props.sphere(_head, 0.2, Vector3.ZERO, Color(0.9, 0.7, 0.55))
+	_hat_mi = Props.cylinder(_head, 0.24, 0.24, 0.05, Vector3(0, 0.17, 0), Color(0.95, 0.85, 0.2), 14)
 	Props.sphere(_head, 0.035, Vector3(-0.08, 0.04, -0.17), Color(0.05, 0.05, 0.05))
 	Props.sphere(_head, 0.035, Vector3(0.08, 0.04, -0.17), Color(0.05, 0.05, 0.05))
 	_hold = Node3D.new()
@@ -43,6 +46,14 @@ func _ready() -> void:
 	_label.position = Vector3(0, 2.15, 0)
 	add_child(_label)
 	_set_item("")
+
+func apply_look(skin: Color, shirt: Color, hat: Color) -> void:
+	if _body_mi == null:
+		call_deferred("apply_look", skin, shirt, hat)
+		return
+	_body_mi.material_override = Props.mat(shirt)
+	_head_mi.material_override = Props.mat(skin)
+	_hat_mi.material_override = Props.mat(hat)
 
 func set_display_name(n: String) -> void:
 	if _label:

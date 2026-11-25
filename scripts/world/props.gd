@@ -539,6 +539,30 @@ static func build_lighthouse(parent: Node, pos: Vector3) -> Node3D:
 	root.add_child(l)
 	return root
 
+# ------------------------------------------------------------------ barco naufragado (cena inicial)
+
+static func build_wreck(parent: Node, pos: Vector3, yaw: float) -> Node3D:
+	var root := Node3D.new()
+	root.position = pos
+	root.rotation = Vector3(0.0, yaw, 0.0)
+	parent.add_child(root)
+	var hull := Node3D.new()
+	hull.rotation = Vector3(0.1, 0.0, 0.62)       # tombado de lado
+	hull.position = Vector3(0, 0.5, 0)
+	root.add_child(hull)
+	var white := Color(0.93, 0.94, 0.96)
+	box(hull, Vector3(2.6, 0.7, 6.4), Vector3(0, 0, 0), white, null, Vector3.ZERO, 0.5)
+	box(hull, Vector3(2.7, 0.1, 6.5), Vector3(0, 0.38, 0), Color(0.1, 0.1, 0.14))
+	box(hull, Vector3(2.7, 0.08, 6.5), Vector3(0, -0.2, 0), Color(0.95, 0.55, 0.1))
+	box(hull, Vector3(2.0, 0.5, 1.6), Vector3(0, 0.5, 0.6), Color(0.85, 0.86, 0.9))
+	box(hull, Vector3(0.08, 1.4, 0.08), Vector3(-0.9, 1.0, 0.4), Color(0.2, 0.2, 0.22))
+	box(hull, Vector3(1.9, 0.08, 0.08), Vector3(0, 1.7, 0.4), Color(0.2, 0.2, 0.22))
+	add_fire(root, Vector3(0.6, 1.6, -0.8), 0.9, false)
+	add_fire(root, Vector3(-0.3, 1.2, 1.6), 0.6, false)
+	for i in 4:
+		sphere(root, 0.3 + i * 0.06, Vector3(randf_range(-2.0, 2.0), 0.15, randf_range(-3.0, 3.0)), Color(0.15, 0.15, 0.17), Vector3(1, 0.5, 1), 0.9)
+	return root
+
 # ------------------------------------------------------------------ pinheiro e grama
 
 static func add_pine(parent: Node, pos: Vector3, rng: RandomNumberGenerator) -> void:

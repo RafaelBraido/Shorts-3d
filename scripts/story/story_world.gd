@@ -77,6 +77,10 @@ static func _island1(w: Node3D, z: Dictionary) -> void:
 	StoryNpc.make(w, "guardian", "Guardião do Farol", Vector3(bench_p.x, by + 0.55, bench_p.y), atan2(face.x, face.y), "guardian", true)
 	z["guardian"] = Vector3(bench_p.x, by + 1.0, bench_p.y)
 	_keepout(w, bench_p, 4.0)
+	# o barco da introdução, naufragado e em chamas na praia
+	var wp := shore - dir * 4.0 + perp * 14.0
+	Props.build_wreck(w, Vector3(wp.x, Terrain.height_at(wp.x, wp.y) - 0.2, wp.y), atan2(dir.x, dir.y) + 0.5)
+	_keepout(w, wp, 6.0)
 	# Reel of Fortune: máquina neon de cassino ao lado da loja
 	var sp2 := Vector2(w.shop_pos.x, w.shop_pos.z)
 	var sface := (shore - sp2).normalized()
