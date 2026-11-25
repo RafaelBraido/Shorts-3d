@@ -71,6 +71,13 @@ function download(name, text, type) {
 const TABS = { hoje: ['sun', 'Hoje'], diario: ['calendar-days', 'Diário'], padroes: ['chart-line', 'Padrões'], dados: ['database', 'Dados'] };
 for (const [id, [ic, label]] of Object.entries(TABS)) $(`#tab-${id}`).innerHTML = `${icon(ic, 20)}<span>${label}</span>`;
 
+/* Fundo de ondas em WebGL (js/tide.js): cor e altura seguem o humor mais recente. */
+let tide = null;
+const latestMood = () => { const es = sortedEntries(store.entries()); return es.length ? es[es.length - 1].mood : 3; };
+let tideMood = null; // humor escolhido na tela Hoje (null = usar o registro mais recente)
+const syncTide = () => { tideMood = null; tide?.setMood(latestMood()); };
+import('./tide.js').then(({ createTide }) => { tide = createTide(); tide?.setMood(tideMood ?? latestMood()); }).catch(() => {});
+
 let viewDate = todayKey();
 let teardown = null; // libera o WebGL ao sair da tela Hoje
 function route() {
@@ -82,6 +89,7 @@ function route() {
   $$('.tabs a').forEach((a) => (a.dataset.route === r ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
   document.title = `${TABS[r][1]} · Maré`;
   ({ hoje: renderToday, diario: renderDiary, padroes: renderPatterns, dados: renderData })[r]();
+  if (r !== 'hoje') syncTide(); // em Hoje, quem comanda a maré é a carinha escolhida
   view.focus({ preventScroll: true });
   window.scrollTo(0, 0);
 }
@@ -168,6 +176,7 @@ function renderToday() {
     pebble.classList.toggle('idle', !d.touched);
     $('#moodword').textContent = d.touched ? MOOD_WORDS[m] : '';
     $('#moodhint').textContent = d.touched ? '' : 'Toque na carinha que combina com o seu dia';
+    tideMood = d.touched ? m : 3; tide?.setMood(tideMood);
     if (face3d) {
       const shown = d.touched ? m : 3;
       face3d.setMood(shown, { rgb: moodRgb(shown, d.touched ? 0 : 0.5), featRgb: lightText(shown) ? [0.97, 0.98, 1] : [0.1, 0.14, 0.19], first: firstPaint });
