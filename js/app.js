@@ -117,7 +117,7 @@ function renderToday() {
     <div class="today">
       <section class="hero" id="hero" aria-label="Como foi o dia">
         <p class="hero-q">Como foi o seu dia?</p>
-        <div class="pebble idle" id="pebble" aria-hidden="true"><div class="spin" id="spin"><div class="front" id="front">${face(d.mood, 150)}</div><div class="back"></div></div></div>
+        <div class="pebble idle" id="pebble" aria-hidden="true"><div class="orb" id="orb"><div class="feat" id="front">${face(d.mood, 150)}</div><div class="feat" id="rear" hidden><svg class="swirl" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 12c7 0 10.5 6 8 10.5S19.500 28 16.500 24 17 15.500 21 16.500s3 4.500 0.500 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><div class="shade"></div></div></div>
         <p class="hero-word" id="moodword" aria-live="polite">${d.touched ? MOOD_WORDS[d.mood] : ''}</p>
         <p class="hero-hint" id="moodhint">Deslize a linha para escolher como foi o dia</p>
         <div class="slider">
@@ -173,14 +173,35 @@ function renderToday() {
   const hero = $('#hero'), pebble = $('#pebble');
   const range = $('#mood');
   /* a bolinha anda para a esquerda/direita junto com a linha, rolando (nota 3 = centro) */
-  // Ao mexer na linha a bolinha gira 360 graus no próprio eixo (aparecem as costas e ela volta à frente).
+  // Ao mexer na linha a bolinha gira 360 graus no próprio eixo. O corpo continua redondo (nada de espremer):
+  // a carinha percorre a superfície até a borda, aparecem as costas e a carinha volta ao centro.
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let spinning = false;
   const spin = () => {
     if (calm || spinning) return;
     spinning = true;
-    $('#spin').animate([{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(360deg)' }], { duration: 560, easing: 'cubic-bezier(0.45, 0, 0.2, 1)' })
-      .onfinish = () => { spinning = false; };
+    const orb = $('#orb'), front = $('#front'), rear = $('#rear');
+    const R = pebble.offsetWidth / 2, DUR = 640, t0 = performance.now();
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+    rear.hidden = false;
+    const place = (el, ang) => {
+      const c = Math.cos(ang), sn = Math.sin(ang);
+      el.style.visibility = c > 0.02 ? 'visible' : 'hidden';
+      el.style.transform = `translateX(${(sn * R).toFixed(1)}px) scaleX(${Math.max(0, c).toFixed(3)})`;
+      el.style.opacity = String(Math.min(1, Math.max(0, c) * 2.2));
+    };
+    const frame = (now) => {
+      const t = Math.min(1, (now - t0) / DUR), ang = ease(t) * Math.PI * 2;
+      place(front, ang);
+      place(rear, ang + Math.PI);
+      orb.style.transform = `translateY(${(-Math.sin(Math.PI * t) * 5).toFixed(2)}px)`; // pequeno impulso, sem deformar
+      if (t < 1) requestAnimationFrame(frame);
+      else {
+        for (const el of [front, rear, orb]) { el.style.transform = ''; el.style.opacity = ''; el.style.visibility = ''; }
+        rear.hidden = true; spinning = false; // volta exatamente ao meio
+      }
+    };
+    requestAnimationFrame(frame);
   };
   const updateMood = (dir = 0) => {
     const m = d.mood;
