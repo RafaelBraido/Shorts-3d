@@ -532,6 +532,7 @@ func show_tip(id: String, title: String, text: String) -> void:
 	_tip_t = 14.0
 
 func _process(delta: float) -> void:
+	_tick_extra(delta)
 	if _tip_t > 0.0:
 		_tip_t -= delta
 		if _tip_t <= 0.0:
@@ -595,7 +596,10 @@ func open_inventory() -> void:
 func open_network() -> void:
 	_open("net")
 
-func open_shop() -> void:
+var _goto_tab := ""
+
+func open_shop(tab_name: String = "") -> void:
+	_goto_tab = tab_name
 	_open("shop")
 
 func _open(mode: String) -> void:
@@ -647,6 +651,11 @@ func _refresh_menu() -> void:
 		_tab_weapons(false)
 		_tab_rods(false)
 	menu_tabs.current_tab = clampi(prev, 0, menu_tabs.get_child_count() - 1)
+	if _goto_tab != "":
+		for i in menu_tabs.get_child_count():
+			if menu_tabs.get_child(i).name == _goto_tab:
+				menu_tabs.current_tab = i
+		_goto_tab = ""
 	_touchify()
 
 func _sale_mult() -> float:
@@ -809,11 +818,13 @@ func _tab_items(shop: bool) -> void:
 	var rows := [
 		["Lata de cerveja gelada", 12, "Para o Guardião do Farol.", func() -> bool: return Story.buy_beer(), false],
 		["Radar", 10, "Mostra a direção das ilhas (seta no canto da tela).", func() -> bool: return Story.buy_radar(), Story.has_radar()],
-		["Isca profissional", 60, "Aumenta a sorte do próximo lance (ajuda a pescar atum).", func() -> bool: return Story.buy_pro_bait(), false],
 	]
 	if GameState.engine_level < GameState.ENGINES.size():
 		var eng: Dictionary = GameState.ENGINES[GameState.engine_level]
 		rows.append([eng["name"] + " (barco)", int(eng["price"]), "Aumenta a velocidade dos seus barcos.", func() -> bool: return GameState.buy_engine(), false])
+	for bd in Story.BAITS:
+		var btier: int = bd["tier"]
+		rows.append(["%s (x%d)" % [bd["name"], Story.count(String(bd["id"]))], int(bd["price"]), String(bd["desc"]), func() -> bool: return Story.buy_bait(btier), false])
 	var maxed := GameState.bag_extra >= GameState.bag_extra_max()
 	rows.append(["Espaço extra de mochila (%d/%d)" % [GameState.bag_capacity(), GameState.BAG_BASE + GameState.bag_extra_max()], GameState.bag_extra_price(),
 		"(Máximo para esta ilha)" if maxed else "Carregue mais peixes por viagem.", func() -> bool: return GameState.buy_bag_slot(), maxed])
@@ -832,10 +843,63 @@ func _tab_items(shop: bool) -> void:
 				_refresh_menu())
 		row.add_child(b)
 		t.add_child(row)
-	t.add_child(_label("Você tem: %d cerveja(s), %d isca(s) profissional(is)." % [Story.count("beer"), Story.count("pro_bait")], 14, Color(0.8, 0.8, 0.8), 0))
+	t.add_child(_label("Você tem: %d cerveja(s). Quanto melhor a isca, mais valiosa a criatura que morde (não depende da ilha)." % Story.count("beer"), 14, Color(0.8, 0.8, 0.8), 0))
 
 func _tab_casino() -> void:
 	var t := _tab("Cassino")
+	t.add_child(_label("ROLETA: vermelho/preto pagam 2x · VERDE (0) paga 35x", 15, Color(1.0, 0.85, 0.5), 0))
+	var rrow := HBoxContainer.new()
+	for opt in [["Vermelho", "red"], ["Preto", "black"], ["Verde 35x", "green"]]:
+		var rb := Button.new()
+		rb.text = "$50 em %s" % opt[0]
+		rb.disabled = GameState.coins < 50
+		var col: String = opt[1]
+		rb.pressed.connect(func() -> void:
+			var res := GameState.roulette(50, col)
+			if res.get("ok", false):
+				var names := {"red": "VERMELHO", "black": "PRETO", "green": "VERDE"}
+				Sfx.play("coin" if res["win"] else "fail")
+				toast("Caiu %d (%s): %s" % [res["n"], names[res["color"]], ("ganhou $%d!" % res["payout"]) if res["win"] else "perdeu $50"], GOLD if res["win"] else Color(1, 0.5, 0.5))
+			_refresh_menu())
+		rrow.add_child(rb)
+	t.add_child(rrow)
+	t.add_child(_label("REEL OF FORTUNE: jogue um peixe na máquina para ganhar dinheiro ou SKINS de luva.", 15, Color(0.6, 0.9, 1.0), 0))
+	for i in GameState.inventory.size():
+		var e0: Dictionary = GameState.inventory[i]
+		var fr0 := HBoxContainer.new()
+		var nm0 := _label("%s  ($%d)" % [FishDB.data(e0["species"])["name"], int(e0["value"])], 14, FishDB.rarity_color(e0["species"]), 0)
+		nm0.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		fr0.add_child(nm0)
+		var sp := Button.new()
+		sp.text = "Girar"
+		var si := i
+		sp.pressed.connect(func() -> void:
+			var r := GameState.reel_of_fortune(si)
+			if r.get("ok", false):
+				match r["kind"]:
+					"skin":
+						Sfx.play("catch")
+						toast("SKIN DESBLOQUEADA: luva %s!" % r["skin"], GOLD)
+					"coins":
+						Sfx.play("coin")
+						toast("A máquina pagou $%d!" % r["amount"], GOLD)
+					_:
+						Sfx.play("fail")
+						toast("A máquina engoliu o peixe...", Color(1, 0.5, 0.5))
+			_refresh_menu())
+		fr0.add_child(sp)
+		t.add_child(fr0)
+	var srow := HBoxContainer.new()
+	srow.add_child(_label("Skins de luva:", 14, Color.WHITE, 0))
+	for sk in GameState.skins_owned:
+		var sb := Button.new()
+		sb.text = ("✓ " if sk == GameState.skin else "") + String(sk)
+		var sid: String = sk
+		sb.pressed.connect(func() -> void:
+			GameState.equip_skin(sid)
+			_refresh_menu())
+		srow.add_child(sb)
+	t.add_child(srow)
 	t.add_child(_label("Aposte à vontade (sem dinheiro de verdade, só moedas do jogo)!", 15, Color(1.0, 0.85, 0.5), 0))
 	t.add_child(_label("Cara ou coroa: 47% de chance de DOBRAR a aposta.", 15, Color.WHITE, 0))
 	var row := HBoxContainer.new()
@@ -1129,6 +1193,15 @@ func set_boss_bar(nm: String, frac: float) -> void:
 		boss_panel.visible = false
 		return
 	boss_name.text = nm
+	var low := nm.to_lower()
+	var bc := Color(0.85, 0.12, 0.12)
+	if "baiacu" in low: bc = Color(0.85, 0.65, 0.3)
+	elif "albatroz" in low: bc = Color(0.92, 0.92, 0.9)
+	elif "mutante" in low: bc = Color(1.0, 0.45, 0.1)
+	elif "baleia" in low: bc = Color(0.45, 0.55, 0.75)
+	elif "tubar" in low: bc = Color(0.2, 0.4, 0.9)
+	elif "piranha" in low: bc = Color(0.7, 0.08, 0.08)
+	(boss_bar["fill"] as ColorRect).color = bc
 	_boss_frac = frac
 	_set_bar(boss_bar, frac)
 	if not boss_panel.visible:
@@ -1260,8 +1333,71 @@ func _draw_radar() -> void:
 	var fwd := Vector3(-b.z.x, 0, -b.z.z).normalized()
 	var right := Vector3(b.x.x, 0, b.x.z).normalized()
 	var rel := atan2(d.dot(right), d.dot(fwd))
+	if Story.has_radar():
+		var cols := [Color(1, 1, 1), Color(0.3, 0.95, 0.35), Color(1.0, 0.9, 0.2), Color(1.0, 0.25, 0.2), Color(0.95, 0.3, 0.9)]
+		for i in Terrain.ISLANDS.size():
+			var ic: Vector2 = Terrain.island_center(i)
+			var dv := Vector3(ic.x - player.global_position.x, 0, ic.y - player.global_position.z)
+			var ang := atan2(dv.dot(right), dv.dot(fwd))
+			var rr := clampf(dv.length() / 220.0, 0.12, 1.0) * 41.0
+			radar.draw_circle(c + Vector2(sin(ang), -cos(ang)) * rr, 4.0, cols[i])
 	var tip := c + Vector2(sin(rel), -cos(rel)) * 36.0
 	var left := c + Vector2(sin(rel - 2.5), -cos(rel - 2.5)) * 16.0
 	var rgt := c + Vector2(sin(rel + 2.5), -cos(rel + 2.5)) * 16.0
 	radar.draw_colored_polygon(PackedVector2Array([tip, left, c, rgt]), Color(1.0, 0.85, 0.25, 0.95))
 	radar.draw_string(font, Vector2(0, 112), "%d m" % int(d.length()), HORIZONTAL_ALIGNMENT_CENTER, 120.0, 14, Color.WHITE)
+
+# ------------------------------------------------------------------ killscore e inspeção (como no jogo real)
+
+var _ks_panel: VBoxContainer
+var _ks_t := 0.0
+var _insp_panel: PanelContainer
+var _insp_t := 0.0
+
+func show_killscore(nm: String, value: int, total: float, lines: Array) -> void:
+	if _ks_panel == null:
+		_ks_panel = VBoxContainer.new()
+		_ks_panel.set_anchors_preset(Control.PRESET_CENTER)
+		_ks_panel.position = Vector2(-330, 30)
+		_ks_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(_ks_panel)
+	for c in _ks_panel.get_children():
+		c.queue_free()
+	_ks_panel.add_child(_label("%.2fx" % total, 22, Color(0.9, 0.9, 0.9), 4))
+	_ks_panel.add_child(_label("+%d  Abateu %s" % [value, nm], 22, Color(1.0, 0.55, 0.2), 4))
+	for l in lines:
+		_ks_panel.add_child(_label("%.2fx  %s" % [float(l[0]), String(l[1])], 20, Color.WHITE, 4))
+	_ks_panel.modulate.a = 1.0
+	_ks_t = 4.0
+	Sfx.play("coin", -8.0, 1.5)
+
+func show_inspect(nm: String, value: int, weight: float, mult: float) -> void:
+	if _insp_panel == null:
+		_insp_panel = PanelContainer.new()
+		_insp_panel.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0.0), 0))
+		_insp_panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+		_insp_panel.position = Vector2(-260, -60)
+		_insp_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(_insp_panel)
+		var v := VBoxContainer.new()
+		v.name = "V"
+		_insp_panel.add_child(v)
+	var v2 := _insp_panel.get_node("V") as VBoxContainer
+	for c in v2.get_children():
+		c.queue_free()
+	v2.add_child(_label(nm, 24, Color(1.0, 0.55, 0.2), 4))
+	v2.add_child(_label("Valor: %d" % value, 16, Color.WHITE, 3))
+	v2.add_child(_label("Peso: %.1f kg" % weight, 16, Color.WHITE, 3))
+	v2.add_child(_label("Killscore: %.2fx" % mult, 16, Color(0.8, 0.95, 1.0), 3))
+	_insp_panel.visible = true
+	_insp_t = 4.0
+
+func _tick_extra(delta: float) -> void:
+	if _ks_t > 0.0:
+		_ks_t -= delta
+		if _ks_panel:
+			_ks_panel.modulate.a = clampf(_ks_t, 0.0, 1.0)
+	if _insp_t > 0.0:
+		_insp_t -= delta
+		if _insp_t <= 0.0 and _insp_panel:
+			_insp_panel.visible = false

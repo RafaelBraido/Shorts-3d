@@ -69,8 +69,11 @@ func _explode() -> void:
 				var d := pos.distance_to(n.global_position)
 				if d < radius + (4.0 if n is Boss else 0.0):
 					n.call("hit", WeaponDB.DYNAMITE_DAMAGE * (1.0 - clampf(d / (radius + 6.0), 0.0, 0.6)), n.global_position)
+	for bt in get_tree().get_nodes_in_group("boats"):
+		if bt.global_position.distance_to(pos) < 8.0:
+			bt.launch()
 	var player := get_tree().get_first_node_in_group("player") as Node3D
-	if player != null and player.global_position.distance_to(pos) < 4.0:
+	if player != null and player.global_position.distance_to(pos) < 4.0 and player.vehicle == null:
 		player.take_damage(15.0, pos)
 	var hud := get_tree().get_first_node_in_group("hud")
 	if hud:

@@ -34,7 +34,7 @@ func setup(p: Node3D, c: Camera3D, h: Node) -> void:
 	cam = c
 	hud = h
 	_rng.randomize()
-	set_weapon(GameState.current_weapon if GameState.current_weapon in GameState.owned_weapons else "knife")
+	set_weapon(GameState.current_weapon if GameState.current_weapon in GameState.owned_weapons else "fists")
 	visible = false
 
 func set_weapon(id: String) -> void:
@@ -126,8 +126,12 @@ func _build_model() -> void:
 		"sniper":
 			_build_sniper()
 			muz_z = -1.42
-		"fists":
+		"fists", "brass":
 			muz_z = -0.5
+			if weapon_id == "brass":
+				for sx in [-0.2, 0.2]:
+					for k in 4:
+						Props.mesh_node(model, _bx(Vector3(0.025, 0.05, 0.03)), Props.mat(Color(0.95, 0.78, 0.2), 0.25, 0.9), Vector3(sx - 0.045 + k * 0.03, -0.1, -0.45))
 		"dynamite":
 			var red := Props.mat(Color(0.8, 0.1, 0.08), 0.6)
 			for i in 3:
@@ -173,7 +177,7 @@ func _add_hands() -> void:
 			Props.hand(model, Vector3(0.0, -0.13, 0.28))
 			Props.hand(model, Vector3(0.0, -0.1, -0.5), Vector3.ZERO, -1.0)
 		"dynamite": Props.hand(model, Vector3(0.0, -0.1, -0.15), Vector3(0.2, 0, 0))
-		"fists":
+		"fists", "brass":
 			Props.hand(model, Vector3(-0.2, -0.12, -0.3), Vector3(0.2, 0.2, 0), 1.0)
 			Props.hand(model, Vector3(0.2, -0.12, -0.3), Vector3(0.2, -0.2, 0), -1.0)
 

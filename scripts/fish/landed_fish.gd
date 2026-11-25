@@ -15,6 +15,12 @@ var _flop_t := 0.5
 var _age := 0.0
 var _gull_called := false
 var _water_t := 0.0
+var hits := 0
+var air_hits := 0
+var kill_mult := 1.0
+var kill_lines: Array = []
+var _last_head := false
+var _last_air := false
 var _model: Node3D
 
 static func spawn(parent: Node, id: String, w: float, pos: Vector3, vel: Vector3) -> LandedFish:
@@ -86,6 +92,12 @@ func hit(damage: float, point: Vector3) -> void:
 		apply_central_impulse((global_position - point).normalized() * mass * 3.0 + Vector3.UP * mass * 3.5)
 		return
 	hp -= damage
+	hits += 1
+	var airborne := global_position.y > Terrain.height_at(global_position.x, global_position.z) + 0.6 and linear_velocity.length() > 1.0
+	if airborne:
+		air_hits += 1
+	_last_head = to_local(point).z > length_m * 0.2
+	_last_air = airborne
 	Fx.damage_number(get_tree().current_scene, point, damage)
 	Fx.blood(get_tree().current_scene, global_position, 0.5)
 	var d := (global_position - point)
@@ -93,8 +105,36 @@ func hit(damage: float, point: Vector3) -> void:
 	if hp <= 0.0:
 		_die()
 
+func _compute_killscore() -> void:
+	kill_lines.clear()
+	kill_mult = 1.0
+	var pl := get_tree().get_first_node_in_group("player") as Node3D
+	if _last_head and hits >= 1:
+		kill_lines.append([1.25, "Tiro na cabeça"])
+	if pl != null:
+		var wid: String = pl.rifle.weapon_id if "rifle" in pl else ""
+		if wid == "sniper" and not pl.rifle.scoped:
+			kill_lines.append([1.2, "No Scope"])
+		if pl.global_position.distance_to(global_position) > 25.0:
+			kill_lines.append([1.3, "Longa distância"])
+	if _last_air:
+		kill_lines.append([1.25, "No ar"])
+	if air_hits >= 2:
+		kill_lines.append([1.2, "Trick shot"])
+	if hits >= 3:
+		kill_lines.append([1.1, "Finalmente"])
+	for l in kill_lines:
+		kill_mult *= float(l[0])
+
+func inspect_info() -> Dictionary:
+	return {"name": display_name(), "value": int(FishDB.price_for(species_id, weight) * kill_mult), "weight": weight, "mult": kill_mult}
+
 func _die() -> void:
 	dead = true
+	_compute_killscore()
+	var hud := get_tree().get_first_node_in_group("hud")
+	if hud and not kill_lines.is_empty():
+		hud.show_killscore(display_name(), int(FishDB.price_for(species_id, weight) * kill_mult), kill_mult, kill_lines)
 	Fx.spark(get_tree().current_scene, global_position)
 	Fx.puff(get_tree().current_scene, global_position, Color(0.85, 0.1, 0.1))
 	Sfx.play_at("impact", get_tree().current_scene, global_position, -2.0, 1.3)
@@ -116,7 +156,7 @@ func interact(_player: Node) -> void:
 	if not GameState.bag_free():
 		GameState.notify.emit("Mochila cheia (%d/%d)! Venda na loja ou compre espaço extra." % [GameState.inventory.size(), GameState.bag_capacity()])
 		return
-	GameState.add_fish(species_id, weight, false)
+	GameState.add_fish(species_id, weight, false, kill_mult)
 	Story.on_fish_caught(species_id, global_position)
 	Sfx.play("coin", -6.0)
 	GameState.notify.emit("Coletou %s (%.1f kg)" % [display_name(), weight])

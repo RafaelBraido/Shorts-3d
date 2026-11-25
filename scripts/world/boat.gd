@@ -14,6 +14,9 @@ var max_speed := 16.0
 var _t := randf() * 10.0
 var _snd: AudioStreamPlayer3D
 var _roll := 0.0
+var _h := 0.0
+var _vy := 0.0
+var _spin := 0.0
 var _hands: Node3D
 var _wheel: Node3D
 
@@ -27,6 +30,7 @@ static func spawn(parent: Node, pos: Vector3, yaw: float, boat_kind: String) -> 
 
 func _ready() -> void:
 	add_to_group("interactable")
+	add_to_group("boats")
 	max_speed = 24.0 if kind == "military" else 16.0
 	_build()
 	_snd = AudioStreamPlayer3D.new()
@@ -91,6 +95,14 @@ func _box(s: Vector3) -> BoxMesh:
 	b.size = s
 	return b
 
+## Explosão embaixo do barco o lança para cima (e ele gira).
+func launch() -> void:
+	if _h > 0.0:
+		return
+	_vy = 15.0
+	_spin = 3.0
+	GameState.notify.emit("Você é o pássaro agora!")
+
 func seat_pos() -> Vector3:
 	return global_position + global_transform.basis * Vector3(0, 0.95, -0.3)
 
@@ -153,7 +165,16 @@ func _physics_process(delta: float) -> void:
 				Sfx.play("impact", -6.0, 0.6)
 		else:
 			global_position = Vector3(np.x, 0.0, np.z)
-	var bob := sin(_t * 1.6) * 0.07
+	if _h > 0.0 or _vy > 0.0:
+		_h += _vy * delta
+		_vy -= 22.0 * delta
+		_spin = lerpf(_spin, 0.0, 0.02)
+		heading += _spin * delta
+		if _h <= 0.0:
+			_h = 0.0
+			_vy = 0.0
+			Fx.splash(get_tree().current_scene, global_position, 3.0)
+	var bob := sin(_t * 1.6) * 0.07 + _h
 	global_position.y = bob
 	rotation = Vector3(-clampf(speed / max_speed, 0.0, 1.0) * 0.06 + sin(_t * 1.1) * 0.015, heading, _roll + sin(_t * 1.3) * 0.02)
 	if driver != null and speed > 4.0 and randf() < 0.3:

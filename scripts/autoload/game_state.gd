@@ -34,10 +34,13 @@ var xp := 0
 var level := 1
 var rod_tier := 0
 var owned_rods: Array[int] = [0]
-var owned_weapons: Array[String] = ["knife"]
-var current_weapon := "knife"
+var owned_weapons: Array[String] = []     ## começa sem armas: só as mãos ("fists")
+var current_weapon := "fists"
 var ammo: Dictionary = {}               ## weapon_id -> {"mag": int, "reserve": int}
 var dynamite := 0
+const SKINS := {"cream": Color(0.93, 0.8, 0.56), "teal": Color(0.15, 0.85, 0.8), "blue": Color(0.2, 0.25, 0.95), "pink": Color(0.95, 0.5, 0.7), "gold": Color(0.95, 0.78, 0.2)}
+var skins_owned: Array[String] = ["cream"]
+var skin := "cream"
 var bag_extra := 0                      ## espaços extras de mochila comprados
 var engine_level := 0                   ## 0 = motor comum, 1 = reforçado, 2 = motores duplos
 var pending_story: Dictionary = {}      ## dados do save entregues ao autoload Story
@@ -68,11 +71,11 @@ func add_xp(amount: int) -> void:
 		notify.emit("Nível %d! (+%d moedas)" % [level, 25 * level])
 	xp_changed.emit(xp, xp_needed(), level)
 
-func add_fish(species_id: String, weight: float, dead: bool = false) -> Dictionary:
-	var value := FishDB.price_for(species_id, weight)
+func add_fish(species_id: String, weight: float, dead: bool = false, value_mult: float = 1.0) -> Dictionary:
+	var value := int(FishDB.price_for(species_id, weight) * value_mult)
 	if dead:
 		value = int(value * 0.6)
-	var entry := {"species": species_id, "weight": weight, "value": value, "dead": dead}
+	var entry := {"species": species_id, "weight": weight, "value": value, "dead": dead, "cooked": 1.0}
 	inventory.append(entry)
 	var c: Dictionary = codex.get(species_id, {"count": 0, "best": 0.0})
 	c["count"] = int(c["count"]) + 1
@@ -87,7 +90,7 @@ func add_fish(species_id: String, weight: float, dead: bool = false) -> Dictiona
 	return entry
 
 func _mult() -> float:
-	return 1.4 if get_node("/root/Story").flags.get("lighter", false) else 1.0
+	return 1.0
 
 func sell_fish(index: int) -> int:
 	if index < 0 or index >= inventory.size():
@@ -242,6 +245,62 @@ func gamble_fish(index: int) -> int:
 	save_game()
 	return value * 3 if win else 0
 
+func skin_color() -> Color:
+	return SKINS[skin]
+
+func equip_skin(id: String) -> void:
+	if id in skins_owned:
+		skin = id
+		for n in Engine.get_main_loop().root.find_children("*", "MeshInstance3D", true, false):
+			if n.is_in_group("hand_mesh"):
+				n.material_override = Props.mat(SKINS[id], 0.9)
+		save_game()
+
+## Roleta (37 casas): vermelho/preto pagam 2x, verde (0) paga 36x (35x de lucro).
+func roulette(bet: int, color: String) -> Dictionary:
+	if bet <= 0 or coins < bet:
+		return {"ok": false}
+	var n := randi() % 37
+	var res := "green" if n == 0 else ("red" if n % 2 == 1 else "black")
+	var win := res == color
+	var payout := 0
+	if win:
+		payout = bet * (36 if color == "green" else 2)
+	coins += payout - bet
+	coins_changed.emit(coins)
+	save_game()
+	return {"ok": true, "n": n, "color": res, "win": win, "payout": payout}
+
+## Reel of Fortune: joga um peixe na máquina; pode render dinheiro ou uma skin de luva.
+func reel_of_fortune(index: int) -> Dictionary:
+	if index < 0 or index >= inventory.size():
+		return {"ok": false}
+	var value: int = int(inventory[index]["value"])
+	inventory.remove_at(index)
+	inventory_changed.emit()
+	var r := randf()
+	var out := {"ok": true, "kind": "lose", "amount": 0, "skin": ""}
+	if r < 0.08:
+		var locked: Array = []
+		for k in SKINS:
+			if not (k in skins_owned):
+				locked.append(k)
+		if locked.is_empty():
+			add_coins(value * 8)
+			out = {"ok": true, "kind": "coins", "amount": value * 8, "skin": ""}
+		else:
+			var pick: String = locked[randi() % locked.size()]
+			skins_owned.append(pick)
+			out = {"ok": true, "kind": "skin", "amount": 0, "skin": pick}
+	elif r < 0.20:
+		add_coins(value * 5)
+		out = {"ok": true, "kind": "coins", "amount": value * 5, "skin": ""}
+	elif r < 0.45:
+		add_coins(value * 2)
+		out = {"ok": true, "kind": "coins", "amount": value * 2, "skin": ""}
+	save_game()
+	return out
+
 func use_dynamite() -> bool:
 	if dynamite <= 0:
 		return false
@@ -274,7 +333,7 @@ func save_game() -> void:
 		return
 	var data := {
 		"coins": coins, "xp": xp, "level": level, "rod_tier": rod_tier,
-		"owned_rods": owned_rods, "owned_weapons": owned_weapons, "ammo": ammo, "dynamite": dynamite, "engine_level": engine_level, "bag_extra": bag_extra,
+		"owned_rods": owned_rods, "owned_weapons": owned_weapons, "ammo": ammo, "dynamite": dynamite, "engine_level": engine_level, "bag_extra": bag_extra, "skins_owned": skins_owned, "skin": skin,
 		"story": get_node("/root/Story").to_dict() if has_node("/root/Story") else pending_story,
 		"inventory": inventory, "codex": codex, "total_caught": total_caught,
 	}
@@ -305,17 +364,22 @@ func load_game() -> void:
 	for w in d.get("owned_weapons", ["knife"]):
 		if WeaponDB.W.has(String(w)):
 			owned_weapons.append(String(w))
-	if owned_weapons.is_empty():
-		owned_weapons.append("knife")
 	ammo = d.get("ammo", {})
 	dynamite = int(d.get("dynamite", 0))
 	engine_level = clampi(int(d.get("engine_level", 0)), 0, 2)
 	bag_extra = maxi(int(d.get("bag_extra", 0)), 0)
+	skins_owned.clear()
+	for sk in d.get("skins_owned", ["cream"]):
+		if SKINS.has(String(sk)):
+			skins_owned.append(String(sk))
+	if skins_owned.is_empty():
+		skins_owned.append("cream")
+	skin = String(d.get("skin", "cream")) if String(d.get("skin", "cream")) in skins_owned else "cream"
 	pending_story = d.get("story", {})
 	inventory.clear()
 	for e in d.get("inventory", []):
 		if typeof(e) == TYPE_DICTIONARY and FishDB.SPECIES.has(String(e.get("species", ""))):
 			inventory.append({"species": String(e["species"]), "weight": float(e["weight"]),
-				"value": int(e["value"]), "dead": bool(e.get("dead", false))})
+				"value": int(e["value"]), "dead": bool(e.get("dead", false)), "cooked": float(e.get("cooked", 1.0))})
 	codex = d.get("codex", {})
 	total_caught = int(d.get("total_caught", 0))

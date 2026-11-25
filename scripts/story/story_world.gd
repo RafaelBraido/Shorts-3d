@@ -77,6 +77,12 @@ static func _island1(w: Node3D, z: Dictionary) -> void:
 	StoryNpc.make(w, "guardian", "Guardião do Farol", Vector3(bench_p.x, by + 0.55, bench_p.y), atan2(face.x, face.y), "guardian", true)
 	z["guardian"] = Vector3(bench_p.x, by + 1.0, bench_p.y)
 	_keepout(w, bench_p, 4.0)
+	# Reel of Fortune: máquina neon de cassino ao lado da loja
+	var sp2 := Vector2(w.shop_pos.x, w.shop_pos.z)
+	var sface := (shore - sp2).normalized()
+	var sside := Vector2(-sface.y, sface.x)
+	var mp := sp2 + sface * 6.0 + sside * 4.5
+	_reel_machine(w, Vector3(mp.x, Terrain.height_at(mp.x, mp.y), mp.y), atan2(sface.x, sface.y))
 	# Baía do Caranguejo: praia a leste
 	var cd := Vector2(1.0, -0.55).normalized()
 	var cshore := Terrain.find_shore(Vector2.ZERO, cd, 0.0)
@@ -93,8 +99,51 @@ static func _island1(w: Node3D, z: Dictionary) -> void:
 	lbl.position = Vector3(sign_p.x, Terrain.height_at(sign_p.x, sign_p.y) + 2.9, sign_p.y)
 	w.add_child(lbl)
 	_keepout(w, cshore, 6.0)
+	# grelha da praia (perto da fogueira)
+	var gp := shore - dir * 7.0 - perp * 6.5
+	Grill.make(w, Vector3(gp.x, Terrain.height_at(gp.x, gp.y), gp.y))
 
 # ------------------------------------------------------------------ Ilha 2 — a Floresta
+
+static func _reel_machine(w: Node3D, pos: Vector3, yaw: float) -> void:
+	var root := Node3D.new()
+	root.position = pos
+	root.rotation.y = yaw
+	w.add_child(root)
+	var body := StaticBody3D.new()
+	root.add_child(body)
+	var dark := Color(0.12, 0.13, 0.18)
+	Props.box(root, Vector3(1.4, 2.3, 1.0), Vector3(0, 1.15, 0), dark, body, Vector3.ZERO, 0.5)
+	var neon := Props.mat(Color(0.25, 0.65, 1.0), 0.3, 0.0, 3.0)
+	var orange := Props.mat(Color(1.0, 0.6, 0.1), 0.3, 0.0, 3.0)
+	for sx in [-0.68, 0.68]:
+		Props.mesh_node(root, BoxMesh.new(), neon, Vector3(sx, 0.95, 0.52)).scale = Vector3(0.06, 1.7, 0.06)
+	Props.mesh_node(root, BoxMesh.new(), neon, Vector3(0, 1.82, 0.52)).scale = Vector3(1.4, 0.06, 0.06)
+	Props.mesh_node(root, BoxMesh.new(), neon, Vector3(0, 0.12, 0.52)).scale = Vector3(1.4, 0.06, 0.06)
+	# funil por onde o peixe entra
+	Props.box(root, Vector3(1.0, 0.35, 0.8), Vector3(0, 2.4, 0.0), Color(0.2, 0.25, 0.35))
+	# visor com 5 rolos
+	var cols := [Color(0.3, 0.9, 0.2), Color(0.95, 0.35, 0.75), Color(0.3, 0.9, 0.2), Color(0.9, 0.2, 0.2), Color(0.3, 0.9, 0.2)]
+	for i in 5:
+		Props.mesh_node(root, BoxMesh.new(), Props.mat(cols[i], 0.4, 0.0, 1.2), Vector3(-0.5 + i * 0.25, 0.75, 0.52)).scale = Vector3(0.2, 0.3, 0.05)
+	var lbl := Label3D.new()
+	lbl.text = "Reel of Fortune"
+	lbl.font_size = 60
+	lbl.pixel_size = 0.0055
+	lbl.outline_size = 10
+	lbl.modulate = Color(1.0, 0.7, 0.15)
+	lbl.position = Vector3(0, 1.4, 0.56)
+	root.add_child(lbl)
+	var l := OmniLight3D.new()
+	l.light_color = Color(0.4, 0.7, 1.0)
+	l.light_energy = 1.2
+	l.omni_range = 7.0
+	l.position = Vector3(0, 1.5, 1.2)
+	root.add_child(l)
+	var spot := InteractSpot.make(w, pos + Vector3(0, 1.0, 0), "Jogar um peixe no Reel of Fortune (skins de luva!)", 3.5, func() -> void:
+		var hud := w.get_tree().get_first_node_in_group("hud")
+		if hud:
+			hud.open_shop("Cassino"))
 
 static func _island2(w: Node3D, z: Dictionary, rng: RandomNumberGenerator) -> void:
 	var c := Terrain.island_center(1)
@@ -158,8 +207,7 @@ static func _island3(w: Node3D, z: Dictionary, rng: RandomNumberGenerator) -> vo
 	var by := _flat_y(bp, 0.5)
 	StoryNpc.make(w, "bbq", "Mestre do Churrasco", Vector3(bp.x, by, bp.y), 0.6, "bbq")
 	z["bbq"] = Vector3(bp.x, by + 1.0, bp.y)
-	Props.box(w, Vector3(1.4, 0.8, 0.8), Vector3(bp.x + 1.4, by + 0.4, bp.y + 0.6), Color(0.25, 0.25, 0.28))
-	Props.add_fire(w, Vector3(bp.x + 1.4, by + 0.82, bp.y + 0.6), 0.45, false)
+	Grill.make(w, Vector3(bp.x + 1.6, by, bp.y + 0.6))
 	_keepout(w, bp, 4.0)
 	# cactos
 	for i in 14:
@@ -281,6 +329,7 @@ static func _island5(w: Node3D, z: Dictionary) -> void:
 			bm.material_override = lava_mat
 			bm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			r += 2.2
+	Grill.make(w, z["lava"] + Vector3(-7.0, -0.7, 0.0), true)
 	var lspot := InteractSpot.make(w, z["lava"], "Jogar a carcaça na lava", 11.0, Story.throw_carcass_into_lava)
 	lspot.condition = func() -> bool: return Story.carrying != "" and Story.chapter == 5
 	# acampamento militar ao sul

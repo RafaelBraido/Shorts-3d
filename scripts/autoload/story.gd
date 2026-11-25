@@ -79,7 +79,7 @@ func item_name(id: String) -> String:
 		"leech": "Sanguessuga", "leech_bait": "Isca especial de sanguessuga", "piranha_skeleton": "Esqueleto da Piranha Gigante",
 		"carrot": "Cenoura (isca)", "puffer_fin": "Barbatana do Baiacu Gigante", "albatross_head": "Cabeça do Albatroz Gigante",
 		"fish_bucket": "Balde de Peixes (isca)", "whale_carcass": "Carcaça da Baleia", "mutant_fin": "Barbatana da Baleia Mutante",
-		"pro_bait": "Isca profissional"}.get(id, id)
+		"bait_hot": "Isca de cachorro-quente", "bait_std": "Isca de chefe padrão", "bait_pro": "Isca de chefe profissional", "bait_sci": "Isca científica", "shark_fin": "Barbatana do Tubarão‑Azul"}.get(id, id)
 
 func is_fish_in_bag(species: String) -> bool:
 	for e in GameState.inventory:
@@ -108,14 +108,14 @@ func objective() -> String:
 				"Pesque 3 peixes com a vara (tecla 2): lance em água funda, fisgue e recolha. Venda na loja.",
 				"Volte ao Guardião do Farol.",
 				"Compre uma lata de cerveja ($12) na loja do Capitão Maré e entregue ao Guardião.",
-				"Lance a lata vazia (isca) na Baía do Caranguejo e fisgue o Caranguejo‑Aranha. Termine-o a facadas!",
+				"Compre uma arma branca na loja (soco inglês $24 ou faca $45). Lance a lata vazia na Baía do Caranguejo e fisgue o Caranguejo‑Aranha. Deixe-o se atordoar e golpeie!",
 				"Entregue a carapaça ao Guardião.",
 				"Compre o Radar ($10) na loja do Capitão Maré."][step]
 		2:
 			return ["Navegue com o barco até a Ilha da Floresta e fale com Marina, à beira do lago.",
-				"Colete 5 sanguessugas espalhadas pela ilha (%d/5)." % count("leech"),
+				"Colete 3 sanguessugas espalhadas pela ilha (%d/3)." % count("leech"),
 				"Entregue as sanguessugas a Marina.",
-				"Compre armas na loja (pistola, escopeta, dinamite). Lance a isca no lago e derrote a Piranha Gigante!",
+				"Compre armas na loja (escopeta, dinamite). Lance a isca no lago e derrote a Piranha Gigante!",
 				"Entregue o esqueleto da piranha a Marina."][step]
 		3:
 			return ["Vá à Ilha Tropical e fale com o Turista (debaixo da árvore). Opcional: o Mestre do Churrasco.",
@@ -125,7 +125,7 @@ func objective() -> String:
 				"Entregue a barbatana do Baiacu ao Turista."][step]
 		4:
 			return ["Vá à Ilha dos Penhascos e fale com o Vendedor (dentro da loja).",
-				"Pesque um Atum‑azul (a isca profissional da loja ajuda).",
+				"Pesque um Atum‑azul (precisa da isca de chefe profissional da loja, $1.200).",
 				"Deixe o atum como oferenda no centro da ilha (marcador) e derrote o Albatroz Gigante com o sniper!",
 				"Entregue a cabeça do Albatroz ao Vendedor."][step]
 		5:
@@ -192,7 +192,7 @@ func check_progress() -> void:
 			if has_radar():
 				next_chapter("Radar instalado! Próximo destino: Ilha da Floresta.")
 		[2, 1]:
-			if count("leech") >= 5:
+			if count("leech") >= 3:
 				advance(2, "Sanguessugas suficientes! Volte a Marina.")
 		[2, 3]:
 			if has("piranha_skeleton"):
@@ -249,10 +249,13 @@ func lure_cast(pos: Vector3) -> String:
 		[5, 3]:
 			if has("fish_bucket") and p2.distance_to(Terrain.island_center(4)) < 85.0:
 				return "whale"
+	# mini-chefe opcional: Tubarão‑Azul (isca de chefe padrão, na Ilha Tropical) -> isqueiro
+	if has("bait_std") and not flags.get("lighter", false) and p2.distance_to(Terrain.island_center(2)) < 75.0 and Terrain.depth_at(pos.x, pos.z) > 2.5:
+		return "blue_shark"
 	return ""
 
 func lure_item(boss_id: String) -> String:
-	return {"crab": "empty_can", "piranha": "leech_bait", "puffer": "carrot", "whale": "fish_bucket"}.get(boss_id, "")
+	return {"crab": "empty_can", "piranha": "leech_bait", "puffer": "carrot", "whale": "fish_bucket", "blue_shark": "bait_std"}.get(boss_id, "")
 
 ## A isca foi fisgada com sucesso (minigame vencido): o chefe emerge.
 func on_lure_success(boss_id: String, water_pos: Vector3) -> void:
@@ -288,7 +291,7 @@ func _on_boss_died(b: Node) -> void:
 	GameState.notify.emit("%s derrotado! +$%d" % [b.display_name, int(b.reward)])
 	Sfx.play("catch")
 	var drop_item: String = {"crab": "crab_shell", "piranha": "piranha_skeleton", "puffer": "puffer_fin", "albatross": "albatross_head",
-		"whale": "whale_carcass", "mutant": "mutant_fin"}.get(b.id, "")
+		"whale": "whale_carcass", "mutant": "mutant_fin", "blue_shark": "shark_fin"}.get(b.id, "")
 	if b.id == "piranha":
 		for m in get_tree().get_nodes_in_group("targets"):
 			if m is Boss and m.id == "piranha_minion":
@@ -348,13 +351,37 @@ func buy_radar() -> bool:
 	GameState.save_game()
 	return true
 
-func buy_pro_bait() -> bool:
-	if GameState.coins < 60:
-		return false
-	GameState.coins -= 60
-	GameState.coins_changed.emit(GameState.coins)
-	add_item("pro_bait")
-	return true
+const BAITS := [
+	{"id": "bait_hot", "tier": 1, "name": "Isca de cachorro-quente", "price": 15, "desc": "Atrai criaturas mais valiosas (baiacu, dourado)."},
+	{"id": "bait_std", "tier": 2, "name": "Isca de chefe padrão", "price": 280, "desc": "Barracudas e o mini-chefe Tubarão‑Azul (Ilha Tropical)."},
+	{"id": "bait_pro", "tier": 3, "name": "Isca de chefe profissional", "price": 1200, "desc": "Atum e peixe-lua (necessária para o atum do Albatroz)."},
+	{"id": "bait_sci", "tier": 4, "name": "Isca científica", "price": 5800, "desc": "Criaturas lendárias."},
+]
+
+func buy_bait(tier: int) -> bool:
+	for b in BAITS:
+		if int(b["tier"]) == tier:
+			if GameState.coins < int(b["price"]):
+				return false
+			GameState.coins -= int(b["price"])
+			GameState.coins_changed.emit(GameState.coins)
+			add_item(String(b["id"]))
+			return true
+	return false
+
+## Maior tier de isca disponível (0 = isca iniciante, de graça).
+func best_bait_tier() -> int:
+	var best := 0
+	for b in BAITS:
+		if has(String(b["id"])):
+			best = maxi(best, int(b["tier"]))
+	return best
+
+func bait_id_for_tier(tier: int) -> String:
+	for b in BAITS:
+		if int(b["tier"]) == tier:
+			return String(b["id"])
+	return ""
 
 # ------------------------------------------------------------------ diálogos
 
@@ -430,14 +457,14 @@ func _talk_marina() -> Dictionary:
 	match step:
 		0: return _d(who, ["Um barco? Faz tempo que ninguém aparece. Sou Marina.",
 				"O aniversário do meu pai está chegando e quero preparar o prato favorito dele: Piranha Gigante assada. Mas a lagoa é perigosa demais sem poder de fogo.",
-				"Para atrair a bicha preciso de uma isca especial, feita de sanguessugas. Espalhei algumas pela ilha — pode coletar 5 delas?"],
+				"Para atrair a bicha preciso de uma isca especial, feita de sanguessugas. Espalhei algumas pela ilha — pode coletar 3 delas?"],
 				func() -> void: advance(1))
-		1: return _d(who, ["Ainda faltam sanguessugas (%d/5). Procure perto da água e dos arbustos." % count("leech")])
-		2: return _d(who, ["Cinco sanguessugas! Deixa comigo... pronto, isca especial feita!",
+		1: return _d(who, ["Ainda faltam sanguessugas (%d/3). Procure perto da água e dos arbustos." % count("leech")])
+		2: return _d(who, ["Três sanguessugas! Deixa comigo... pronto, isca especial feita!",
 				"Lance na lagoa (marcador), mas vá ARMADO: pistola, escopeta, dinamite... a loja do Capitão Maré tem de tudo.",
 				"Ela não vem sozinha: os filhotes vêm junto. Boa sorte!"],
 				func() -> void:
-					take_item("leech", 5)
+					take_item("leech", 3)
 					add_item("leech_bait")
 					advance(3))
 		3: return _d(who, ["Lance a isca especial no lago, com a vara (tecla 2). Quando ela aparecer, atire com tudo!"])
@@ -487,15 +514,15 @@ func _talk_tourist() -> Dictionary:
 func _talk_bbq() -> Dictionary:
 	var who := "Mestre do Churrasco"
 	if flags.get("lighter", false):
-		return _d(who, ["Com o isqueiro dourado, todo peixe vendido rende mais. Churrasco é arte!"])
-	if is_fish_in_bag("tubarao_azul"):
-		return _d(who, ["Um Tubarão‑Azul! Fez o impossível, parceiro!", "Aqui está meu isqueiro. Agora você assa os peixes antes de vender: +40% no preço!"],
+		return _d(who, ["Com o isqueiro a grelha está acesa! Cozinhe o peixe: o valor sobe até 1,5x, mas CUIDADO: se passar do ponto, ele queima e vale zero. Tire na hora certa!"])
+	if has("shark_fin"):
+		return _d(who, ["A barbatana do Tubarão‑Azul! Fez o impossível, parceiro!", "Aqui está meu isqueiro. Acenda a grelha ao lado e cozinhe seus peixes: até 1,5x o valor — mas não deixe queimar!"],
 			func() -> void:
-				remove_fish_from_bag("tubarao_azul")
+				take_item("shark_fin")
 				flags["lighter"] = true
-				GameState.notify.emit("Isqueiro obtido: peixes valem +40%!")
+				GameState.notify.emit("Isqueiro obtido: as grelhas estão liberadas!")
 				changed.emit())
-	return _d(who, ["Sou o Mestre do Churrasco. Traga um Tubarão‑Azul (pesca em águas fundas, é raro e briguento) e dou meu isqueiro para assar peixes. Peixe assado vale mais!"])
+	return _d(who, ["Sou o Mestre do Churrasco. Derrote o Tubarão‑Azul e te dou o isqueiro para acender a grelha. Compre uma isca de chefe padrão ($280) na loja e lance na água funda aqui perto."])
 
 func _talk_vendor() -> Dictionary:
 	var who := "Vendedor Assustado"

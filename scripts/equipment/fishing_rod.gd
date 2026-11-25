@@ -122,6 +122,7 @@ func _clear_bobber() -> void:
 	if manager:
 		manager.bait = null
 		manager.bait_fish = null
+		manager.bait_tier = 0
 		manager.remove_hooks()
 	_lure = ""
 	luck_bonus = 0.0
@@ -177,8 +178,8 @@ func _process(delta: float) -> void:
 			_wait_t += delta
 			if not _fallback_done and _wait_t > 14.0 and manager.bait_fish == null and _lure == "":
 				_fallback_done = true
-				var forced := "atum" if (Story.chapter == 4 and Story.step == 1 and luck_bonus > 0.0 and randf() < 0.7) else ""
-				manager.spawn_near_bait(bobber.global_position, float(GameState.rod().get("luck", 0.0)) + luck_bonus, forced)
+				var forced := "atum" if (Story.chapter == 4 and Story.step == 1 and manager.bait_tier >= 3 and randf() < 0.7) else ""
+				manager.spawn_near_bait(bobber.global_position, float(GameState.rod().get("luck", 0.0)) + luck_bonus, forced, manager.bait_tier)
 			if pressed or Input.is_action_just_pressed("cancel") or Input.is_action_just_pressed("reload"):
 				reel_in()
 		S.BITE:
@@ -232,13 +233,15 @@ func _on_landed(in_water: bool) -> void:
 			manager.spawn_near_bait(bobber.global_position, 0.0, "boss_hook")
 			hud.toast("A isca cheira a problema... algo GRANDE se aproxima!", Color(1.0, 0.7, 0.4))
 		else:
-			if Story.count("pro_bait") > 0:
-				Story.take_item("pro_bait")
-				luck_bonus = 1.0
-				manager.bait_interest += 10.0
-				hud.toast("Isca profissional usada: mais sorte neste lance!", Color(0.7, 1.0, 0.8))
+			var tier := Story.best_bait_tier()
+			manager.bait_tier = tier
+			if tier > 0:
+				Story.take_item(Story.bait_id_for_tier(tier))
+				luck_bonus = tier * 0.35
+				manager.bait_interest += 4.0 * tier
+				hud.toast("%s usada: peixes de nível %d podem morder." % [Story.item_name(Story.bait_id_for_tier(tier)), tier], Color(0.7, 1.0, 0.8))
 			else:
-				hud.toast("Aguardando um peixe morder...", Color(0.8, 0.95, 1.0))
+				hud.toast("Isca iniciante: só criaturas comuns. Compre iscas melhores na loja.", Color(0.8, 0.95, 1.0))
 	else:
 		hud.toast("Precisa cair na água fundo!", Color(1.0, 0.7, 0.4))
 		reel_in()

@@ -99,22 +99,27 @@ static func blood(parent: Node, pos: Vector3, size: float = 1.0) -> void:
 	var p: Vector3 = hit["position"]
 	if p.y < 0.15 and Terrain.depth_at(p.x, p.z) > 0.3:
 		return
-	var cm := CylinderMesh.new()
-	cm.top_radius = size * randf_range(0.3, 0.7)
-	cm.bottom_radius = cm.top_radius
-	cm.height = 0.02
-	cm.radial_segments = 8
-	cm.rings = 1
-	var mi := MeshInstance3D.new()
-	mi.mesh = cm
-	mi.material_override = Props.mat(Color(0.62, 0.03, 0.03), 0.35)
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parent.add_child(mi)
-	mi.global_position = p + (hit["normal"] as Vector3) * 0.03
-	mi.scale = Vector3(randf_range(0.8, 1.6), 1.0, randf_range(0.8, 1.4))
-	mi.rotate_y(randf() * TAU)
+	var root := Node3D.new()
+	parent.add_child(root)
+	root.global_position = p + (hit["normal"] as Vector3) * 0.03
+	root.rotate_y(randf() * TAU)
+	for i in 4:
+		var cm := CylinderMesh.new()
+		cm.top_radius = size * randf_range(0.35, 0.9) * (1.0 if i == 0 else 0.55)
+		cm.bottom_radius = cm.top_radius
+		cm.height = 0.02
+		cm.radial_segments = 7
+		cm.rings = 1
+		var blob := MeshInstance3D.new()
+		blob.mesh = cm
+		blob.material_override = Props.mat(Color(0.62, 0.03, 0.03), 0.35)
+		blob.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(blob)
+		blob.position = Vector3(randf_range(-0.7, 0.7) * size * (0.0 if i == 0 else 1.0), 0.0, randf_range(-0.7, 0.7) * size * (0.0 if i == 0 else 1.0))
+		blob.scale = Vector3(randf_range(0.8, 1.7), 1.0, randf_range(0.8, 1.5))
+	var mi := root
 	_blood_list.append(mi)
-	while _blood_list.size() > 70:
+	while _blood_list.size() > 45:
 		var old = _blood_list.pop_front()
 		if is_instance_valid(old):
 			old.queue_free()

@@ -10,6 +10,7 @@ const DESPAWN_DIST := 72.0
 var player: Node3D
 var bait: Node3D = null            ## boia atual na água (definida pela vara)
 var bait_fish: Fish = null         ## peixe que está interagindo com a boia
+var bait_tier := 0                 ## nível da isca em uso: só peixes desse nível ou abaixo mordem
 var bait_interest := 16.0          ## alcance de atração da isca
 var fishes: Array[Fish] = []
 var target_count := 46
@@ -43,12 +44,12 @@ func remove_hooks() -> void:
 		if is_instance_valid(f) and f.species_id == "boss_hook":
 			remove_fish(f)
 
-func _pick_species_for(p: Vector3, luck: float = 0.0) -> String:
+func _pick_species_for(p: Vector3, luck: float = 0.0, tier: int = 99) -> String:
 	if Story.wants_seahorse(p) and _rng.randf() < 0.5:
 		return "cavalo_marinho"
 	var depth := Terrain.depth_at(p.x, p.z)
 	for i in 8:
-		var id := FishDB.pick_species(luck, _rng)
+		var id := FishDB.pick_species(luck, _rng, tier)
 		if float(FishDB.data(id)["depth"]) <= depth - 0.5 or i == 7:
 			return id
 	return "sardinha"
@@ -92,11 +93,11 @@ func remove_fish(f: Fish) -> void:
 func consume_fish(f: Fish) -> void:
 	remove_fish(f)
 
-func spawn_near_bait(pos: Vector3, luck: float, species: String = "") -> Fish:
+func spawn_near_bait(pos: Vector3, luck: float, species: String = "", tier: int = 99) -> Fish:
 	var p := _random_water_point(pos, 6.0, 11.0, 1.2)
 	if p == Vector3.INF:
 		return null
-	var id := species if species != "" else _pick_species_for(p, luck)
+	var id := species if species != "" else _pick_species_for(p, luck, tier)
 	var f := _spawn_one(id, p)
 	if f != null:
 		f.leader = null

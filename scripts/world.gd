@@ -66,6 +66,11 @@ func _build_environment() -> void:
 	e.fog_light_color = Color(0.72, 0.86, 0.97)
 	e.fog_density = 0.0009
 	e.fog_aerial_perspective = 0.6
+	if not GameState.is_mobile():
+		e.ssao_enabled = true      # só tem efeito no renderizador Forward+ (PC)
+		e.ssao_radius = 1.6
+		e.ssao_intensity = 1.6
+		e.ssil_enabled = false
 	e.adjustment_enabled = true
 	e.adjustment_saturation = 1.12
 	e.adjustment_contrast = 1.05

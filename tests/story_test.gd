@@ -104,10 +104,10 @@ func _run() -> void:
 	ok(Story.step == 1, "Marina pede sanguessugas")
 	var leeches := 0
 	for n in get_tree().get_nodes_in_group("interactable"):
-		if n is LeechPickup and leeches < 5:
+		if n is LeechPickup and leeches < 3:
 			n.interact(player)
 			leeches += 1
-	ok(leeches == 5 and Story.step == 2, "5 sanguessugas coletadas (%d) -> passo 2" % leeches)
+	ok(leeches == 3 and Story.step == 2, "3 sanguessugas coletadas (%d) -> passo 2" % leeches)
 	await talk("marina")
 	ok(Story.step == 3 and Story.has("leech_bait"), "isca especial fabricada")
 	var lake: Vector3 = z["lake"]
@@ -156,9 +156,10 @@ func _run() -> void:
 	fin.interact(player)
 	await talk("tourist")
 	ok(Story.chapter == 4, "Turista dá a posição -> Capítulo 4")
-	GameState.add_fish("tubarao_azul", 100.0)
+	Story.add_item("shark_fin")
 	await talk("bbq")
-	ok(Story.flags.get("lighter", false), "Mestre do Churrasco deu o isqueiro (opcional)")
+	ok(Story.flags.get("lighter", false) and not Story.has("shark_fin"), "barbatana do Tubarão‑Azul -> isqueiro (opcional)")
+	ok(Story.lure_cast(z["island3"] + Vector3(10, 0, 10)) == "", "com o isqueiro, o mini-chefe não volta")
 	# ---- capítulo 4
 	await talk("vendor")
 	ok(Story.step == 1, "Vendedor explica o Albatroz")

@@ -148,7 +148,7 @@ func _swim(delta: float) -> void:
 	# atração pela boia
 	if manager != null and manager.bait != null and is_instance_valid(manager.bait) and manager.bait_fish == null:
 		var bd: float = manager.bait.global_position.distance_to(global_position)
-		if bd < manager.bait_interest * curiosity + 4.0 and Terrain.depth_at(manager.bait.global_position.x, manager.bait.global_position.z) >= 0.9:
+		if bd < manager.bait_interest * curiosity + 4.0 and int(FishDB.data(species_id).get("bait", 0)) <= manager.bait_tier and Terrain.depth_at(manager.bait.global_position.x, manager.bait.global_position.z) >= 0.9:
 			manager.bait_fish = self
 			state = State.CURIOUS
 			_state_timer = 0.0

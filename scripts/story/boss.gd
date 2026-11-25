@@ -15,6 +15,7 @@ const CFG := {
 	"albatross": {"name": "Albatroz Gigante", "hp": 40.0, "reward": 1400, "hit_r": 2.6, "hit_y": 0.0},
 	"whale": {"name": "Baleia‑da‑Groenlândia", "hp": 120.0, "reward": 2200, "hit_r": 5.0, "hit_y": 0.0},
 	"mutant": {"name": "Baleia Mutante de Magma", "hp": 220.0, "reward": 5000, "hit_r": 7.0, "hit_y": 2.0},
+	"blue_shark": {"name": "Tubarão‑Azul", "hp": 70.0, "reward": 400, "hit_r": 2.0, "hit_y": 0.0},
 }
 
 var id := "crab"
@@ -69,6 +70,11 @@ func setup(boss_id: String) -> void:
 			model.scale = Vector3.ONE * 1.6
 		"whale": model = BossModels.whale(false)
 		"mutant": model = BossModels.whale(true)
+		"blue_shark":
+			model = Node3D.new()
+			var shark := FishModel.build("tubarao_azul", 0.0, 9.0)
+			shark.scale = Vector3.ONE * 3.6
+			model.add_child(shark)
 	add_child(model)
 	_angle = randf() * TAU
 
@@ -90,8 +96,9 @@ func start_fight() -> void:
 		"albatross":
 			state = "orbit"
 			home = Story.zones.get("altar", global_position)
-		"whale":
+		"whale", "blue_shark":
 			state = "patrol"
+			_cd = 2.0
 		"mutant":
 			state = "idle"
 			global_position = Story.zones["lava"] + Vector3(0, -0.5, 0)
@@ -121,7 +128,7 @@ func drop_position() -> Vector3:
 		var dirv := (Vector2(pl.global_position.x, pl.global_position.z) - Terrain.LAKE_CENTER).normalized() if pl else Vector2.RIGHT
 		var e := Terrain.LAKE_CENTER + dirv * Terrain.LAKE_R * 0.8
 		return Vector3(e.x, maxf(Terrain.height_at(e.x, e.y), 0.0) + 0.3, e.y)
-	var goal := Vector2(Terrain.island_center(clampi(Story.chapter - 1, 0, 4)))
+	var goal := Vector2(Terrain.island_center(2 if id == "blue_shark" else clampi(Story.chapter - 1, 0, 4)))
 	for i in 220:
 		if Terrain.height_at(p.x, p.y) > 0.4:
 			break
@@ -146,7 +153,7 @@ func hit(damage: float, point: Vector3) -> void:
 	Fx.spark(scene, point)
 	Fx.damage_number(scene, point, damage, Color(1, 1, 1) if state != "stunned" else Color(1.0, 0.85, 0.2))
 	if id in ["crab", "puffer", "piranha", "piranha_minion"]:
-		Fx.blood(scene, Vector3(point.x, global_position.y, point.z), 1.2 if id == "crab" else 0.8)
+		Fx.blood(scene, Vector3(point.x, global_position.y, point.z), 2.0 if id == "crab" else 1.0)
 	if hp <= 0.0:
 		_die()
 
@@ -187,7 +194,7 @@ func _physics_process(delta: float) -> void:
 		"piranha", "piranha_minion": _ai_piranha(delta)
 		"puffer": _ai_puffer(delta)
 		"albatross": _ai_albatross(delta)
-		"whale": _ai_whale(delta)
+		"whale", "blue_shark": _ai_whale(delta)
 		"mutant": _ai_mutant(delta)
 
 func _flat_to_player() -> Vector3:
@@ -429,6 +436,7 @@ func _fire_orb() -> void:
 
 # --- baleia
 func _ai_whale(delta: float) -> void:
+	var shark := id == "blue_shark"
 	var to_p := _flat_to_player()
 	var dist := to_p.length()
 	_face_dir_whale(delta)
@@ -438,32 +446,32 @@ func _ai_whale(delta: float) -> void:
 			if _t <= 0.0:
 				_t = randf_range(3.0, 6.0)
 				_dir = Vector3(cos(randf() * TAU), 0, sin(randf() * TAU))
-			_swim(_dir, 4.0, delta)
-			if dist < 45.0 and _cd <= 0.0:
+			_swim(_dir, 5.0 if shark else 4.0, delta)
+			if dist < (60.0 if shark else 45.0) and _cd <= 0.0:
 				state = "charge"
 				_t = 3.2
 				_hit_done = false
 				Sfx.play("splash", 3.0, 0.4)
 		"charge":
 			_dir = to_p.normalized()
-			_swim(_dir, 11.0, delta)
-			if not _hit_done and dist < 7.0:
+			_swim(_dir, 14.0 if shark else 11.0, delta)
+			if not _hit_done and dist < (4.5 if shark else 7.0):
 				_hit_done = true
-				_damage_player(22.0)
+				_damage_player(18.0 if shark else 22.0)
 				Fx.splash(get_tree().current_scene, player.global_position, 2.0)
 			if _t <= 0.0:
 				state = "patrol"
-				_cd = 4.0
+				_cd = 3.0 if shark else 4.0
 				_t = 0.0
 				_spout()
-	global_position.y = lerpf(global_position.y, -1.1 + sin(_anim * 0.9) * 0.3, 0.05)
+	global_position.y = lerpf(global_position.y, (-0.8 if shark else -1.1) + sin(_anim * 0.9) * 0.3, 0.05)
 
 func _face_dir_whale(delta: float) -> void:
 	_face(_dir, 1.6, delta)
 
 func _swim(dirv: Vector3, speed: float, delta: float) -> void:
 	var np := global_position + dirv.normalized() * speed * delta
-	if Terrain.depth_at(np.x, np.z) > 3.2 and Terrain.is_inside_map(np, 10.0):
+	if Terrain.depth_at(np.x, np.z) > (2.0 if id == "blue_shark" else 3.2) and Terrain.is_inside_map(np, 10.0):
 		global_position = np
 	else:
 		_dir = (Vector3(-global_position.x, 0, -global_position.z)).normalized().rotated(Vector3.UP, randf_range(-1.0, 1.0))

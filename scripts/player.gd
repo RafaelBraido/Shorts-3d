@@ -32,6 +32,7 @@ var _bob_t := 0.0
 var _step_t := 0.0
 var _swimming := false
 var _prompt_target: Node = null
+var _wprompt: Label3D
 var touch_mode := false
 var crouching := false
 var hp := 100.0
@@ -76,6 +77,15 @@ func _ready() -> void:
 	held.position = Vector3(0.35, -0.28, -0.65)
 	cam.add_child(held)
 	hud = get_tree().get_first_node_in_group("hud")
+	_wprompt = Label3D.new()
+	_wprompt.top_level = true
+	_wprompt.font_size = 44
+	_wprompt.pixel_size = 0.0045
+	_wprompt.outline_size = 10
+	_wprompt.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_wprompt.no_depth_test = true
+	_wprompt.visible = false
+	add_child(_wprompt)
 	fish_manager = get_tree().get_first_node_in_group("fish_manager")
 	rifle = Rifle.new()
 	rifle.name = "Rifle"
@@ -269,8 +279,9 @@ func eat_fish(index: int) -> void:
 	var e: Dictionary = GameState.inventory[index]
 	GameState.inventory.remove_at(index)
 	GameState.inventory_changed.emit()
-	hunger = minf(100.0, hunger + 20.0 + minf(float(e["weight"]) * 5.0, 40.0))
-	hp = minf(max_hp, hp + 12.0)
+	var cooked: float = float(e.get("cooked", 1.0))
+	hunger = minf(100.0, hunger + (20.0 + minf(float(e["weight"]) * 5.0, 40.0)) * cooked)
+	hp = minf(max_hp, hp + 12.0 * cooked * cooked)
 	Sfx.play("coin", -10.0, 0.6)
 	if hud:
 		hud.set_health(hp, max_hp)
@@ -278,14 +289,15 @@ func eat_fish(index: int) -> void:
 		hud.toast("Você comeu %s. Fome recuperada!" % FishDB.data(e["species"])["name"], Color(1.0, 0.9, 0.6))
 
 func _cycle_weapon() -> void:
-	var owned: Array = []
+	var list: Array = ["fists"]
 	for w in WeaponDB.ORDER:
 		if w in GameState.owned_weapons:
-			owned.append(w)
-	if owned.size() <= 1:
+			list.append(w)
+	if list.size() <= 1:
+		hud.toast("Você não tem armas. Compre na loja (soco inglês $24, faca $45).", Color(1.0, 0.8, 0.5)) if hud else null
 		return
-	var i := owned.find(rifle.weapon_id)
-	rifle.set_weapon(owned[(i + 1) % owned.size()])
+	var i := list.find(rifle.weapon_id)
+	rifle.set_weapon(list[(i + 1) % list.size()])
 	Sfx.play("reload", -14.0, 1.4)
 
 func _equip(which: String) -> void:
@@ -357,6 +369,21 @@ func _interaction() -> void:
 			best_score = score
 			best = n
 	_prompt_target = best
+	if best != null:
+		var verb := String(best.get_prompt()).split(" ")[0]
+		_wprompt.text = "%s [E]" % verb
+		_wprompt.global_position = best.global_position + Vector3(0, 2.4 if not (best is LandedFish) else 0.9, 0)
+		_wprompt.visible = true
+	else:
+		_wprompt.visible = false
+	if Input.is_action_just_pressed("inspect"):
+		var near: LandedFish = null
+		for n in get_tree().get_nodes_in_group("landed_fish"):
+			if near == null or global_position.distance_to(n.global_position) < global_position.distance_to(near.global_position):
+				near = n
+		if near != null and global_position.distance_to(near.global_position) < 6.0:
+			var info: Dictionary = near.inspect_info()
+			hud.show_inspect(info["name"], info["value"], info["weight"], info["mult"])
 	if hud:
 		hud.show_prompt(hud.prompt_prefix + best.get_prompt() if best != null else "")
 	if best != null and Input.is_action_just_pressed("interact"):

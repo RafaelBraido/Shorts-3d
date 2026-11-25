@@ -39,7 +39,7 @@ static func hand(parent: Node3D, pos: Vector3, rot: Vector3 = Vector3.ZERO, mirr
 	h.position = pos
 	h.rotation = rot
 	parent.add_child(h)
-	var skin := Color(0.93, 0.8, 0.56)
+	var skin: Color = GameState.skin_color()
 	sphere(h, 0.07, Vector3.ZERO, skin, Vector3(1.0, 0.8, 1.35), 0.9)
 	sphere(h, 0.04, Vector3(mirror * 0.07, 0.01, -0.04), skin, Vector3(1.0, 0.8, 1.4), 0.9)   # polegar
 	for i in 3:
@@ -47,6 +47,7 @@ static func hand(parent: Node3D, pos: Vector3, rot: Vector3 = Vector3.ZERO, mirr
 	for c in h.get_children():
 		if c is GeometryInstance3D:
 			c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			c.add_to_group("hand_mesh")
 	return h
 
 # ------------------------------------------------------------------ helpers

@@ -48,6 +48,14 @@ func _ready() -> void:
 			Props.sphere(self, 1.0, Vector3(0, 0.6, 0), Color(0.1, 0.11, 0.16), Vector3(1.6, 1.2, 4.5), 0.6)
 			Props.sphere(self, 1.0, Vector3(0, 0.1, 1.8), Color(0.85, 0.85, 0.8), Vector3(1.2, 0.5, 1.6), 0.6)
 			radius = 6.0
+		"shark_fin":
+			var cm3 := CylinderMesh.new()
+			cm3.top_radius = 0.0
+			cm3.bottom_radius = 0.7
+			cm3.height = 1.6
+			cm3.radial_segments = 3
+			cm3.rings = 1
+			Props.mesh_node(self, cm3, Props.mat(Color(0.15, 0.3, 0.75), 0.5), Vector3(0, 0.8, 0))
 		"mutant_fin":
 			var cm2 := CylinderMesh.new()
 			cm2.top_radius = 0.0
