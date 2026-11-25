@@ -455,7 +455,8 @@ func _build_toasts() -> void:
 
 func _build_help() -> void:
 	var l := _label("WASD mover | Shift correr | Espaço pular/nadar | 1 rifle | 2 vara | Botão direito mira | Clique pesca/atira | R recarrega | E interage | Tab mochila", 13, Color(1, 1, 1, 0.75), 3)
-	l.position = Vector2(14, 10)
+	l.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	l.position = Vector2(-430, -24)
 	l.visible = not touch_mode
 	root.add_child(l)
 
@@ -963,7 +964,7 @@ func _build_story_ui() -> void:
 	# objetivo atual (canto superior esquerdo)
 	obj_panel = PanelContainer.new()
 	obj_panel.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0.5), 8))
-	obj_panel.position = Vector2(14, 170 if touch_mode else 120)
+	obj_panel.position = Vector2(8, 190 if touch_mode else 176)
 	obj_panel.custom_minimum_size = Vector2(330, 0)
 	obj_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(obj_panel)
