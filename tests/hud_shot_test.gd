@@ -46,7 +46,7 @@ func _go() -> void:
 	var crab = Story.boss
 	var d: Vector3 = crab.global_position - player.global_position
 	player.global_position = crab.global_position + Vector3(0, 1.0, 9)
-	var dd := crab.global_position + Vector3(0, 1.5, 0) - (player.global_position + Vector3(0, 1.55, 0))
+	var dd: Vector3 = crab.global_position + Vector3(0, 1.5, 0) - (player.global_position + Vector3(0, 1.55, 0))
 	player.rotation.y = atan2(-dd.x, -dd.z)
 	player.pitch = atan2(dd.y, Vector2(dd.x, dd.z).length())
 	for i in 3:
