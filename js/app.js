@@ -2,7 +2,7 @@ import { store } from './store.js';
 import { icon } from './icons.js';
 import { esc, fmt, fmtSigned, hours, dateLong, monthYear, weekday, dateShort } from './util.js';
 import { buildInsights, summary, sortedEntries, toKey, fromKey, addDays, MIN_ENTRIES, WEEKDAYS } from './stats.js';
-import { moodColor, lightText, MOOD_WORDS, ENERGY_WORDS, timeline, scatter, face } from './charts.js';
+import { moodColor, moodRgb, lightText, MOOD_WORDS, ENERGY_WORDS, timeline, scatter, face } from './charts.js';
 import { makeDemo } from './demo.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -72,7 +72,9 @@ const TABS = { hoje: ['sun', 'Hoje'], diario: ['calendar-days', 'Diário'], padr
 for (const [id, [ic, label]] of Object.entries(TABS)) $(`#tab-${id}`).innerHTML = `${icon(ic, 20)}<span>${label}</span>`;
 
 let viewDate = todayKey();
+let teardown = null; // libera o WebGL ao sair da tela Hoje
 function route() {
+  teardown?.(); teardown = null;
   const [name = 'hoje', arg] = location.hash.replace(/^#\/?/, '').split('/');
   const r = TABS[name] ? name : 'hoje';
   if (r === 'hoje' && /^\d{4}-\d{2}-\d{2}$/.test(arg || '') && arg <= todayKey()) viewDate = arg;
@@ -158,19 +160,36 @@ function renderToday() {
   paint(view);
   /* humor: carinhas */
   const hero = $('#hero'), pebble = $('#pebble');
+  let face3d = null, firstPaint = true;
   const updateMood = () => {
     const m = d.mood;
     hero.style.setProperty('--tint', moodColor(m));
     pebble.classList.toggle('light-text', lightText(m));
     pebble.classList.toggle('idle', !d.touched);
-    pebble.innerHTML = face(m, 150);
     $('#moodword').textContent = d.touched ? MOOD_WORDS[m] : '';
     $('#moodhint').textContent = d.touched ? '' : 'Toque na carinha que combina com o seu dia';
+    if (face3d) {
+      const shown = d.touched ? m : 3;
+      face3d.setMood(shown, { rgb: moodRgb(shown, d.touched ? 0 : 0.5), featRgb: lightText(shown) ? [0.97, 0.98, 1] : [0.1, 0.14, 0.19], first: firstPaint });
+      firstPaint = false;
+    } else pebble.innerHTML = face(m, 150);
   };
   $$('input[name="mood"]').forEach((r) => r.addEventListener('change', () => { d.mood = +r.value; d.touched = true; updateMood(); refreshSave(true); }));
   $$('.facebtn').forEach((l) => l.addEventListener('pointerdown', () => hero.classList.add('dragging')));
   addEventListener('pointerup', () => hero.classList.remove('dragging'));
   updateMood();
+  // Carinha 3D (three.js) carregada depois da primeira pintura; se falhar, fica o desenho 2D.
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  import('./vendor/face3d.js').then(({ createFace3D }) => {
+    if (!pebble.isConnected) return;
+    const f = createFace3D(pebble, { reduced });
+    if (!f) return;
+    pebble.querySelector('svg.face')?.remove();
+    pebble.classList.add('three');
+    face3d = f; firstPaint = true; updateMood();
+    f.onLost = () => { face3d = null; pebble.classList.remove('three'); f.destroy(); updateMood(); };
+    teardown = () => { f.destroy(); face3d = null; };
+  }).catch(() => {});
 
   /* sono */
   const sleepVal = $('#sleepval');

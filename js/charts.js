@@ -5,15 +5,28 @@ import { esc, fmt, hours, dateLong, dateShort } from './util.js';
 
 const STOPS = [[1, 0.36, 0.09, 275], [4, 0.55, 0.10, 235], [7, 0.74, 0.11, 175], [10, 0.90, 0.15, 95]];
 
-export function moodColor(m) {
-  const v = 1 + ((Math.max(1, Math.min(5, m)) - 1) * 9) / 4; // nota 1–5 → rampa interna 1–10
+function moodLch(m) {
+  const v = 1 + ((Math.max(1, Math.min(5, m)) - 1) * 9) / 4; // nota 1-5 -> rampa interna 1-10
   let i = 0;
   while (i < STOPS.length - 2 && v > STOPS[i + 1][0]) i++;
   const [m0, l0, c0, h0] = STOPS[i], [m1, l1, c1, h1] = STOPS[i + 1];
   const t = (v - m0) / (m1 - m0);
-  const L = l0 + (l1 - l0) * t, C = c0 + (c1 - c0) * t, H = h0 + (h1 - h0) * t;
+  return [l0 + (l1 - l0) * t, c0 + (c1 - c0) * t, h0 + (h1 - h0) * t];
+}
+
+export function moodColor(m) {
+  const [L, C, H] = moodLch(m);
   return `oklch(${L.toFixed(3)} ${C.toFixed(3)} ${H.toFixed(1)})`;
 }
+
+/** Mesma cor em sRGB (0..1), para o WebGL. OKLCH -> OKLab -> sRGB linear -> sRGB. */
+export function moodRgb(m, mixGray = 0) {
+  const [L, C, H] = moodLch(m), a = C * Math.cos((H * Math.PI) / 180), b = C * Math.sin((H * Math.PI) / 180);
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3, mm = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3, ss = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  const lin = [4.0767416621 * l - 3.3077115913 * mm + 0.2309699292 * ss, -1.2684380046 * l + 2.6097574011 * mm - 0.3413193965 * ss, -0.0041960863 * l - 0.7034186147 * mm + 1.707614701 * ss];
+  return lin.map((x) => { const c = Math.max(0, Math.min(1, x)); const g = c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055; return g * (1 - mixGray) + 0.62 * mixGray; });
+}
+
 /** Texto claro sobre cores escuras. */
 export const lightText = (m) => m < 2.5;
 

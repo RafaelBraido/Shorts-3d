@@ -112,7 +112,7 @@ main { flex: 1; width: 100%; max-width: 1120px; margin-inline: auto; padding: 8p
 
 .hero {
   --tint: oklch(0.7 0.04 230);
-  border-radius: 32px; padding: clamp(22px, 4vw, 36px); text-align: center;
+  border-radius: 32px; padding: var(--hp); text-align: center;
   background: color-mix(in oklch, var(--tint) 20%, var(--surface));
   box-shadow: var(--shadow), inset 0 0 0 1px color-mix(in oklch, var(--tint) 30%, transparent);
   transition: --tint 380ms var(--ease);
@@ -312,3 +312,9 @@ dialog .btnrow { justify-content: flex-end; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+/* carinha 3D: o canvas ocupa a largura do cartão para a bolinha poder deslizar para fora dele */
+.hero { --hp: clamp(22px, 4vw, 36px); overflow: hidden; }
+.pebble.three { width: calc(100% + 2 * var(--hp)); height: min(62vw, 280px); aspect-ratio: auto; margin: 14px calc(-1 * var(--hp)) 8px; border-radius: 0; background: none; box-shadow: none; display: block; opacity: 1; }
+.pebble.three::after { content: ""; position: absolute; left: 50%; bottom: 3%; width: 46%; max-width: 150px; height: 7%; translate: -50% 0; border-radius: 50%; background: oklch(0.2 0.04 255 / 0.26); filter: blur(7px); z-index: -1; }
+.face3d { display: block; width: 100%; height: 100%; touch-action: pan-y; }
