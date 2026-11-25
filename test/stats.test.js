@@ -36,16 +36,16 @@ test('dados de exemplo revelam sono, exercício e álcool no dia seguinte', () =
   assert.equal(r.ready, true);
   const sleep = r.insights.find((i) => i.kind === 'sleep');
   assert.ok(sleep && sleep.r > 0.3, 'sono deveria correlacionar positivamente');
-  const ex = r.insights.find((i) => i.kind === 'tag' && i.tag === 'exercicio');
-  assert.ok(ex && ex.diff > 0, 'exercício deveria elevar o humor');
-  const al = r.insights.find((i) => i.kind === 'tagNext' && i.tag === 'alcool');
-  assert.ok(al && al.diff < 0, 'álcool deveria pesar no dia seguinte');
+  const ex = r.insights.find((i) => i.kind === 'tag' && i.tag === 'esporte');
+  assert.ok(ex && ex.diff > 0, 'esporte deveria elevar a nota');
+  const al = r.insights.find((i) => i.kind === 'tagNext' && i.tag === 'telas');
+  assert.ok(al && al.diff < 0, 'telas até tarde deveriam pesar no dia seguinte');
 });
 
 test('ruído puro não deve inventar achados fortes', () => {
   let s = 7; const rnd = () => ((s = (s * 1103515245 + 12345) >>> 0) / 4294967296);
   const entries = [];
-  for (let i = 0; i < 60; i++) entries.push({ date: addDays('2026-10-01', i), mood: 1 + Math.floor(rnd() * 10), sleep: 5 + Math.floor(rnd() * 8) / 2, energy: 1 + Math.floor(rnd() * 5), tags: rnd() < 0.4 ? ['x'] : [] });
+  for (let i = 0; i < 60; i++) entries.push({ date: addDays('2026-10-01', i), mood: 1 + Math.floor(rnd() * 5), sleep: 5 + Math.floor(rnd() * 8) / 2, energy: 1 + Math.floor(rnd() * 5), tags: rnd() < 0.4 ? ['x'] : [] });
   const strong = buildInsights(entries).insights.filter((i) => i.strength === 'strong');
   assert.equal(strong.length, 0);
 });

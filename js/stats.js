@@ -66,7 +66,7 @@ function strength(r, ci) {
 }
 function strengthT(t, diff) {
   const a = Math.abs(t);
-  if (Math.abs(diff) < 0.5) return 'none';
+  if (Math.abs(diff) < 0.25) return 'none';
   if (a >= 2.5) return 'strong';
   if (a >= 2) return 'moderate';
   if (a >= 1.3) return 'possible';
@@ -138,7 +138,7 @@ export function buildInsights(entries, tagLabel = (x) => x) {
     const worst = enough.reduce((a, b) => (b.mean < a.mean ? b : a));
     const w = welch(wk[best.day], wk[worst.day]);
     const st = strengthT(w.t, w.diff);
-    if (st !== 'none' && w.diff >= 1) insights.push({ kind: 'weekday', best, worst, diff: w.diff, t: w.t, strength: st, score: Math.abs(w.t) / 3.6 });
+    if (st !== 'none' && w.diff >= 0.5) insights.push({ kind: 'weekday', best, worst, diff: w.diff, t: w.t, strength: st, score: Math.abs(w.t) / 3.6 });
   }
 
   base.overall = overall;

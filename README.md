@@ -1,6 +1,6 @@
 # Maré · diário de emoções
 
-Diário de humor, sono, energia e eventos do dia. Depois de ~3 semanas (21 registros) mostra o que costuma andar junto com os dias melhores e piores. **Tudo fica no navegador** (localStorage): sem conta, sem servidor, sem análise de uso.
+Diário do dia com carinhas, nota de 1 a 5, sono, energia, o que rolou e um mini resumo (até 280 caracteres). Depois de ~3 semanas (21 registros) mostra o que costuma andar junto com os dias bons e ruins. **Tudo fica no navegador** (localStorage): sem conta, sem servidor, sem análise de uso.
 
 Site 100% estático (HTML + CSS + JS em módulos, sem build) feito para a Vercel.
 

@@ -68,7 +68,7 @@ export const store = {
     if (!data || typeof data.entries !== 'object') throw new Error('Arquivo não reconhecido.');
     const ok = {};
     for (const e of Object.values(data.entries)) {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(e?.date) || !Number.isFinite(e.mood) || e.mood < 1 || e.mood > 10) continue;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(e?.date) || !Number.isFinite(e.mood) || e.mood < 1 || e.mood > 5) continue;
       ok[e.date] = {
         date: e.date, mood: Math.round(e.mood),
         sleep: Number.isFinite(e.sleep) ? Math.min(16, Math.max(0, e.sleep)) : null,
