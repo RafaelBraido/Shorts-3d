@@ -168,7 +168,7 @@ function renderToday() {
   paint(view);
   /* humor: carinhas */
   const hero = $('#hero'), pebble = $('#pebble');
-  let face3d = null, firstPaint = true;
+  let firstPaint = true;
   const updateMood = () => {
     const m = d.mood;
     hero.style.setProperty('--tint', moodColor(m));
@@ -177,28 +177,14 @@ function renderToday() {
     $('#moodword').textContent = d.touched ? MOOD_WORDS[m] : '';
     $('#moodhint').textContent = d.touched ? '' : 'Toque na carinha que combina com o seu dia';
     tideMood = d.touched ? m : 3; tide?.setMood(tideMood);
-    if (face3d) {
-      const shown = d.touched ? m : 3;
-      face3d.setMood(shown, { rgb: moodRgb(shown, d.touched ? 0 : 0.5), featRgb: lightText(shown) ? [0.97, 0.98, 1] : [0.1, 0.14, 0.19], first: firstPaint });
-      firstPaint = false;
-    } else pebble.innerHTML = face(m, 150);
+    pebble.innerHTML = face(m, 150);
+    if (!firstPaint) { pebble.classList.remove('slide'); void pebble.offsetWidth; pebble.classList.add('slide'); } // desliza para a direita
+    firstPaint = false;
   };
   $$('input[name="mood"]').forEach((r) => r.addEventListener('change', () => { d.mood = +r.value; d.touched = true; updateMood(); refreshSave(true); }));
   $$('.facebtn').forEach((l) => l.addEventListener('pointerdown', () => hero.classList.add('dragging')));
   addEventListener('pointerup', () => hero.classList.remove('dragging'));
   updateMood();
-  // Carinha 3D (three.js) carregada depois da primeira pintura; se falhar, fica o desenho 2D.
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  import('./vendor/face3d.js').then(({ createFace3D }) => {
-    if (!pebble.isConnected) return;
-    const f = createFace3D(pebble, { reduced });
-    if (!f) return;
-    pebble.querySelector('svg.face')?.remove();
-    pebble.classList.add('three');
-    face3d = f; firstPaint = true; updateMood();
-    f.onLost = () => { face3d = null; pebble.classList.remove('three'); f.destroy(); updateMood(); };
-    teardown = () => { f.destroy(); face3d = null; };
-  }).catch(() => {});
 
   /* sono */
   const sleepVal = $('#sleepval');
