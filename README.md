@@ -7,6 +7,9 @@ Site 100% estático (HTML + CSS + JS em módulos, sem build) feito para a Vercel
 ## Deploy na Vercel
 Importe o repositório em vercel.com/new. Framework: **Other**, sem build command, sem output directory (raiz). O `vercel.json` já define os cabeçalhos de segurança.
 
+## Senha
+Na primeira abertura o site pede para criar uma senha (mínimo de 6 caracteres). A senha **não fica no código nem no GitHub**: ela vira uma chave (PBKDF2-SHA-256, 600 mil iterações) e os registros são cifrados com AES-GCM de 256 bits antes de ir para o localStorage (`js/vault.js`, `js/store.js`). Sem a senha não há como abrir; se for esquecida, a única saída é apagar tudo e começar de novo. O diário tranca sozinho após 10 min parado ou 5 min com a aba escondida, e há "Bloquear agora" e "Trocar senha" na aba Dados. Os backups exportados (JSON/CSV) não são criptografados.
+
 ## Privacidade
 - CSP `connect-src 'none'`, `default-src 'none'`: o site não consegue fazer requisições externas.
 - Fontes (Literata, Geist) e ícones (Lucide) são servidos localmente; nenhum CDN.

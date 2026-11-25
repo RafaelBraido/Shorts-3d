@@ -172,6 +172,16 @@ function renderToday() {
   /* humor: carinhas */
   const hero = $('#hero'), pebble = $('#pebble');
   const range = $('#mood');
+  /* a bolinha anda para a esquerda/direita junto com a linha, rolando (nota 3 = centro) */
+  const placeBall = () => {
+    const pad = parseFloat(getComputedStyle(hero).paddingLeft) || 0;
+    const free = Math.max(0, (hero.clientWidth - 2 * pad - pebble.offsetWidth) / 2);
+    const x = ((d.touched ? d.mood : 3) - 3) / 2 * free;
+    pebble.style.translate = `${x}px 0`;
+    pebble.style.rotate = `${((x / (pebble.offsetWidth / 2)) * 180) / Math.PI}deg`;
+  };
+  const onResize = () => { if (!pebble.isConnected) return removeEventListener('resize', onResize); placeBall(); };
+  addEventListener('resize', onResize);
   const updateMood = () => {
     const m = d.mood;
     hero.style.setProperty('--tint', moodColor(m));
@@ -181,6 +191,7 @@ function renderToday() {
     $('#moodhint').textContent = d.touched ? '' : 'Deslize a linha para escolher como foi o dia';
     tideMood = d.touched ? m : 3; tide?.setMood(tideMood);
     pebble.innerHTML = face(m, 150);
+    placeBall();
     range.setAttribute('aria-valuetext', `${m}, ${MOOD_WORDS[m]}`);
   };
   range.addEventListener('input', () => { d.mood = +range.value; d.touched = true; updateMood(); refreshSave(true); });
@@ -255,7 +266,7 @@ function renderToday() {
     if (!d.touched) return;
     if (store.hasDemo()) store.removeDemo();
     const entry = { date, mood: d.mood, sleep: d.sleepTouched ? d.sleep : null, energy: d.energy, tags: d.tags, note: d.note.trim(), updatedAt: Date.now() };
-    const ok = store.save(entry);
+    const ok = await store.save(entry);
     if (!ok) { toast('O navegador bloqueou o armazenamento. Exporte seus dados e tente fora do modo privado.'); return; }
     navigator.storage?.persist?.().catch(() => {});
     dirty = false; save.disabled = true; save.textContent = 'Atualizar registro';
@@ -435,7 +446,7 @@ async function renderData() {
     <div class="cards">
       <section class="block"><h2>Onde ficam seus dias</h2>
         <ul class="facts">
-          <li>${icon('lock', 20)}<span>Os registros ficam guardados dentro deste navegador. Não tem conta, não tem servidor e ninguém recebe o que você escreve.</span></li>
+          <li>${icon('lock', 20)}<span>Os registros ficam guardados dentro deste navegador, <b>criptografados com a sua senha</b>. Não tem conta, não tem servidor e ninguém recebe o que você escreve.</span></li>
           <li>${icon('shield-check', 20)}<span>O site é bloqueado de enviar informações para fora. Nem por engano os dados conseguiriam sair.</span></li>
           <li>${icon('database', 20)}<span class="num">${real} ${real === 1 ? 'registro' : 'registros'} · ${fmt(size / 1024, 1)} KB${persisted === true ? ' · protegido contra limpeza automática' : persisted === false ? ' · o navegador pode limpar se faltar espaço' : ''}</span></li>
           <li>${icon('triangle-alert', 20)}<span>Se alguém limpar os dados do navegador ou você trocar de aparelho, o diário some. <b>Baixe um backup de vez em quando.</b> E lembre: quem usar este mesmo celular ou computador consegue abrir o diário.</span></li>
@@ -449,7 +460,11 @@ async function renderData() {
 
       ${!store.hasReal() ? `<section class="block"><h2>Dados de exemplo</h2><p>Quer ver como os padrões ficam? Carregue 9 semanas inventadas. Elas somem assim que você salvar o seu primeiro dia de verdade.</p><div class="btnrow">${store.hasDemo() ? '<button class="btn line" id="rmdemo2" type="button">Remover exemplo</button>' : '<button class="btn line" id="demo" type="button">Carregar exemplo</button>'}</div></section>` : ''}
 
-      <section class="block"><h2>Apagar tudo</h2><p>Apaga todos os seus dias deste aparelho. Não tem volta, então baixe um backup antes se quiser guardar.</p>
+      <section class="block"><h2>Senha</h2><p>O diário abre sozinho para ninguém: pede a senha toda vez que você entra e fecha depois de 10 minutos parado. Se esquecer a senha, não dá para recuperar os dias.</p>
+        <div class="btnrow"><button class="btn" id="lockbtn" type="button">${icon('lock', 18)}Bloquear agora</button><button class="btn line" id="chpw" type="button">${icon('key-round', 18)}Trocar senha</button></div>
+        <p>O backup baixado (JSON ou planilha) <b>não é criptografado</b>: guarde em lugar seguro.</p></section>
+
+      <section class="block"><h2>Apagar tudo</h2><p>Apaga todos os seus dias e a senha deste aparelho. Não tem volta, então baixe um backup antes se quiser guardar.</p>
         <div class="btnrow"><button class="btn danger" id="wipe" type="button">${icon('trash-2', 18)}Apagar todos os dados</button></div></section>
     </div>`;
 
@@ -463,11 +478,134 @@ async function renderData() {
   });
   $('#demo')?.addEventListener('click', () => { store.loadDemo(makeDemo(todayKey(), 63)); toast('Exemplo carregado. Veja em Padrões.'); location.hash = '#/padroes'; });
   $('#rmdemo2')?.addEventListener('click', () => { store.removeDemo(); toast('Exemplo removido.'); renderData(); });
+  $('#lockbtn').addEventListener('click', () => lockNow());
+  $('#chpw').addEventListener('click', changePasswordFlow);
   $('#wipe').addEventListener('click', async () => {
     if (await confirmDialog({ title: 'Apagar todos os dados?', text: 'Todos os seus dias serão apagados deste aparelho, sem volta.', confirmLabel: 'Apagar tudo', danger: true, typeWord: 'apagar' })) {
-      store.clearAll(); toast('Tudo apagado.'); renderData();
+      store.clearAll(); toast('Tudo apagado.'); await lockNow(true);
     }
   });
 }
 
-route();
+/* ============================ SENHA ============================ */
+const MIN_PW = 6;
+let cooldownUntil = 0, fails = 0, locking = false;
+
+function pwField(id, label, autocomplete) {
+  return `<label class="sr" for="${id}">${label}</label><div class="pwrow"><input id="${id}" type="password" autocomplete="${autocomplete}" placeholder="${label}" autocapitalize="off" spellcheck="false" required><button type="button" class="iconbtn peek" data-peek="${id}" aria-label="Mostrar senha" aria-pressed="false">${icon('eye', 20)}</button></div>`;
+}
+function bindPeek(root) {
+  $$('.peek', root).forEach((b) => b.addEventListener('click', () => {
+    const inp = $('#' + b.dataset.peek, root), show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    b.setAttribute('aria-pressed', show); b.setAttribute('aria-label', show ? 'Esconder senha' : 'Mostrar senha');
+    b.innerHTML = icon(show ? 'eye-off' : 'eye', 20);
+  }));
+}
+
+/** Mostra a tela de criar/digitar a senha. Só resolve quando o diário estiver aberto. */
+function showLock() {
+  return new Promise((resolve) => {
+    const creating = store.status() === 'nopass';
+    document.body.classList.add('locked');
+    tide?.setMood(3);
+    document.title = 'Maré';
+    view.innerHTML = `
+      <section class="lock" aria-labelledby="lt">
+        <div class="lock-icon">${icon(creating ? 'key-round' : 'lock', 30)}</div>
+        <h1 id="lt">${creating ? 'Crie uma senha' : 'Diário trancado'}</h1>
+        <p>${creating ? 'Só você vai saber. Ela tranca e embaralha tudo o que você escrever neste aparelho. Se esquecer, não dá para recuperar, então escolha uma que você lembre.' : 'Digite a sua senha para abrir.'}</p>
+        <form id="lockform">
+          ${pwField('pw', creating ? 'Nova senha' : 'Senha', creating ? 'new-password' : 'current-password')}
+          ${creating ? pwField('pw2', 'Repita a senha', 'new-password') : ''}
+          <p class="err" id="lockerr" role="alert"></p>
+          <button class="btn main" id="lockgo" type="submit">${creating ? 'Criar senha e entrar' : 'Abrir'}</button>
+        </form>
+        ${creating ? `<p class="small">Mínimo de ${MIN_PW} caracteres.</p>` : '<button class="btn quiet small" id="forgot" type="button">Esqueci a senha</button>'}
+      </section>`;
+    bindPeek(view);
+    $('#pw').focus();
+    const err = (m) => { $('#lockerr').textContent = m; };
+    const form = $('#lockform'), go = $('#lockgo');
+    const finish = () => { document.body.classList.remove('locked'); resolve(); };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err('');
+      const pw = $('#pw').value;
+      if (creating) {
+        if (pw.length < MIN_PW) return err(`Use pelo menos ${MIN_PW} caracteres.`);
+        if (pw !== $('#pw2').value) return err('As duas senhas não são iguais.');
+        go.disabled = true; go.textContent = 'Trancando…';
+        try { await store.create(pw); finish(); }
+        catch { err('O navegador não deixou guardar os dados. Saia do modo privado e tente de novo.'); go.disabled = false; go.textContent = 'Criar senha e entrar'; }
+        return;
+      }
+      const wait = cooldownUntil - Date.now();
+      if (wait > 0) return err(`Muitas tentativas. Espere ${Math.ceil(wait / 1000)} segundos.`);
+      go.disabled = true; go.textContent = 'Abrindo…';
+      const ok = await store.unlock(pw);
+      if (ok) { fails = 0; finish(); return; }
+      fails++;
+      if (fails >= 3) cooldownUntil = Date.now() + Math.min(60, (fails - 2) * 5) * 1000;
+      err('Senha errada. Tente de novo.');
+      $('#pw').select(); go.disabled = false; go.textContent = 'Abrir';
+    });
+
+    $('#forgot')?.addEventListener('click', async () => {
+      if (await confirmDialog({ title: 'Esqueceu a senha?', text: 'Sem a senha não dá para abrir o diário: ele está embaralhado. A única saída é apagar tudo e começar de novo. Se você tiver um backup baixado (JSON), poderá importá-lo depois.', confirmLabel: 'Apagar tudo', danger: true, typeWord: 'apagar' })) {
+        store.clearAll(); fails = 0; resolve(showLock());
+      }
+    });
+  });
+}
+
+/** Tranca o diário (limpa a memória) e pede a senha de novo. */
+async function lockNow(reset = false) {
+  if (locking || (!reset && store.status() !== 'open')) return;
+  locking = true;
+  teardown?.(); teardown = null;
+  store.lock();
+  await showLock();
+  locking = false;
+  route();
+}
+
+async function changePasswordFlow() {
+  const d = document.createElement('dialog');
+  d.innerHTML = `<h2>Trocar senha</h2><p>Digite a senha atual e escolha a nova.</p><form id="cpf">${pwField('cp0', 'Senha atual', 'current-password')}${pwField('cp1', 'Nova senha', 'new-password')}${pwField('cp2', 'Repita a nova senha', 'new-password')}<p class="err" id="cperr" role="alert"></p><div class="btnrow"><button class="btn quiet" type="button" data-no>Cancelar</button><button class="btn" type="submit" id="cpgo">Trocar</button></div></form>`;
+  document.body.appendChild(d);
+  bindPeek(d);
+  const close = () => { d.close(); d.remove(); };
+  $('[data-no]', d).onclick = close;
+  d.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
+  $('#cpf', d).addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = (m) => { $('#cperr', d).textContent = m; };
+    err('');
+    const [a, b, c] = ['cp0', 'cp1', 'cp2'].map((id) => $('#' + id, d).value);
+    if (b.length < MIN_PW) return err(`A nova senha precisa de pelo menos ${MIN_PW} caracteres.`);
+    if (b !== c) return err('As duas senhas novas não são iguais.');
+    const btn = $('#cpgo', d); btn.disabled = true; btn.textContent = 'Trocando…';
+    if (!(await store.verify(a))) { err('A senha atual está errada.'); btn.disabled = false; btn.textContent = 'Trocar'; return; }
+    await store.changePassword(b);
+    close(); toast('Senha trocada.');
+  });
+  d.showModal();
+  $('#cp0', d).focus();
+}
+
+/* tranca sozinho: 10 min sem mexer, ou 5 min com a aba escondida */
+let idleTimer = 0, hiddenAt = 0;
+const bumpIdle = () => { clearTimeout(idleTimer); idleTimer = setTimeout(() => lockNow(), 10 * 60 * 1000); };
+['pointerdown', 'keydown', 'input', 'touchstart'].forEach((ev) => addEventListener(ev, bumpIdle, { passive: true }));
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) hiddenAt = Date.now();
+  else if (hiddenAt && Date.now() - hiddenAt > 5 * 60 * 1000) lockNow();
+});
+
+(async function start() {
+  if (store.status() !== 'open') await showLock();
+  bumpIdle();
+  route();
+})();

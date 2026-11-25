@@ -122,7 +122,7 @@ main { flex: 1; width: 100%; max-width: 1120px; margin-inline: auto; padding: 8p
 .pebble {
   position: relative; margin: 22px auto 14px; width: min(50vw, 220px); aspect-ratio: 1; border-radius: 50%;
   display: grid; place-items: center; background: var(--tint); color: oklch(0.2 0.03 255);
-  transition: --tint 300ms var(--ease), color 200ms var(--ease);
+  transition: --tint 300ms var(--ease), color 200ms var(--ease), translate 380ms var(--ease), rotate 380ms var(--ease);
 }
 .pebble.light-text { color: oklch(0.99 0.004 235); }
 .pebble.idle { opacity: 0.55; }
@@ -317,3 +317,17 @@ dialog .btnrow { justify-content: flex-end; }
 /* fundo de ondas em WebGL (atrás de tudo, sem interceptar toques) */
 .tide { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 
+
+/* tela de senha */
+.locked .tabs { visibility: hidden; }
+.lock { max-width: 420px; margin: 6vh auto 0; text-align: center; display: grid; gap: 14px; justify-items: center; }
+.lock h1 { font-size: clamp(1.8rem, 5vw, 2.4rem); font-weight: 450; }
+.lock p { color: var(--ink-2); max-width: 36ch; }
+.lock-icon { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); box-shadow: var(--shadow); }
+.lock form, dialog form { display: grid; gap: 10px; width: 100%; text-align: left; }
+.pwrow { display: flex; gap: 8px; }
+.pwrow input { flex: 1; min-width: 0; min-height: 52px; padding: 0 16px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); font-size: 1.0625rem; }
+.pwrow input:focus { outline: none; border-color: var(--focus); }
+.err { color: var(--danger); font-size: 0.9375rem; min-height: 1.4em; text-align: center; }
+.lock .small { font-size: 0.875rem; }
+dialog .pwrow input { background: var(--paper); }
