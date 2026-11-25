@@ -119,9 +119,12 @@ function renderToday() {
         <p class="hero-q">Como foi o seu dia?</p>
         <div class="pebble idle" id="pebble" aria-hidden="true">${face(d.mood, 150)}</div>
         <p class="hero-word" id="moodword" aria-live="polite">${d.touched ? MOOD_WORDS[d.mood] : ''}</p>
-        <p class="hero-hint" id="moodhint">Toque na carinha que combina com o seu dia</p>
-        <div class="faces" role="radiogroup" aria-label="Nota do dia, de 1 a 5">
-          ${[1, 2, 3, 4, 5].map((n) => `<label class="facebtn" data-c="${n}"><input type="radio" name="mood" value="${n}" ${d.touched && d.mood === n ? 'checked' : ''}><span class="fc ${lightText(n) ? 'light-text' : ''}">${face(n, 44)}</span><span class="fn">${n}</span><span class="fw">${MOOD_WORDS[n]}</span></label>`).join('')}
+        <p class="hero-hint" id="moodhint">Deslize a linha para escolher como foi o dia</p>
+        <div class="slider">
+          <span class="end">${face(1, 30)}</span>
+          <input id="mood" type="range" min="1" max="5" step="1" value="${d.mood}" aria-label="Nota do dia, de 1 a 5" aria-valuetext="${d.mood}, ${MOOD_WORDS[d.mood]}">
+          <span class="end">${face(5, 30)}</span>
+          <div class="ticks" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
         </div>
       </section>
 
@@ -160,7 +163,7 @@ function renderToday() {
         <div class="actions">
           <button class="btn main" id="save" type="submit" disabled>${existing ? 'Atualizar registro' : 'Salvar registro'}</button>
           ${existing ? '<button class="btn danger" id="del" type="button">Apagar dia</button>' : ''}
-          <p class="status" id="status">${existing ? '' : 'Escolha uma carinha para poder salvar.'}</p>
+          <p class="status" id="status">${existing ? '' : 'Deslize a linha para poder salvar.'}</p>
         </div>
       </form>
     </div>`;
@@ -168,21 +171,21 @@ function renderToday() {
   paint(view);
   /* humor: carinhas */
   const hero = $('#hero'), pebble = $('#pebble');
-  let firstPaint = true;
+  const range = $('#mood');
   const updateMood = () => {
     const m = d.mood;
     hero.style.setProperty('--tint', moodColor(m));
     pebble.classList.toggle('light-text', lightText(m));
     pebble.classList.toggle('idle', !d.touched);
     $('#moodword').textContent = d.touched ? MOOD_WORDS[m] : '';
-    $('#moodhint').textContent = d.touched ? '' : 'Toque na carinha que combina com o seu dia';
+    $('#moodhint').textContent = d.touched ? '' : 'Deslize a linha para escolher como foi o dia';
     tideMood = d.touched ? m : 3; tide?.setMood(tideMood);
     pebble.innerHTML = face(m, 150);
-    if (!firstPaint) { pebble.classList.remove('slide'); void pebble.offsetWidth; pebble.classList.add('slide'); } // desliza para a direita
-    firstPaint = false;
+    range.setAttribute('aria-valuetext', `${m}, ${MOOD_WORDS[m]}`);
   };
-  $$('input[name="mood"]').forEach((r) => r.addEventListener('change', () => { d.mood = +r.value; d.touched = true; updateMood(); refreshSave(true); }));
-  $$('.facebtn').forEach((l) => l.addEventListener('pointerdown', () => hero.classList.add('dragging')));
+  range.addEventListener('input', () => { d.mood = +range.value; d.touched = true; updateMood(); refreshSave(true); });
+  range.addEventListener('pointerdown', () => hero.classList.add('dragging'));
+  range.addEventListener('pointerup', () => { if (!d.touched) { d.touched = true; updateMood(); refreshSave(true); } });
   addEventListener('pointerup', () => hero.classList.remove('dragging'));
   updateMood();
 
@@ -242,7 +245,7 @@ function renderToday() {
   function refreshSave(markDirty = false) {
     if (markDirty) dirty = true;
     save.disabled = !d.touched || (!!existing && !dirty);
-    if (!d.touched) status.textContent = 'Escolha uma carinha para poder salvar.';
+    if (!d.touched) status.textContent = 'Deslize a linha para poder salvar.';
     else if (dirty) status.textContent = 'Alterações ainda não salvas.';
   }
   refreshSave();
