@@ -173,16 +173,25 @@ function renderToday() {
   const hero = $('#hero'), pebble = $('#pebble');
   const range = $('#mood');
   /* a bolinha anda para a esquerda/direita junto com a linha, rolando (nota 3 = centro) */
-  const placeBall = () => {
+  // Parada, a bolinha fica no meio. Enquanto você mexe na linha ela dá um balanço rápido
+  // para o lado em que você vai (rolando) e volta ao centro assim que você para.
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let swingTimer = 0;
+  const placeBall = (dir = 0) => {
+    clearTimeout(swingTimer);
     const pad = parseFloat(getComputedStyle(hero).paddingLeft) || 0;
     const free = Math.max(0, (hero.clientWidth - 2 * pad - pebble.offsetWidth) / 2);
-    const x = ((d.touched ? d.mood : 3) - 3) / 2 * free;
-    pebble.style.translate = `${x}px 0`;
-    pebble.style.rotate = `${((x / (pebble.offsetWidth / 2)) * 180) / Math.PI}deg`;
+    const set = (x) => {
+      pebble.style.translate = `${x}px 0`;
+      pebble.style.rotate = `${((x / (pebble.offsetWidth / 2)) * 180) / Math.PI}deg`;
+    };
+    if (!dir || calm) return set(0);
+    set(dir * free * 0.85);
+    swingTimer = setTimeout(() => set(0), 140);
   };
   const onResize = () => { if (!pebble.isConnected) return removeEventListener('resize', onResize); placeBall(); };
   addEventListener('resize', onResize);
-  const updateMood = () => {
+  const updateMood = (dir = 0) => {
     const m = d.mood;
     hero.style.setProperty('--tint', moodColor(m));
     pebble.classList.toggle('light-text', lightText(m));
@@ -191,10 +200,10 @@ function renderToday() {
     $('#moodhint').textContent = d.touched ? '' : 'Deslize a linha para escolher como foi o dia';
     tideMood = d.touched ? m : 3; tide?.setMood(tideMood);
     pebble.innerHTML = face(m, 150);
-    placeBall();
+    placeBall(dir);
     range.setAttribute('aria-valuetext', `${m}, ${MOOD_WORDS[m]}`);
   };
-  range.addEventListener('input', () => { d.mood = +range.value; d.touched = true; updateMood(); refreshSave(true); });
+  range.addEventListener('input', () => { const prev = d.mood; d.mood = +range.value; d.touched = true; updateMood(Math.sign(d.mood - prev)); refreshSave(true); });
   range.addEventListener('pointerdown', () => hero.classList.add('dragging'));
   range.addEventListener('pointerup', () => { if (!d.touched) { d.touched = true; updateMood(); refreshSave(true); } });
   addEventListener('pointerup', () => hero.classList.remove('dragging'));

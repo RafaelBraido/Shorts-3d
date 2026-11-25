@@ -122,7 +122,7 @@ main { flex: 1; width: 100%; max-width: 1120px; margin-inline: auto; padding: 8p
 .pebble {
   position: relative; margin: 22px auto 14px; width: min(50vw, 220px); aspect-ratio: 1; border-radius: 50%;
   display: grid; place-items: center; background: var(--tint); color: oklch(0.2 0.03 255);
-  transition: --tint 300ms var(--ease), color 200ms var(--ease), translate 380ms var(--ease), rotate 380ms var(--ease);
+  transition: --tint 300ms var(--ease), color 200ms var(--ease), translate 170ms var(--ease), rotate 170ms var(--ease);
 }
 .pebble.light-text { color: oklch(0.99 0.004 235); }
 .pebble.idle { opacity: 0.55; }
