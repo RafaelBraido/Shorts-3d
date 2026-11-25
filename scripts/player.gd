@@ -38,6 +38,8 @@ var hp := 100.0
 var max_hp := 100.0
 var vehicle: Node = null           ## barco que o jogador está pilotando
 var dead := false
+var hunger := 100.0
+var _hunger_t := 0.0
 var _since_hit := 99.0
 var _capsule: CapsuleShape3D
 var _col: CollisionShape3D
@@ -130,7 +132,16 @@ func _physics_process(d: float) -> void:
 	if dead:
 		return
 	_since_hit += d
-	if hp < max_hp and _since_hit > 6.0:
+	hunger = maxf(hunger - 0.12 * d, 0.0)
+	_hunger_t += d
+	if _hunger_t > 0.25 and hud:
+		_hunger_t = 0.0
+		hud.set_hunger(hunger)
+	if hunger <= 0.0 and hp > 15.0:
+		hp -= 1.2 * d      # com fome, a vida cai devagar (não chega a matar)
+		if hud:
+			hud.set_health(hp, max_hp)
+	if hp < max_hp and _since_hit > 6.0 and hunger > 25.0:
 		hp = minf(hp + 6.0 * d, max_hp)
 		if hud:
 			hud.set_health(hp, max_hp)
@@ -243,11 +254,28 @@ func _hotbar() -> void:
 			_equip("rifle")
 	if Input.is_action_just_pressed("fish_toggle"):
 		_equip("rod")
+	if Input.is_action_just_pressed("hands_toggle"):
+		_equip("hands" if item != "hands" else "rifle")
 	if Input.is_action_just_pressed("bomb_toggle"):
 		if GameState.dynamite > 0:
 			_equip("bomb")
 		elif hud:
 			hud.toast("Você não tem dinamite. Compre na loja.", Color(1.0, 0.7, 0.4))
+
+## Come um peixe da mochila: recupera fome e um pouco de vida.
+func eat_fish(index: int) -> void:
+	if index < 0 or index >= GameState.inventory.size():
+		return
+	var e: Dictionary = GameState.inventory[index]
+	GameState.inventory.remove_at(index)
+	GameState.inventory_changed.emit()
+	hunger = minf(100.0, hunger + 20.0 + minf(float(e["weight"]) * 5.0, 40.0))
+	hp = minf(max_hp, hp + 12.0)
+	Sfx.play("coin", -10.0, 0.6)
+	if hud:
+		hud.set_health(hp, max_hp)
+		hud.set_hunger(hunger)
+		hud.toast("Você comeu %s. Fome recuperada!" % FishDB.data(e["species"])["name"], Color(1.0, 0.9, 0.6))
 
 func _cycle_weapon() -> void:
 	var owned: Array = []
@@ -262,14 +290,16 @@ func _cycle_weapon() -> void:
 
 func _equip(which: String) -> void:
 	item = which
-	if which == "bomb":
+	if which == "hands":
+		rifle.set_weapon("fists")
+	elif which == "bomb":
 		rifle.set_weapon("dynamite")
-	elif which == "rifle" and rifle.weapon_id == "dynamite":
+	elif which == "rifle" and rifle.weapon_id in ["dynamite", "fists"]:
 		rifle.set_weapon(GameState.current_weapon)
-	rifle.equip(which == "rifle" or which == "bomb")
+	rifle.equip(which == "rifle" or which == "bomb" or which == "hands")
 	rod.equip(which == "rod")
 	if hud:
-		hud.set_equipped(1 if which == "rifle" else (2 if which == "rod" else 3))
+		hud.set_equipped({"rifle": 1, "rod": 2, "bomb": 3, "hands": 4}[which])
 
 ## Carregar a carcaça impede de usar armas.
 func vehicle_blocks_fire() -> bool:

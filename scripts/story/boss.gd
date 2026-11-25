@@ -83,6 +83,7 @@ func start_fight() -> void:
 		"crab":
 			_place_on_beach()
 			state = "chase"
+			_cd = 0.6
 		"puffer":
 			state = "idle"
 			_t = 1.2
@@ -134,12 +135,18 @@ func hit(damage: float, point: Vector3) -> void:
 		return
 	if not _active:
 		start_fight()
+	if id == "crab" and state == "stunned":
+		damage *= 1.5        # atordoado: leva mais dano (janela de ataque)
 	hp -= damage
 	_flash = 0.12
 	var hud := get_tree().get_first_node_in_group("hud")
 	if hud and id != "piranha_minion":
 		hud.set_boss_bar(display_name, maxf(hp, 0.0) / max_hp)
-	Fx.spark(get_tree().current_scene, point)
+	var scene := get_tree().current_scene
+	Fx.spark(scene, point)
+	Fx.damage_number(scene, point, damage, Color(1, 1, 1) if state != "stunned" else Color(1.0, 0.85, 0.2))
+	if id in ["crab", "puffer", "piranha", "piranha_minion"]:
+		Fx.blood(scene, Vector3(point.x, global_position.y, point.z), 1.2 if id == "crab" else 0.8)
 	if hp <= 0.0:
 		_die()
 
@@ -195,39 +202,73 @@ func _face(dirv: Vector3, rate: float, delta: float) -> void:
 	_heading = lerp_angle(_heading, target, clampf(rate * delta, 0.0, 1.0))
 	rotation.y = _heading
 
-# --- caranguejo
+# --- caranguejo: persegue, arma o ataque, avança numa investida e FICA ATORDOADO (janela para golpear)
 func _ai_crab(delta: float) -> void:
 	var to_p := _flat_to_player()
 	var dist := to_p.length()
 	var enraged := hp < max_hp * 0.5
-	var speed := 6.4 if enraged else 5.0
-	if dist > 3.0:
-		var step := to_p.normalized() * speed * delta
-		var np := global_position + step
-		if Terrain.height_at(np.x, np.z) > -0.1:
-			global_position = np
-		else:
-			# desvia ao longo da água
-			var side := Vector3(-to_p.z, 0, to_p.x).normalized() * speed * delta
-			var np2 := global_position + side
-			if Terrain.height_at(np2.x, np2.z) > -0.1:
-				global_position = np2
-		_anim += delta * 6.0
-	global_position.y = maxf(Terrain.height_at(global_position.x, global_position.z), -0.2)
-	_face(to_p, 6.0, delta)
+	var speed := 5.6 if enraged else 4.4
 	var legs: Array = model.get_meta("legs")
+	var claws: Array = model.get_meta("claws")
+	match state:
+		"chase":
+			if dist > 3.0:
+				_move_crab(to_p.normalized() * speed * delta, to_p, speed, delta)
+				_anim += delta * 6.0
+			_face(to_p, 6.0, delta)
+			if dist < 8.5 and _cd <= 0.0:
+				state = "windup"
+				_t = 0.55
+				_dir = to_p.normalized()
+				_hit_done = false
+				Sfx.play_at("gull", get_tree().current_scene, global_position, 0.0, 0.6)
+		"windup":
+			# levanta as garras e a frente do corpo
+			for c in claws:
+				c.rotation.x = lerpf(c.rotation.x, -1.0, 0.2)
+			model.rotation.x = lerpf(model.rotation.x, -0.25, 0.2)
+			_face(to_p, 8.0, delta)
+			_dir = to_p.normalized()
+			if _t <= 0.0:
+				state = "lunge"
+				_t = 0.38
+		"lunge":
+			var np := global_position + _dir * 15.0 * delta
+			if Terrain.height_at(np.x, np.z) > -0.1:
+				global_position = np
+			if not _hit_done and dist < 3.8:
+				_hit_done = true
+				_damage_player(16.0 if not enraged else 20.0)
+			if _t <= 0.0:
+				state = "stunned"
+				_t = 2.4
+				GameState.notify.emit("O caranguejo se atordoou! Ataque agora!")
+		"stunned":
+			model.rotation.x = lerpf(model.rotation.x, 0.3, 0.15)
+			for c in claws:
+				c.rotation.x = lerpf(c.rotation.x, 0.5, 0.1)
+			if _t <= 0.0:
+				state = "chase"
+				_cd = 2.2 if not enraged else 1.4
+				model.rotation.x = 0.0
+				for c in claws:
+					c.rotation.x = 0.0
+	global_position.y = maxf(Terrain.height_at(global_position.x, global_position.z), -0.2)
 	for i in legs.size():
 		var l: Node3D = legs[i]
-		l.rotation.y = sin(_anim * 2.2 + float(i) * 1.7) * 0.3
-		l.rotation.z = sin(_anim * 2.2 + float(i) * 1.7 + 1.5) * 0.08
-	var claws: Array = model.get_meta("claws")
-	if dist <= 3.4 and _cd <= 0.0:
-		_cd = 1.2 if enraged else 1.5
-		_damage_player(14.0)
-		for c in claws:
-			var tw := create_tween()
-			tw.tween_property(c, "rotation:x", -0.8, 0.12)
-			tw.tween_property(c, "rotation:x", 0.0, 0.25)
+		var amp := 0.3 if state == "chase" else (0.05 if state == "stunned" else 0.12)
+		l.rotation.y = sin(_anim * 2.2 + float(i) * 1.7) * amp
+		l.rotation.z = sin(_anim * 2.2 + float(i) * 1.7 + 1.5) * 0.08 + (0.25 if state == "stunned" else 0.0) * (1.0 if i % 2 == 0 else -1.0)
+
+func _move_crab(step_dir: Vector3, to_p: Vector3, speed: float, delta: float) -> void:
+	var np := global_position + step_dir
+	if Terrain.height_at(np.x, np.z) > -0.1:
+		global_position = np
+	else:
+		var side := Vector3(-to_p.z, 0, to_p.x).normalized() * speed * delta
+		var np2 := global_position + side
+		if Terrain.height_at(np2.x, np2.z) > -0.1:
+			global_position = np2
 
 # --- piranha (boss e filhotes)
 func _ai_piranha(delta: float) -> void:

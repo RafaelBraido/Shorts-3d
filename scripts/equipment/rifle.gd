@@ -44,7 +44,8 @@ func set_weapon(id: String) -> void:
 		data = {"name": "Dinamite", "kind": "bomb", "interval": 0.8, "zoom": 70.0, "scope": false}
 	else:
 		data = WeaponDB.data(id)
-		GameState.current_weapon = id
+		if id != "fists":
+			GameState.current_weapon = id
 	_build_model()
 	scoped = false
 	if hud:
@@ -89,11 +90,13 @@ func _build_model() -> void:
 	var muz_z := -0.9
 	match weapon_id:
 		"knife":
-			Props.mesh_node(model, _bx(Vector3(0.03, 0.06, 0.38)), _steel(0.2), Vector3(0, 0, -0.3))
+			Props.mesh_node(model, _bx(Vector3(0.025, 0.09, 0.55)), Props.mat(Color(0.82, 0.84, 0.9), 0.15, 0.3), Vector3(0, 0, -0.38))
+			for i in 7:
+				Props.mesh_node(model, _bx(Vector3(0.02, 0.03, 0.04)), Props.mat(Color(0.7, 0.72, 0.78), 0.2, 0.3), Vector3(0, -0.055, -0.15 - i * 0.07))
 			Props.mesh_node(model, _bx(Vector3(0.04, 0.05, 0.16)), _dark(0.8), Vector3(0, 0, -0.02))
 			Props.mesh_node(model, _bx(Vector3(0.07, 0.02, 0.03)), _steel(), Vector3(0, 0, -0.1))
 			model.rotation = Vector3(0.2, 0.0, 0.0)
-			muz_z = -0.5
+			muz_z = -0.7
 		"pistol":
 			Props.mesh_node(model, _bx(Vector3(0.05, 0.07, 0.3)), _steel(), Vector3(0, 0.03, -0.12))
 			Props.mesh_node(model, _bx(Vector3(0.045, 0.14, 0.07)), _dark(0.7), Vector3(0, -0.07, 0.0), Vector3(0.15, 0, 0))
@@ -123,6 +126,8 @@ func _build_model() -> void:
 		"sniper":
 			_build_sniper()
 			muz_z = -1.42
+		"fists":
+			muz_z = -0.5
 		"dynamite":
 			var red := Props.mat(Color(0.8, 0.1, 0.08), 0.6)
 			for i in 3:
@@ -130,6 +135,7 @@ func _build_model() -> void:
 			_cyl(model, 0.008, 0.18, Vector3(0, 0.05, -0.34), Props.mat(Color(0.2, 0.15, 0.1), 0.9))
 			Props.sphere(model, 0.018, Vector3(0, 0.05, -0.44), Color(1.0, 0.6, 0.1)).material_override = Props.mat(Color(1.0, 0.6, 0.1), 0.3, 0.0, 3.0)
 			muz_z = -0.4
+	_add_hands()
 	muzzle = Node3D.new()
 	muzzle.position = Vector3(0, 0.015, muz_z)
 	model.add_child(muzzle)
@@ -153,6 +159,23 @@ func _build_model() -> void:
 	flash_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	muzzle.add_child(flash_mesh)
 	model.scale = Vector3.ONE * (0.75 if weapon_id == "sniper" else 1.0)
+
+func _add_hands() -> void:
+	match weapon_id:
+		"knife": Props.hand(model, Vector3(0.0, -0.03, 0.0), Vector3(0.1, 0, 0))
+		"pistol":
+			Props.hand(model, Vector3(0.0, -0.1, 0.02), Vector3(0.3, 0, 0))
+			Props.hand(model, Vector3(0.03, -0.1, 0.04), Vector3(0.3, 0, 0), -1.0)
+		"shotgun", "smg", "ar":
+			Props.hand(model, Vector3(0.0, -0.1, 0.12))
+			Props.hand(model, Vector3(0.0, -0.08, -0.42), Vector3.ZERO, -1.0)
+		"sniper":
+			Props.hand(model, Vector3(0.0, -0.13, 0.28))
+			Props.hand(model, Vector3(0.0, -0.1, -0.5), Vector3.ZERO, -1.0)
+		"dynamite": Props.hand(model, Vector3(0.0, -0.1, -0.15), Vector3(0.2, 0, 0))
+		"fists":
+			Props.hand(model, Vector3(-0.2, -0.12, -0.3), Vector3(0.2, 0.2, 0), 1.0)
+			Props.hand(model, Vector3(0.2, -0.12, -0.3), Vector3(0.2, -0.2, 0), -1.0)
 
 func _build_sniper() -> void:
 	Props.mesh_node(model, _bx(Vector3(0.075, 0.1, 0.5)), _gold(), Vector3(0, 0, -0.05))

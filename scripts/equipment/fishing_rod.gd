@@ -76,7 +76,7 @@ func _build_model() -> void:
 	blank.name = "Blank"
 	blank.rotation.x = PI / 2.0
 	blank.position = Vector3(0, 0, -1.05)
-	var reel := Props.cylinder(rod_root, 0.045, 0.045, 0.05, Vector3.ZERO, Color(0.75, 0.75, 0.8), 14, 0.25, 0.9)
+	var reel := Props.cylinder(rod_root, 0.06, 0.06, 0.07, Vector3.ZERO, Color(0.3, 0.85, 0.25), 14, 0.4, 0.2)
 	reel.rotation.z = PI / 2.0
 	reel.position = Vector3(0, -0.06, -0.22)
 	reel_knob = Props.cylinder(rod_root, 0.01, 0.01, 0.08, Vector3.ZERO, Color(0.1, 0.1, 0.1), 6)
@@ -85,6 +85,8 @@ func _build_model() -> void:
 	for i in 4:
 		var ring := Props.cylinder(rod_root, 0.012, 0.012, 0.004, Vector3.ZERO, Color(0.7, 0.7, 0.75), 8, 0.3, 0.8)
 		ring.position = Vector3(0, 0.02, -0.35 - i * 0.38)
+	Props.hand(rod_root, Vector3(0.0, -0.07, -0.05), Vector3(0.1, 0, 0))
+	Props.hand(rod_root, Vector3(0.04, -0.06, -0.32), Vector3(0.1, 0, 0), -1.0)
 	tip = Node3D.new()
 	tip.position = Vector3(0, 0, -1.88)
 	rod_root.add_child(tip)
@@ -97,6 +99,10 @@ func _apply_rod_look() -> void:
 func equip(on: bool) -> void:
 	active = on
 	visible = on
+	if on:
+		hud.show_tip("fish", "Como Pescar", "Segure o clique esquerdo para carregar e solte para lançar a linha na água funda. Quando a boia afundar, clique para fisgar e segure para recolher.")
+	else:
+		hud.set_hint("")
 	if not on:
 		cancel()
 
@@ -126,9 +132,20 @@ func _clear_bobber() -> void:
 
 # ------------------------------------------------------------------ loop
 
+func _hint_text() -> String:
+	match state:
+		S.IDLE: return "Lançar linha (segurar 🖱)"
+		S.CHARGING: return "Solte para lançar"
+		S.WAITING: return "Aguardando... (R ou clique recolhe)"
+		S.BITE: return "FISGAR! (clique)"
+		S.REELING: return "Recolher linha (segurar 🖱)  ·  solte quando ele puxar"
+	return ""
+
 func _process(delta: float) -> void:
 	_update_line()
 	_animate(delta)
+	if active:
+		hud.set_hint(_hint_text())
 	if not active or player.ui_open:
 		return
 	var pressed := Input.is_action_just_pressed("shoot")
@@ -361,7 +378,8 @@ func _catch() -> void:
 	tw.tween_callback(func() -> void:
 		LandedFish.spawn(get_tree().current_scene, id, w, dest, Vector3(0, 1.0, 0) + fwd * 0.5)
 		manager.consume_fish(f)
-		hud.toast("O peixe está se debatendo! Mate-o (faca, tiro ou soco com E) e colete.", Color(1.0, 0.9, 0.5)))
+		hud.toast("Criatura capturada! Mate-a (faca, tiro ou soco com E) e colete.", Color(1.0, 0.9, 0.5))
+		hud.show_tip("kill", "Como Matar", "Quando a criatura estiver no chão, guarde o item com [X] e soque com o clique (ou use a faca ou uma arma). Depois aperte E para coletar."))
 	fish = null
 	_clear_bobber()
 	state = S.RESULT

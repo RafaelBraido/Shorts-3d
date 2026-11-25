@@ -292,6 +292,7 @@ func hit(damage: float, point: Vector3) -> void:
 	if state == State.DEAD:
 		return
 	hp -= damage
+	Fx.damage_number(get_tree().current_scene, point, damage)
 	manager.on_fish_hit(self, point) if manager else null
 	if hp <= 0.0:
 		_die()
@@ -327,6 +328,9 @@ func get_prompt() -> String:
 
 func interact(_player: Node) -> void:
 	if state != State.DEAD:
+		return
+	if not GameState.bag_free():
+		GameState.notify.emit("Mochila cheia (%d/%d)! Venda na loja ou compre espaço extra." % [GameState.inventory.size(), GameState.bag_capacity()])
 		return
 	GameState.add_fish(species_id, weight, true)
 	Sfx.play("coin", -6.0)

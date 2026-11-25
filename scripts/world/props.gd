@@ -32,6 +32,23 @@ static func vcol_mat(double_sided: bool = false) -> StandardMaterial3D:
 	_mats[key] = m
 	return m
 
+# ------------------------------------------------------------------ mãos de massinha (primeira pessoa)
+
+static func hand(parent: Node3D, pos: Vector3, rot: Vector3 = Vector3.ZERO, mirror: float = 1.0) -> Node3D:
+	var h := Node3D.new()
+	h.position = pos
+	h.rotation = rot
+	parent.add_child(h)
+	var skin := Color(0.93, 0.8, 0.56)
+	sphere(h, 0.07, Vector3.ZERO, skin, Vector3(1.0, 0.8, 1.35), 0.9)
+	sphere(h, 0.04, Vector3(mirror * 0.07, 0.01, -0.04), skin, Vector3(1.0, 0.8, 1.4), 0.9)   # polegar
+	for i in 3:
+		sphere(h, 0.032, Vector3(-0.03 + i * 0.03, 0.02, -0.1), skin, Vector3(1.0, 0.9, 1.5), 0.9)
+	for c in h.get_children():
+		if c is GeometryInstance3D:
+			c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return h
+
 # ------------------------------------------------------------------ helpers
 
 static func mesh_node(parent: Node, mesh: Mesh, material: Material, pos: Vector3 = Vector3.ZERO, rot: Vector3 = Vector3.ZERO, nm: String = "") -> MeshInstance3D:
@@ -330,6 +347,35 @@ static func build_shop(parent: Node, pos: Vector3, yaw: float, keeper: String = 
 	for i in 5:
 		var cx := -1.8 + i * 0.9
 		box(root, Vector3(0.4, 0.35, 0.35), Vector3(cx, fl + 1.92, -D / 2.0 + 0.35), [Color(0.8, 0.3, 0.2), Color(0.2, 0.5, 0.7), Color(0.85, 0.7, 0.2), Color(0.3, 0.6, 0.3), Color(0.6, 0.3, 0.6)][i])
+	# parede de armas (tábua com itens pendurados e rótulos vermelhos, como no jogo real)
+	box(root, Vector3(0.12, 1.5, 3.6), Vector3(-W / 2.0 + 0.2, fl + 1.55, 0.2), Color(0.42, 0.28, 0.15))
+	var wall_items := [["Pistola  $%d" % WeaponDB.W["pistol"]["price"], "pistol"], ["Escopeta  $%d" % WeaponDB.W["shotgun"]["price"], "shotgun"],
+		["Dinamite  $%d" % WeaponDB.DYNAMITE_PRICE, "dynamite"], ["Espaço extra de mochila", "bag"]]
+	for i in wall_items.size():
+		var zz := -1.25 + i * 0.95
+		var wx := -W / 2.0 + 0.32
+		match wall_items[i][1]:
+			"pistol":
+				box(root, Vector3(0.06, 0.12, 0.34), Vector3(wx, fl + 1.9, zz), Color(0.3, 0.3, 0.34))
+				box(root, Vector3(0.05, 0.22, 0.08), Vector3(wx, fl + 1.75, zz + 0.1), Color(0.2, 0.2, 0.22))
+			"shotgun":
+				box(root, Vector3(0.05, 0.07, 0.8), Vector3(wx, fl + 1.9, zz), Color(0.25, 0.25, 0.28))
+				box(root, Vector3(0.06, 0.1, 0.3), Vector3(wx, fl + 1.84, zz + 0.4), Color(0.45, 0.28, 0.12))
+			"dynamite":
+				for k in 3:
+					cylinder(root, 0.05, 0.05, 0.4, Vector3(wx, fl + 1.8 + k * 0.01, zz - 0.1 + k * 0.1), Color(0.8, 0.1, 0.08), 8)
+				cylinder(root, 0.01, 0.01, 0.2, Vector3(wx, fl + 2.1, zz), Color(0.9, 0.9, 0.8), 4)
+			"bag":
+				box(root, Vector3(0.1, 0.35, 0.4), Vector3(wx, fl + 1.85, zz), Color(0.55, 0.35, 0.15))
+		var tl := Label3D.new()
+		tl.text = String(wall_items[i][0])
+		tl.font_size = 30
+		tl.pixel_size = 0.0045
+		tl.outline_size = 6
+		tl.modulate = Color(1.0, 0.3, 0.28)
+		tl.rotation.y = PI / 2.0
+		tl.position = Vector3(wx + 0.06, fl + 1.45, zz)
+		root.add_child(tl)
 	# caixotes e barris
 	box(root, Vector3(0.8, 0.8, 0.8), Vector3(-2.7, fl + 0.4, 1.9), Color(0.6, 0.45, 0.25), body)
 	box(root, Vector3(0.7, 0.7, 0.7), Vector3(-2.65, fl + 1.15, 1.95), Color(0.55, 0.4, 0.22), null, Vector3(0, 0.3, 0))

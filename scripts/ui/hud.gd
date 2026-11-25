@@ -64,6 +64,18 @@ var death_layer: ColorRect
 var death_label: Label
 var damage_flash: ColorRect
 var _player: Node3D = null
+var gauges: Control
+var _hp := 100.0
+var _hp_max := 100.0
+var _hunger := 100.0
+var hint_label: Label
+var tip_panel: PanelContainer
+var tip_title: Label
+var tip_text: Label
+var _tip_t := 0.0
+var boss_ghost: Dictionary
+var _boss_frac := 1.0
+var _ghost_frac := 1.0
 
 var _hit_t := 0.0
 var _target_t := 0.0
@@ -231,30 +243,60 @@ func _draw_crosshair() -> void:
 			crosshair.draw_line(c + s * 8.0, c + s * 17.0, col, 3.0)
 
 func _build_status() -> void:
-	# moedas (canto inferior esquerdo, como no jogo de referência)
-	var box := PanelContainer.new()
-	box.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0.55), 6))
+	# canto inferior esquerdo (como no jogo real): caixa branca de $ e anéis de vida/fome
+	var box := VBoxContainer.new()
 	if touch_mode:
 		box.set_anchors_preset(Control.PRESET_TOP_LEFT)
 		box.position = Vector2(16, 12)
 	else:
 		box.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-		box.position = Vector2(16, -62)
+		box.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		box.position = Vector2(16, -16)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(box)
-	var vb := VBoxContainer.new()
-	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(vb)
-	coins_label = _label("$0", 22, GOLD)
-	vb.add_child(coins_label)
-	level_label = _label("Nv 1", 14)
-	vb.add_child(level_label)
-	xp_bar = _bar(Vector2(140, 10), Color(0.35, 0.8, 1.0))
-	vb.add_child(xp_bar["bg"])
-	hp_label = _label("♥ 100", 14, Color(1.0, 0.45, 0.45))
-	vb.add_child(hp_label)
-	hp_bar = _bar(Vector2(140, 10), Color(0.9, 0.2, 0.2))
-	vb.add_child(hp_bar["bg"])
+	level_label = _label("Nv 1", 13, Color(0.85, 0.95, 1.0), 3)
+	box.add_child(level_label)
+	xp_bar = _bar(Vector2(110, 7), Color(0.35, 0.8, 1.0))
+	box.add_child(xp_bar["bg"])
+	var money := PanelContainer.new()
+	money.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0.35), 4, Color(1, 1, 1, 0.9), 2))
+	money.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(money)
+	coins_label = _label("$0", 24, Color.WHITE, 4)
+	money.add_child(coins_label)
+	gauges = Control.new()
+	gauges.custom_minimum_size = Vector2(140, 62)
+	gauges.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gauges.draw.connect(_draw_gauges)
+	box.add_child(gauges)
+
+func _draw_gauges() -> void:
+	var c1 := Vector2(30, 31)
+	var c2 := Vector2(88, 31)
+	var r := 22.0
+	var hf := clampf(_hp / _hp_max, 0.0, 1.0)
+	var ff := clampf(_hunger / 100.0, 0.0, 1.0)
+	var low_h := Color(1.0, 0.35, 0.3) if hf < 0.3 else Color(1, 1, 1)
+	var low_f := Color(1.0, 0.6, 0.2) if ff < 0.25 else Color(1, 1, 1)
+	for pair in [[c1, hf, low_h], [c2, ff, low_f]]:
+		gauges.draw_arc(pair[0], r, 0.0, TAU, 40, Color(0, 0, 0, 0.45), 7.0)
+		gauges.draw_arc(pair[0], r, -PI / 2.0, -PI / 2.0 + TAU * float(pair[1]), 40, pair[2], 5.0)
+	# coração
+	var hc := c1 + Vector2(0, 1)
+	gauges.draw_circle(hc + Vector2(-5, -3), 5.5, low_h)
+	gauges.draw_circle(hc + Vector2(5, -3), 5.5, low_h)
+	gauges.draw_colored_polygon(PackedVector2Array([hc + Vector2(-10, -1), hc + Vector2(10, -1), hc + Vector2(0, 11)]), low_h)
+	# garfo e faca
+	gauges.draw_line(c2 + Vector2(-5, -9), c2 + Vector2(-5, 9), low_f, 2.5)
+	for i in 3:
+		gauges.draw_line(c2 + Vector2(-8 + i * 3, -10), c2 + Vector2(-8 + i * 3, -4), low_f, 1.5)
+	gauges.draw_line(c2 + Vector2(5, -10), c2 + Vector2(5, 9), low_f, 2.5)
+	gauges.draw_colored_polygon(PackedVector2Array([c2 + Vector2(4, -10), c2 + Vector2(10, -4), c2 + Vector2(4, 0)]), low_f)
+
+func set_hunger(v: float) -> void:
+	_hunger = v
+	if gauges:
+		gauges.queue_redraw()
 
 func _refresh_status() -> void:
 	coins_label.text = "$%d" % GameState.coins
@@ -267,13 +309,13 @@ func _build_hotbar() -> void:
 	hb.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	hb.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	hb.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	hb.position = Vector2(-140, -90)
+	hb.position = Vector2(-190, -88)
 	hb.add_theme_constant_override("separation", 10)
 	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hb)
-	for i in 3:
+	for i in 4:
 		var p := PanelContainer.new()
-		p.custom_minimum_size = Vector2(96, 64)
+		p.custom_minimum_size = Vector2(84, 58)
 		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var v := VBoxContainer.new()
 		v.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -305,23 +347,28 @@ func _slot_set(i: int, title: String, sub: String) -> void:
 	(slots[i].find_child("Sub", true, false) as Label).text = sub
 
 func refresh_hotbar() -> void:
-	if slots.size() < 3:
+	if slots.size() < 4:
 		return
 	var wid := GameState.current_weapon
 	var w: Dictionary = WeaponDB.data(wid)
 	var sub := "∞"
 	if w["kind"] == "gun":
-		sub = "%d / %d" % [GameState.ammo_mag(wid), GameState.ammo_reserve(wid)]
-	_slot_set(0, "1  " + String(w["name"]).split(" ")[0], sub)
-	_slot_set(1, "2  Vara", String(GameState.rod()["name"]).replace("Vara de ", "").replace("Vara ", ""))
-	_slot_set(2, "3  Dinamite", "x%d" % GameState.dynamite)
+		sub = "%d/%d" % [GameState.ammo_mag(wid), GameState.ammo_reserve(wid)]
+	_slot_set(0, "1", String(w["name"]).split(" ")[0] + "  " + sub)
+	_slot_set(1, "2", "Vara")
+	_slot_set(2, "3", "Dinamite x%d" % GameState.dynamite)
+	_slot_set(3, "4", "Mãos")
 
 func set_equipped(slot: int) -> void:
 	_equipped = slot
 	for i in slots.size():
 		var on := i == slot - 1
-		slots[i].add_theme_stylebox_override("panel", _style(Color(0.95, 0.75, 0.2, 0.35) if on else Color(0, 0, 0, 0.5), 6, GOLD if on else Color(1, 1, 1, 0.25), 2))
+		slots[i].add_theme_stylebox_override("panel", _style(Color(1, 1, 1, 0.12) if on else Color(0, 0, 0, 0.0), 4, Color(1, 1, 1, 0.95) if on else Color(0, 0, 0, 0), 2))
 	refresh_hotbar()
+
+func set_hint(text: String) -> void:
+	if hint_label:
+		hint_label.text = text
 
 func _build_fishing_ui() -> void:
 	power_bar = _bar(Vector2(260, 18), Color(1.0, 0.8, 0.2))
@@ -472,7 +519,25 @@ func show_catch(id: String, weight: float, value: int, is_new: bool, is_record: 
 	catch_panel.visible = true
 	_catch_t = 4.5
 
+func show_tip(id: String, title: String, text: String) -> void:
+	var seen: Dictionary = Story.flags.get("tips", {})
+	if seen.has(id):
+		return
+	seen[id] = true
+	Story.flags["tips"] = seen
+	tip_title.text = title
+	tip_text.text = text
+	tip_panel.visible = true
+	_tip_t = 14.0
+
 func _process(delta: float) -> void:
+	if _tip_t > 0.0:
+		_tip_t -= delta
+		if _tip_t <= 0.0:
+			tip_panel.visible = false
+	if boss_panel != null and boss_panel.visible:
+		_ghost_frac = lerpf(_ghost_frac, _boss_frac, clampf(1.5 * delta, 0.0, 1.0))
+		_set_bar(boss_ghost, _ghost_frac)
 	if radar != null:
 		radar.queue_redraw()
 	if _hit_t > 0.0:
@@ -588,6 +653,7 @@ func _sale_mult() -> float:
 
 func _tab_fish(shop: bool) -> void:
 	var fish_tab := _tab("Vender" if shop else "Peixes")
+	fish_tab.add_child(_label("Mochila: %d / %d espaços" % [GameState.inventory.size(), GameState.bag_capacity()], 15, Color(0.8, 0.9, 1.0), 0))
 	if GameState.inventory.is_empty():
 		fish_tab.add_child(_label("Nenhum peixe na mochila. Lance a vara na água (tecla 2)!", 16, Color(0.85, 0.85, 0.85), 0))
 		return
@@ -618,6 +684,15 @@ func _tab_fish(shop: bool) -> void:
 				Sfx.play("coin")
 				toast("+$%d" % got, GOLD))
 			row.add_child(b)
+		var eat := Button.new()
+		eat.text = "Comer"
+		var eidx := i
+		eat.pressed.connect(func() -> void:
+			var p := _player_node()
+			if p:
+				p.eat_fish(eidx)
+			_refresh_menu())
+		row.add_child(eat)
 		fish_tab.add_child(row)
 
 func _tab_registry() -> void:
@@ -738,13 +813,16 @@ func _tab_items(shop: bool) -> void:
 	if GameState.engine_level < GameState.ENGINES.size():
 		var eng: Dictionary = GameState.ENGINES[GameState.engine_level]
 		rows.append([eng["name"] + " (barco)", int(eng["price"]), "Aumenta a velocidade dos seus barcos.", func() -> bool: return GameState.buy_engine(), false])
+	var maxed := GameState.bag_extra >= GameState.bag_extra_max()
+	rows.append(["Espaço extra de mochila (%d/%d)" % [GameState.bag_capacity(), GameState.BAG_BASE + GameState.bag_extra_max()], GameState.bag_extra_price(),
+		"(Máximo para esta ilha)" if maxed else "Carregue mais peixes por viagem.", func() -> bool: return GameState.buy_bag_slot(), maxed])
 	for r in rows:
 		var row := HBoxContainer.new()
-		var info := _label("%s\n%s" % [r[0], r[2]], 15, Color.WHITE, 0)
+		var info := _label("%s\n%s" % [r[0], r[2]], 15, Color(1.0, 0.45, 0.4) if (str(r[2]).begins_with("(Máximo")) else Color.WHITE, 0)
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(info)
 		var b := Button.new()
-		b.text = "Comprado" if r[4] else "Comprar $%d" % r[1]
+		b.text = ("Máximo" if str(r[2]).begins_with("(Máximo") else "Comprado") if r[4] else "Comprar $%d" % r[1]
 		b.disabled = r[4] or GameState.coins < int(r[1])
 		var cb: Callable = r[3]
 		b.pressed.connect(func() -> void:
@@ -885,7 +963,7 @@ func _build_story_ui() -> void:
 	# objetivo atual (canto superior esquerdo)
 	obj_panel = PanelContainer.new()
 	obj_panel.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0.5), 8))
-	obj_panel.position = Vector2(14, 150 if touch_mode else 38)
+	obj_panel.position = Vector2(14, 170 if touch_mode else 120)
 	obj_panel.custom_minimum_size = Vector2(330, 0)
 	obj_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(obj_panel)
@@ -911,7 +989,7 @@ func _build_story_ui() -> void:
 	boss_panel = PanelContainer.new()
 	boss_panel.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0.55), 6))
 	boss_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	boss_panel.position = Vector2(-280, 14)
+	boss_panel.position = Vector2(-390, 10)
 	boss_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	boss_panel.visible = false
 	root.add_child(boss_panel)
@@ -921,8 +999,10 @@ func _build_story_ui() -> void:
 	boss_name = _label("", 18, Color(1.0, 0.5, 0.4))
 	boss_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bv.add_child(boss_name)
-	boss_bar = _bar(Vector2(560, 18), Color(0.85, 0.12, 0.12))
+	boss_bar = _bar(Vector2(760, 16), Color(0.85, 0.12, 0.12))
 	bv.add_child(boss_bar["bg"])
+	boss_ghost = _bar(Vector2(760, 6), Color(0.95, 0.95, 0.95))
+	bv.add_child(boss_ghost["bg"])
 	# flash de dano e tela de morte
 	damage_flash = ColorRect.new()
 	damage_flash.color = Color(0.8, 0.0, 0.0, 0.0)
@@ -942,6 +1022,26 @@ func _build_story_ui() -> void:
 	death_label.position = Vector2(-300, -40)
 	death_label.custom_minimum_size = Vector2(600, 0)
 	death_layer.add_child(death_label)
+	hint_label = _label("", 18, Color(1, 1, 1), 4)
+	hint_label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	hint_label.position = Vector2(200, -62)
+	root.add_child(hint_label)
+	tip_panel = PanelContainer.new()
+	tip_panel.add_theme_stylebox_override("panel", _style(Color(0.05, 0.07, 0.12, 0.72), 4, Color(0.95, 0.5, 0.2), 2))
+	tip_panel.position = Vector2(8, 8)
+	tip_panel.custom_minimum_size = Vector2(330, 0)
+	tip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tip_panel.visible = false
+	root.add_child(tip_panel)
+	var tv := VBoxContainer.new()
+	tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tip_panel.add_child(tv)
+	tip_title = _label("", 22, Color(0.98, 0.45, 0.2), 3)
+	tv.add_child(tip_title)
+	tip_text = _label("", 15, Color(0.95, 0.95, 0.95), 3)
+	tip_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tip_text.custom_minimum_size = Vector2(310, 0)
+	tv.add_child(tip_text)
 	_build_dialogue()
 	_build_pages()
 
@@ -995,7 +1095,8 @@ func _build_pages() -> void:
 
 func _start_intro() -> void:
 	Story.start_intro(func() -> void:
-		Story.advance(0))
+		Story.advance(0)
+		show_tip("think", "Como Pensar", "Você pode esquecer quais criaturas já pescou. Tente pensar apertando [Tab]."))
 
 func _refresh_story() -> void:
 	if obj_text == null:
@@ -1005,8 +1106,10 @@ func _refresh_story() -> void:
 	obj_panel.visible = true
 
 func set_health(hp: float, max_hp: float) -> void:
-	_set_bar(hp_bar, hp / max_hp)
-	hp_label.text = "♥ %d" % int(ceilf(hp))
+	_hp = hp
+	_hp_max = max_hp
+	if gauges:
+		gauges.queue_redraw()
 
 func flash_damage() -> void:
 	damage_flash.color = Color(0.85, 0.0, 0.0, 0.45)
@@ -1025,7 +1128,10 @@ func set_boss_bar(nm: String, frac: float) -> void:
 		boss_panel.visible = false
 		return
 	boss_name.text = nm
+	_boss_frac = frac
 	_set_bar(boss_bar, frac)
+	if not boss_panel.visible:
+		_ghost_frac = frac
 	boss_panel.visible = true
 
 # --- diálogo

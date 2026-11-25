@@ -14,6 +14,8 @@ var max_speed := 16.0
 var _t := randf() * 10.0
 var _snd: AudioStreamPlayer3D
 var _roll := 0.0
+var _hands: Node3D
+var _wheel: Node3D
 
 static func spawn(parent: Node, pos: Vector3, yaw: float, boat_kind: String) -> Boat:
 	var b := Boat.new()
@@ -35,8 +37,8 @@ func _ready() -> void:
 	rotation.y = heading
 
 func _build() -> void:
-	var hull_c := Color(0.95, 0.95, 0.95) if kind == "motor" else Color(0.07, 0.07, 0.08)
-	var trim := Color(0.1, 0.35, 0.7) if kind == "motor" else Color(0.25, 0.27, 0.22)
+	var hull_c := Color(0.5, 0.34, 0.2) if kind == "motor" else Color(0.07, 0.07, 0.08)
+	var trim := Color(0.42, 0.28, 0.16) if kind == "motor" else Color(0.25, 0.27, 0.22)
 	Props.mesh_node(self, _box(Vector3(2.4, 0.5, 6.0)), Props.mat(hull_c, 0.5, 0.2), Vector3(0, 0.0, 0))
 	Props.mesh_node(self, _box(Vector3(2.6, 0.3, 5.6)), Props.mat(trim, 0.6), Vector3(0, 0.38, 0))
 	var bow := PrismMesh.new()
@@ -47,6 +49,29 @@ func _build() -> void:
 	Props.mesh_node(self, _box(Vector3(1.8, 0.7, 0.4)), Props.mat(trim, 0.6), Vector3(0, 0.95, 0.8))      # painel
 	var glass := Props.mesh_node(self, _box(Vector3(1.8, 0.6, 0.06)), Props.mat(Color(0.5, 0.75, 0.9, 1.0), 0.1, 0.3), Vector3(0, 1.4, 1.0), Vector3(-0.35, 0, 0))
 	Props.mesh_node(self, _box(Vector3(1.4, 0.35, 0.5)), Props.mat(Color(0.15, 0.15, 0.18), 0.8), Vector3(0, 0.8, -0.4))  # banco
+	# volante octogonal azul e alavanca de aceleração (como no jogo real)
+	_wheel = Node3D.new()
+	_wheel.position = Vector3(0, 1.3, 0.78)
+	_wheel.rotation.x = -0.5
+	add_child(_wheel)
+	var wcol := Props.mat(Color(0.3, 0.45, 0.72), 0.5, 0.2)
+	for i in 8:
+		var a := TAU * i / 8.0
+		var seg := Props.mesh_node(_wheel, _box(Vector3(0.06, 0.06, 0.25)), wcol, Vector3(cos(a), sin(a), 0) * 0.3)
+		seg.rotation.z = a + PI / 2.0
+		seg.rotation.x = 0.0
+		seg.scale = Vector3(1, 1, 1)
+		seg.mesh = _box(Vector3(0.25, 0.06, 0.06))
+	Props.mesh_node(_wheel, _box(Vector3(0.6, 0.05, 0.05)), wcol)
+	Props.mesh_node(_wheel, _box(Vector3(0.05, 0.6, 0.05)), wcol)
+	Props.sphere(_wheel, 0.07, Vector3.ZERO, Color(0.25, 0.4, 0.65))
+	var lever := Props.mesh_node(self, _box(Vector3(0.06, 0.34, 0.06)), Props.mat(Color(0.35, 0.38, 0.45), 0.5, 0.4), Vector3(0.55, 1.0, 0.72), Vector3(-0.4, 0, 0))
+	Props.sphere(self, 0.06, Vector3(0.55, 1.17, 0.66), Color(0.9, 0.2, 0.15))
+	_hands = Node3D.new()
+	add_child(_hands)
+	Props.hand(_hands, Vector3(-0.28, 1.12, 0.62), Vector3(-0.5, 0, 0.3))
+	Props.hand(_hands, Vector3(0.55, 1.12, 0.62), Vector3(-0.5, 0, 0), -1.0)
+	_hands.visible = false
 	Props.mesh_node(self, _box(Vector3(0.5, 0.6, 0.5)), Props.mat(Color(0.12, 0.12, 0.14), 0.4, 0.6), Vector3(0, 0.6, -3.2))  # motor
 	if kind == "military":
 		Props.mesh_node(self, _box(Vector3(2.2, 0.08, 2.0)), Props.mat(Color(0.2, 0.22, 0.17), 0.9), Vector3(0, 1.8, -0.2))
@@ -86,6 +111,7 @@ func board(player: Node) -> void:
 	if player.hud:
 		player.hud.toast("W/S acelera, A/D vira. E para sair.", Color(0.8, 0.95, 1.0))
 	_snd.play()
+	_hands.visible = true
 
 func leave(forced: bool) -> void:
 	if driver == null:
@@ -95,6 +121,7 @@ func leave(forced: bool) -> void:
 	p.vehicle = null
 	p.set_collision_layer(2)
 	_snd.stop()
+	_hands.visible = false
 	speed = 0.0
 	var side := global_transform.basis * Vector3(2.6, 0, 0.5)
 	p.global_position = global_position + side + Vector3(0, 0.6, 0)

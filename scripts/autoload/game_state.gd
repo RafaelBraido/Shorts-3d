@@ -14,7 +14,7 @@ const SAVE_PATH := "user://fishit_save.json"
 
 ## Varas disponíveis: estatísticas usadas pelo FishingRod.
 const RODS: Array[Dictionary] = [
-	{"name": "Vara de Bambu", "price": 0, "level": 1, "cast_range": 20.0, "strength": 1.0, "reel": 1.0, "luck": 0.0, "color": Color(0.55, 0.38, 0.18)},
+	{"name": "Vara de Bambu", "price": 0, "level": 1, "cast_range": 20.0, "strength": 1.0, "reel": 1.0, "luck": 0.0, "color": Color(0.3, 0.82, 0.22)},
 	{"name": "Vara de Fibra", "price": 250, "level": 3, "cast_range": 28.0, "strength": 1.3, "reel": 1.25, "luck": 0.15, "color": Color(0.2, 0.45, 0.25)},
 	{"name": "Vara de Carbono", "price": 900, "level": 6, "cast_range": 36.0, "strength": 1.7, "reel": 1.55, "luck": 0.35, "color": Color(0.1, 0.1, 0.12)},
 	{"name": "Vara Dourada", "price": 3000, "level": 10, "cast_range": 46.0, "strength": 2.2, "reel": 1.9, "luck": 0.6, "color": Color(0.95, 0.7, 0.12)},
@@ -38,6 +38,7 @@ var owned_weapons: Array[String] = ["knife"]
 var current_weapon := "knife"
 var ammo: Dictionary = {}               ## weapon_id -> {"mag": int, "reserve": int}
 var dynamite := 0
+var bag_extra := 0                      ## espaços extras de mochila comprados
 var engine_level := 0                   ## 0 = motor comum, 1 = reforçado, 2 = motores duplos
 var pending_story: Dictionary = {}      ## dados do save entregues ao autoload Story
 var inventory: Array[Dictionary] = []  ## {species, weight, value, dead}
@@ -174,6 +175,32 @@ func buy_dynamite() -> bool:
 	save_game()
 	return true
 
+const BAG_BASE := 6
+
+func bag_capacity() -> int:
+	return BAG_BASE + bag_extra
+
+func bag_free() -> bool:
+	return inventory.size() < bag_capacity()
+
+## Cada ilha libera 2 espaços extras a mais (ilha 1 = 2, ilha 2 = 4 ...).
+func bag_extra_max() -> int:
+	return clampi(get_node("/root/Story").chapter, 1, 5) * 2
+
+func bag_extra_price() -> int:
+	return 20 * (bag_extra + 1)
+
+func buy_bag_slot() -> bool:
+	if bag_extra >= bag_extra_max() or coins < bag_extra_price():
+		return false
+	coins -= bag_extra_price()
+	bag_extra += 1
+	coins_changed.emit(coins)
+	inventory_changed.emit()
+	notify.emit("Espaço extra na mochila: %d/%d" % [inventory.size(), bag_capacity()])
+	save_game()
+	return true
+
 const ENGINES := [{"name": "Motor reforçado", "price": 230, "speed": 1.35}, {"name": "Motores duplos", "price": 860, "speed": 1.7}]
 
 func buy_engine() -> bool:
@@ -247,7 +274,7 @@ func save_game() -> void:
 		return
 	var data := {
 		"coins": coins, "xp": xp, "level": level, "rod_tier": rod_tier,
-		"owned_rods": owned_rods, "owned_weapons": owned_weapons, "ammo": ammo, "dynamite": dynamite, "engine_level": engine_level,
+		"owned_rods": owned_rods, "owned_weapons": owned_weapons, "ammo": ammo, "dynamite": dynamite, "engine_level": engine_level, "bag_extra": bag_extra,
 		"story": get_node("/root/Story").to_dict() if has_node("/root/Story") else pending_story,
 		"inventory": inventory, "codex": codex, "total_caught": total_caught,
 	}
@@ -283,6 +310,7 @@ func load_game() -> void:
 	ammo = d.get("ammo", {})
 	dynamite = int(d.get("dynamite", 0))
 	engine_level = clampi(int(d.get("engine_level", 0)), 0, 2)
+	bag_extra = maxi(int(d.get("bag_extra", 0)), 0)
 	pending_story = d.get("story", {})
 	inventory.clear()
 	for e in d.get("inventory", []):

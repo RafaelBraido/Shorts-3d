@@ -5,6 +5,7 @@ extends RefCounted
 const ORDER := ["knife", "pistol", "shotgun", "smg", "ar", "sniper"]
 
 const W := {
+	"fists": {"name": "Mãos", "kind": "melee", "damage": 1.0, "interval": 0.38, "range": 2.4, "mag": 0, "price": 0, "zoom": 75.0},
 	"knife": {"name": "Faca", "kind": "melee", "damage": 2.0, "interval": 0.45, "range": 2.8, "mag": 0, "price": 0, "zoom": 75.0},
 	"pistol": {"name": "Pistola", "kind": "gun", "damage": 1.2, "interval": 0.28, "pellets": 1, "spread": 0.9, "mag": 12, "auto": false,
 		"price": 50, "ammo_price": 15, "ammo_pack": 24, "reload": 1.1, "zoom": 55.0, "scope": false, "start_reserve": 24, "kick": 0.015},

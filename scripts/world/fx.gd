@@ -66,3 +66,55 @@ static func tracer(parent: Node, from: Vector3, to: Vector3) -> void:
 	var tw := holder.create_tween()
 	tw.tween_property(m, "albedo_color:a", 0.0, 0.12)
 	tw.tween_callback(holder.queue_free)
+
+# ---- números de dano e sangue (como no jogo real) ----
+
+static var _blood_list: Array = []
+
+## Número flutuante que sobe e some ("16" ao acertar com a faca: dano x8).
+static func damage_number(parent: Node, pos: Vector3, amount: float, color: Color = Color(1, 1, 1)) -> void:
+	var l := Label3D.new()
+	l.text = str(int(round(amount * 8.0)))
+	l.font_size = 72
+	l.pixel_size = 0.0075
+	l.outline_size = 14
+	l.modulate = color
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.no_depth_test = true
+	parent.add_child(l)
+	l.global_position = pos + Vector3(randf_range(-0.4, 0.4), 0.4, randf_range(-0.4, 0.4))
+	var tw := l.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(l, "position:y", l.position.y + 1.4, 0.8)
+	tw.tween_property(l, "modulate:a", 0.0, 0.8).set_delay(0.3)
+	tw.chain().tween_callback(l.queue_free)
+
+## Mancha de sangue achatada no chão sob "pos" (limita a 70 manchas).
+static func blood(parent: Node, pos: Vector3, size: float = 1.0) -> void:
+	var space := parent.get_viewport().world_3d.direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(pos + Vector3(0, 2.0, 0), pos + Vector3(0, -8.0, 0), 1)
+	var hit := space.intersect_ray(q)
+	if hit.is_empty():
+		return
+	var p: Vector3 = hit["position"]
+	if p.y < 0.15 and Terrain.depth_at(p.x, p.z) > 0.3:
+		return
+	var cm := CylinderMesh.new()
+	cm.top_radius = size * randf_range(0.3, 0.7)
+	cm.bottom_radius = cm.top_radius
+	cm.height = 0.02
+	cm.radial_segments = 8
+	cm.rings = 1
+	var mi := MeshInstance3D.new()
+	mi.mesh = cm
+	mi.material_override = Props.mat(Color(0.62, 0.03, 0.03), 0.35)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(mi)
+	mi.global_position = p + (hit["normal"] as Vector3) * 0.03
+	mi.scale = Vector3(randf_range(0.8, 1.6), 1.0, randf_range(0.8, 1.4))
+	mi.rotate_y(randf() * TAU)
+	_blood_list.append(mi)
+	while _blood_list.size() > 70:
+		var old = _blood_list.pop_front()
+		if is_instance_valid(old):
+			old.queue_free()

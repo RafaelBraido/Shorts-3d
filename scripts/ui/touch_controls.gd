@@ -59,6 +59,7 @@ func _ready() -> void:
 	_add("item1", "1 RIFLE", "tap", "weapon_toggle", 32.0)
 	_add("item2", "2 VARA", "tap", "fish_toggle", 32.0)
 	_add("item3", "3 BOMBA", "tap", "bomb_toggle", 32.0)
+	_add("item4", "4 MÃOS", "tap", "hands_toggle", 32.0)
 	_add("bag", "MOCHILA", "tap", "__bag", 32.0)
 	get_viewport().size_changed.connect(_layout)
 	_layout()
@@ -88,9 +89,10 @@ func _layout() -> void:
 	btns["reload"].pos = Vector2(s.x - 400, s.y - 190)
 	btns["crouch"].pos = Vector2(s.x - 410, s.y - 75)
 	btns["use"].pos = Vector2(s.x - 250, s.y - 400)
-	btns["item1"].pos = Vector2(s.x - 340, 48)
-	btns["item2"].pos = Vector2(s.x - 270, 48)
-	btns["item3"].pos = Vector2(s.x - 200, 48)
+	btns["item1"].pos = Vector2(s.x - 410, 48)
+	btns["item2"].pos = Vector2(s.x - 340, 48)
+	btns["item3"].pos = Vector2(s.x - 270, 48)
+	btns["item4"].pos = Vector2(s.x - 200, 48)
 	btns["bag"].pos = Vector2(s.x - 130, 48)
 	btns["net"].pos = Vector2(s.x - 60, 48)
 
@@ -196,7 +198,8 @@ func _process(_delta: float) -> void:
 	var rifle: bool = player != null and player.item == "rifle"
 	var gun: bool = rifle and player.rifle.is_gun()
 	var it: String = player.item if player != null else "rifle"
-	btns["fire"].label = "PESCAR" if it == "rod" else ("JOGAR" if it == "bomb" else ("ATIRAR" if gun else "GOLPEAR"))
+	rifle = rifle or it == "hands"
+	btns["fire"].label = "PESCAR" if it == "rod" else ("JOGAR" if it == "bomb" else ("ATIRAR" if gun else ("SOCAR" if it == "hands" else "GOLPEAR")))
 	btns["aim"].visible = gun
 	btns["reload"].visible = gun
 	btns["use"].visible = hud != null and hud.prompt_label.text != ""

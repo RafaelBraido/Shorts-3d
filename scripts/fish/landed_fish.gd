@@ -86,6 +86,8 @@ func hit(damage: float, point: Vector3) -> void:
 		apply_central_impulse((global_position - point).normalized() * mass * 3.0 + Vector3.UP * mass * 3.5)
 		return
 	hp -= damage
+	Fx.damage_number(get_tree().current_scene, point, damage)
+	Fx.blood(get_tree().current_scene, global_position, 0.5)
 	var d := (global_position - point)
 	apply_central_impulse((d.normalized() if d.length() > 0.01 else Vector3.UP) * mass * 2.0 + Vector3.UP * mass * 4.5)
 	if hp <= 0.0:
@@ -110,6 +112,9 @@ func interact(_player: Node) -> void:
 	if not dead:
 		hit(1.0, global_position - Vector3(0, 0.5, 0.2))
 		Sfx.play("impact", -4.0, 1.5)
+		return
+	if not GameState.bag_free():
+		GameState.notify.emit("Mochila cheia (%d/%d)! Venda na loja ou compre espaço extra." % [GameState.inventory.size(), GameState.bag_capacity()])
 		return
 	GameState.add_fish(species_id, weight, false)
 	Story.on_fish_caught(species_id, global_position)
