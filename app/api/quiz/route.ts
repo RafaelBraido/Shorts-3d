@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateQuiz, rateLimit, readUserKey, UserFacingError, validateSource } from "@/lib/server/ai";
+import { generateQuiz, rateLimit, UserFacingError, validateSource } from "@/lib/server/ai";
 import { MOCK, mockQuiz } from "@/lib/server/mock";
 import { LEVELS, LIMITS, QUESTION_COUNTS, type LevelId, type Summary } from "@/lib/types";
 
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       await new Promise((r) => setTimeout(r, 1200));
       return NextResponse.json({ questions: mockQuiz(level, count, avoid.length) });
     }
-    const questions = await generateQuiz({ summary, source, level, count, avoid, userKey: readUserKey(req) });
+    const questions = await generateQuiz({ summary, source, level, count, avoid });
     return NextResponse.json({ questions });
   } catch (err) {
     const e = err instanceof UserFacingError ? err : new UserFacingError("Erro inesperado. Tente de novo.", 500);

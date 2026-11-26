@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateSummary, rateLimit, readUserKey, UserFacingError, validateSource } from "@/lib/server/ai";
+import { generateSummary, rateLimit, UserFacingError, validateSource } from "@/lib/server/ai";
 import { MOCK, mockSummary } from "@/lib/server/mock";
 import { LIMITS } from "@/lib/types";
 
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       await new Promise((r) => setTimeout(r, 1500));
       return NextResponse.json({ summary: mockSummary });
     }
-    const summary = await generateSummary(source, readUserKey(req));
+    const summary = await generateSummary(source);
     return NextResponse.json({ summary });
   } catch (err) {
     const e = err instanceof UserFacingError ? err : new UserFacingError("Erro inesperado. Tente de novo.", 500);
