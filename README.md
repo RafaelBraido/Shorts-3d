@@ -31,7 +31,7 @@ Sem chave? Use `STUDY_IT_MOCK=1 npm run dev` para ver a interface com dados de e
 
 ## Deploy na Vercel
 
-1. Importe este repositório na Vercel.
+1. Importe este repositório na Vercel (projeto `study-it`, framework Next.js). Não use o projeto `mare-diario`, que é outro app.
 2. Ative o AI Gateway no projeto (Vercel → AI Gateway).
 3. Faça o deploy. Nenhuma variável de ambiente é necessária.
 
