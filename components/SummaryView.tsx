@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, BookMarked, ListChecks, Plus, RotateCcw } from "lucide-react";
+import { ArrowRight, BookMarked, ListChecks, PenLine, Plus, RotateCcw } from "lucide-react";
 import { Marked } from "@/components/Marked";
 import { Segmented } from "@/components/Segmented";
 import { LEVELS, QUESTION_COUNTS, type LevelId, type Summary } from "@/lib/types";
@@ -14,6 +14,7 @@ export function SummaryView({
   onLevel,
   onCount,
   onStart,
+  onWrite,
   onNew,
 }: {
   summary: Summary;
@@ -23,6 +24,7 @@ export function SummaryView({
   onLevel: (l: LevelId) => void;
   onCount: (n: number) => void;
   onStart: () => void;
+  onWrite: () => void;
   onNew: () => void;
 }) {
   const panelRef = useRef<HTMLElement>(null);
@@ -125,6 +127,13 @@ export function SummaryView({
 
         <button type="button" className="btn btn-primary btn-lg" onClick={onStart}>
           Começar prova <ArrowRight size={18} strokeWidth={1.75} aria-hidden />
+        </button>
+
+        <div className="panel-or" aria-hidden>
+          <span>ou</span>
+        </div>
+        <button type="button" className="btn btn-soft btn-lg" onClick={onWrite}>
+          <PenLine size={18} strokeWidth={1.75} aria-hidden /> Escrever de memória
         </button>
       </aside>
 

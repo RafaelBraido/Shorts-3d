@@ -5,12 +5,14 @@ import { Highlighter } from "lucide-react";
 import { Loading } from "@/components/Loading";
 import { QuizRunner } from "@/components/QuizRunner";
 import { Results } from "@/components/Results";
+import { ReviewView } from "@/components/ReviewView";
+import { WriteMode } from "@/components/WriteMode";
 import { SummaryView } from "@/components/SummaryView";
 import { Uploader } from "@/components/Uploader";
 import { combine, imageCount, newItem, processFile, type MaterialItem } from "@/lib/extract";
-import { LIMITS, type LevelId, type Question, type SourceImage, type Summary } from "@/lib/types";
+import { LIMITS, type LevelId, type Question, type SourceImage, type Review, type Summary } from "@/lib/types";
 
-type Stage = "upload" | "summarizing" | "summary" | "generating" | "quiz" | "results";
+type Stage = "upload" | "summarizing" | "summary" | "generating" | "quiz" | "results" | "write" | "reviewing" | "review";
 
 interface Source {
   text: string;
@@ -60,6 +62,8 @@ export function StudyApp() {
   const [answers, setAnswers] = useState<number[]>([]);
   const [asked, setAsked] = useState<string[]>([]);
   const [quizKey, setQuizKey] = useState(0);
+  const [draft, setDraft] = useState("");
+  const [review, setReview] = useState<Review | null>(null);
   const [loadingFrom, setLoadingFrom] = useState<"summary" | "results">("summary");
 
   const itemsRef = useRef(items);
@@ -160,6 +164,20 @@ export function StudyApp() {
     }
   };
 
+  const submitWriting = async () => {
+    if (!summary || !source) return;
+    setError(null);
+    setStage("reviewing");
+    try {
+      const { review } = await postJson<{ review: Review }>("/api/review", { summary, source, writing: draft });
+      setReview(review);
+      setStage("review");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Algo deu errado.");
+      setStage("write");
+    }
+  };
+
   const retryWrong = () => {
     const wrong = questions.filter((q, i) => answers[i] !== q.answerIndex).map(shuffleQuestion);
     if (!wrong.length) return;
@@ -178,6 +196,8 @@ export function StudyApp() {
     setQuestions([]);
     setAnswers([]);
     setAsked([]);
+    setDraft("");
+    setReview(null);
     setError(null);
     setNotice(null);
     setStage("upload");
@@ -227,6 +247,10 @@ export function StudyApp() {
               onLevel={setLevel}
               onCount={setCount}
               onStart={() => startQuiz(level, "summary")}
+              onWrite={() => {
+                setError(null);
+                setStage("write");
+              }}
               onNew={reset}
             />
           )}
@@ -251,6 +275,38 @@ export function StudyApp() {
             />
           )}
 
+          {stage === "write" && summary && (
+            <WriteMode
+              title={summary.title}
+              value={draft}
+              error={error}
+              onChange={setDraft}
+              onSubmit={submitWriting}
+              onExit={() => setStage("summary")}
+            />
+          )}
+
+          {stage === "reviewing" && (
+            <Loading
+              title="Corrigindo seu texto"
+              steps={["Lendo o que você escreveu…", "Comparando com o material…", "Separando acertos e lacunas…", "Montando o feedback…"]}
+            />
+          )}
+
+          {stage === "review" && review && (
+            <ReviewView
+              review={review}
+              writing={draft}
+              onRetry={() => {
+                setDraft("");
+                setStage("write");
+              }}
+              onSummary={() => setStage("summary")}
+              onQuiz={() => setStage("summary")}
+              onNew={reset}
+            />
+          )}
+
           {stage === "results" && (
             <Results
               questions={questions}
@@ -259,6 +315,10 @@ export function StudyApp() {
               error={loadingFrom === "results" ? error : null}
               onLevel={(l) => startQuiz(l, "results")}
               onRetryWrong={retryWrong}
+              onWrite={() => {
+                setError(null);
+                setStage("write");
+              }}
               onSummary={() => setStage("summary")}
               onNew={reset}
             />

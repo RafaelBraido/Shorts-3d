@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { LEVELS, LIMITS, type LevelId, type Question, type SourcePayload, type Summary } from "@/lib/types";
+import { LEVELS, LIMITS, type LevelId, type Question, type Review, type SourcePayload, type Summary } from "@/lib/types";
 
 export const MODEL = process.env.STUDY_IT_MODEL || "claude-sonnet-5-5";
 
@@ -296,4 +296,87 @@ export async function generateQuiz(args: {
     throw new UserFacingError("A IA não conseguiu montar uma prova boa desta vez. Tente de novo.", 502);
   }
   return questions;
+}
+
+/* ---------- modo escrita ---------- */
+const REVIEW_SYSTEM = `Você é o corretor do modo escrita do Study It. O estudante escreveu de memória o que lembra do material. Compare com o material e devolva um feedback honesto e útil.
+
+Regras:
+- Escreva no mesmo idioma do texto do estudante.
+- Fale com o estudante em segunda pessoa ("você"), de forma direta e sem bajular.
+- Não penalize palavras diferentes quando a ideia está certa. Avalie ideias, não redação.
+- score (0 a 100): cobertura das ideias centrais do material (peso 60) e correção do que foi dito (peso 40). Texto curto que acerta pouco do material fica abaixo de 40; só passe de 90 se cobrir quase tudo sem erros.
+- verdict: uma frase curta resumindo o desempenho.
+- covered: ideias importantes que o estudante acertou (até 6).
+- missing: ideias importantes do material que faltaram (até 6), em frases curtas e específicas.
+- mistakes: coisas que o estudante disse e estão erradas ou imprecisas, com a correção segundo o material. Se não houver, devolva lista vazia. Nunca invente erro.
+- tip: uma sugestão prática do que revisar primeiro.
+- Use só o material como fonte da verdade.`;
+
+const REVIEW_TOOL: Anthropic.Messages.Tool = {
+  name: "submit_review",
+  description: "Entrega o feedback da escrita do estudante.",
+  input_schema: {
+    type: "object",
+    properties: {
+      score: { type: "integer", description: "0 a 100" },
+      verdict: { type: "string" },
+      covered: { type: "array", items: { type: "string" } },
+      missing: { type: "array", items: { type: "string" } },
+      mistakes: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: { said: { type: "string" }, correction: { type: "string" } },
+          required: ["said", "correction"],
+        },
+      },
+      tip: { type: "string" },
+    },
+    required: ["score", "verdict", "covered", "missing", "mistakes", "tip"],
+  },
+};
+
+export function validateWriting(text: unknown): string {
+  const t = typeof text === "string" ? text.trim() : "";
+  if (t.length < LIMITS.minWriteChars) {
+    throw new UserFacingError("Escreva um pouco mais antes de enviar. Conte o que você lembra, mesmo que esteja incompleto.");
+  }
+  return t.slice(0, LIMITS.maxWriteChars);
+}
+
+export async function generateReview(args: { summary: Summary; source: SourcePayload; writing: string }): Promise<Review> {
+  const { summary, source, writing } = args;
+  const summaryText = [
+    `# ${summary.title}`,
+    summary.tldr,
+    ...summary.keyPoints.map((p) => `- ${p}`),
+    ...summary.sections.flatMap((s) => [`## ${s.heading}`, ...s.bullets.map((b) => `- ${b}`)]),
+  ].join("\n");
+  const raw = await callTool<{
+    score?: number;
+    verdict?: string;
+    covered?: string[];
+    missing?: string[];
+    mistakes?: { said?: string; correction?: string }[];
+    tip?: string;
+  }>({
+    system: REVIEW_SYSTEM,
+    content: [
+      { type: "text", text: `<resumo_de_referencia>\n${summaryText}\n</resumo_de_referencia>` },
+      ...sourceBlocks(source),
+      { type: "text", text: `<texto_do_estudante>\n${writing}\n</texto_do_estudante>\n\nCorrija chamando submit_review.` },
+    ],
+    tool: REVIEW_TOOL,
+    maxTokens: 2048,
+  });
+  const clean = (a?: string[]) => (a ?? []).filter(Boolean).map((x) => x.trim());
+  return {
+    score: Math.max(0, Math.min(100, Math.round(Number(raw.score) || 0))),
+    verdict: (raw.verdict ?? "").trim(),
+    covered: clean(raw.covered),
+    missing: clean(raw.missing),
+    mistakes: (raw.mistakes ?? []).filter((m) => m.said && m.correction).map((m) => ({ said: m.said!.trim(), correction: m.correction!.trim() })),
+    tip: (raw.tip ?? "").trim(),
+  };
 }

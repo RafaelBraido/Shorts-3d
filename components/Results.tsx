@@ -30,6 +30,7 @@ export function Results({
   error,
   onLevel,
   onRetryWrong,
+  onWrite,
   onSummary,
   onNew,
 }: {
@@ -39,6 +40,7 @@ export function Results({
   error: string | null;
   onLevel: (l: LevelId) => void;
   onRetryWrong: () => void;
+  onWrite: () => void;
   onSummary: () => void;
   onNew: () => void;
 }) {
@@ -115,6 +117,9 @@ export function Results({
         <div className="next-links">
           <button type="button" className="btn btn-ghost btn-sm" onClick={onSummary}>
             Voltar ao resumo
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onWrite}>
+            Escrever de memória
           </button>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onNew}>
             Novo material

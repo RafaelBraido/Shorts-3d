@@ -36,6 +36,15 @@ export interface Question {
   topic: string;
 }
 
+export interface Review {
+  score: number; // 0 a 100
+  verdict: string;
+  covered: string[];
+  missing: string[];
+  mistakes: { said: string; correction: string }[];
+  tip: string;
+}
+
 export interface SourceImage {
   mediaType: "image/jpeg";
   data: string; // base64, sem prefixo
@@ -52,4 +61,6 @@ export const LIMITS = {
   maxTextChars: 150_000,
   maxImageBase64: 330_000,
   maxBodyBytes: 4_300_000,
+  minWriteChars: 40,
+  maxWriteChars: 6000,
 } as const;

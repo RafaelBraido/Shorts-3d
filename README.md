@@ -9,7 +9,7 @@ No resultado, um clique em **Mais difícil** gera uma prova nova, sem repetir qu
 - PDFs e imagens são lidos **no navegador** (texto do PDF via `pdfjs-dist`; prints são redimensionados e
   comprimidos; páginas de PDF escaneado viram imagem). Só o conteúdo vai para o servidor, o que evita o limite de 4,5 MB
   de corpo das funções da Vercel.
-- `/api/summarize` gera o resumo e `/api/quiz` gera a prova, ambos com Claude (ferramenta com saída estruturada).
+- `/api/summarize` gera o resumo, `/api/quiz` a prova e `/api/review` corrige o **modo escrita** (você escreve de memória e recebe acertos, lacunas e erros), tudo com Claude (saída estruturada).
 - Alternativas são embaralhadas no cliente; as perguntas já feitas são enviadas para a IA não repetir.
 
 ## Rodar localmente

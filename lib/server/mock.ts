@@ -1,4 +1,4 @@
-import { LEVELS, type LevelId, type Question, type Summary } from "@/lib/types";
+import { LEVELS, type LevelId, type Question, type Review, type Summary } from "@/lib/types";
 
 /** Só para desenvolvimento local sem chave de API: STUDY_IT_MOCK=1 */
 export const MOCK = process.env.STUDY_IT_MOCK === "1" && process.env.NODE_ENV !== "production";
@@ -84,3 +84,12 @@ export function mockQuiz(level: LevelId, count: number, seed: number): Question[
     return { ...q, question: `[${label}] ${q.question}${i >= base.length ? ` (${i + 1})` : ""}` };
   });
 }
+
+export const mockReview: Review = {
+  score: 68,
+  verdict: "Você pegou a base da fotossíntese, mas deixou a respiração celular de fora.",
+  covered: ["A fotossíntese acontece nos cloroplastos.", "Luz, água e CO₂ viram glicose e oxigênio."],
+  missing: ["As duas fases: clara e ciclo de Calvin.", "A cadeia transportadora produz a maior parte do ATP.", "O papel do oxigênio como aceptor final."],
+  mistakes: [{ said: "A respiração acontece nos cloroplastos.", correction: "Ela acontece nas mitocôndrias (a glicólise, no citoplasma)." }],
+  tip: "Revise as etapas da respiração celular e onde cada uma ocorre.",
+};
