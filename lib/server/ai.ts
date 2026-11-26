@@ -22,7 +22,7 @@ function geminiProvider(name: string, key: string): Provider {
     name,
     url: process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
     key,
-    models: [process.env.GEMINI_MODEL || "gemini-flash-latest", ...list(process.env.GEMINI_FALLBACK_MODELS, ["gemini-2.5-flash", "gemini-flash-lite-latest"])],
+    models: [process.env.GEMINI_MODEL || "gemini-flash-latest", ...list(process.env.GEMINI_FALLBACK_MODELS, ["gemini-flash-lite-latest", "gemini-3.8-flash"])],
     vision: true,
     schema: true,
     maxChars: 400_000,
@@ -166,36 +166,51 @@ async function callTool<T>(opts: { system: string; content: Part[]; tool: JsonTo
 
   const statuses: number[] = [];
 
+  const post = (provider: Provider, body: string) =>
+    fetch(provider.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.key}` },
+      body,
+    });
+
   for (const provider of providers) {
     for (const model of provider.models) {
       // modos: 1) esquema/objeto JSON da API; 2) só pedindo JSON no texto
       for (const mode of ["api", "text"] as const) {
         const plain = mode === "text";
+        const body = JSON.stringify({
+          model,
+          max_tokens: opts.maxTokens,
+          messages: [
+            {
+              role: "system",
+              content:
+                plain || !provider.schema
+                  ? `${opts.system}\n\nResponda SOMENTE com um objeto JSON válido, sem texto fora dele, neste formato:\n${JSON.stringify(opts.tool.input_schema)}`
+                  : opts.system,
+            },
+            {
+              role: "user",
+              content: provider.vision
+                ? opts.content
+                : opts.content.filter((p) => p.type === "text").map((p) => (p as { text: string }).text).join("\n\n"),
+            },
+          ],
+          ...(plain
+            ? {}
+            : provider.schema
+              ? { response_format: { type: "json_schema", json_schema: { name: opts.tool.name, strict: true, schema: opts.tool.input_schema } } }
+              : { response_format: { type: "json_object" } }),
+        });
+
         let res: Response;
         try {
-          res = await fetch(provider.url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.key}` },
-            body: JSON.stringify({
-              model,
-              max_tokens: opts.maxTokens,
-              messages: [
-                {
-                  role: "system",
-                  content:
-                    plain || !provider.schema
-                      ? `${opts.system}\n\nResponda SOMENTE com um objeto JSON válido, sem texto fora dele, neste formato:\n${JSON.stringify(opts.tool.input_schema)}`
-                      : opts.system,
-                },
-                { role: "user", content: provider.vision ? opts.content : opts.content.filter((p) => p.type === "text").map((p) => (p as { text: string }).text).join("\n\n") },
-              ],
-              ...(plain
-                ? {}
-                : provider.schema
-                  ? { response_format: { type: "json_schema", json_schema: { name: opts.tool.name, strict: true, schema: opts.tool.input_schema } } }
-                  : { response_format: { type: "json_object" } }),
-            }),
-          });
+          res = await post(provider, body);
+          if (res.status >= 500 && res.status !== 503) {
+            // erro temporário (500/502/504): espera um pouco e repete uma vez. 503 = sobrecarga: vai direto ao próximo modelo
+            await new Promise((r) => setTimeout(r, 1500));
+            res = await post(provider, body);
+          }
         } catch (err) {
           console.error("AI fetch failed", provider.name, err instanceof Error ? err.message : "");
           statuses.push(0);
@@ -221,8 +236,8 @@ async function callTool<T>(opts: { system: string; content: Part[]; tool: JsonTo
         const detail = await res.text().catch(() => "");
         console.error("AI error", provider.name, model, res.status, detail.slice(0, 300));
         if (res.status === 400 && !plain) continue; // tenta sem esquema
-        if (res.status === 401 || res.status === 403) {
-          if (provider.name === "gemini-usuario") throw new UserFacingError("A sua chave do Gemini foi recusada. Confira se copiou inteira.", 401);
+        if ((res.status === 401 || res.status === 403) && provider.name === "gemini-usuario") {
+          throw new UserFacingError("A sua chave do Gemini foi recusada. Confira se copiou inteira.", 401);
         }
         break; // 404/429/5xx...: próximo modelo
       }
