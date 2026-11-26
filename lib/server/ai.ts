@@ -1,7 +1,18 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { getVercelOidcToken } from "@vercel/oidc";
 import { LEVELS, LIMITS, type LevelId, type Question, type Review, type SourcePayload, type Summary } from "@/lib/types";
 
-export const MODEL = process.env.STUDY_IT_MODEL || "claude-sonnet-5-5";
+/** Modelo servido pelo Vercel AI Gateway (sem chave da Anthropic). */
+export const MODEL = process.env.STUDY_IT_MODEL || "anthropic/claude-haiku-5-5";
+const EFFORT = process.env.STUDY_IT_EFFORT || "medium";
+const GATEWAY_URL = "https://ai-gateway.vercel.sh/v1/chat/completions";
+
+type Part = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
+
+interface JsonTool {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+}
 
 export class UserFacingError extends Error {
   status: number;
@@ -11,16 +22,16 @@ export class UserFacingError extends Error {
   }
 }
 
-let client: Anthropic | null = null;
-function getClient() {
-  if (!process.env.ANTHROPIC_API_KEY) {
+async function getAuthToken(): Promise<string> {
+  if (process.env.AI_GATEWAY_API_KEY) return process.env.AI_GATEWAY_API_KEY;
+  try {
+    return await getVercelOidcToken();
+  } catch {
     throw new UserFacingError(
-      "A chave ANTHROPIC_API_KEY não está configurada no servidor. Adicione-a nas variáveis de ambiente da Vercel e faça um novo deploy.",
+      "A IA ainda não está autenticada. Na Vercel, abra o projeto, ative o AI Gateway e faça um novo deploy. Local: defina AI_GATEWAY_API_KEY.",
       500,
     );
   }
-  client ??= new Anthropic();
-  return client;
 }
 
 /* ---------- limite simples por IP (melhor esforço, em memória) ---------- */
@@ -54,14 +65,14 @@ export function validateSource(src: unknown): SourcePayload {
   return { text, images, focus };
 }
 
-function sourceBlocks(src: SourcePayload): Anthropic.Messages.ContentBlockParam[] {
-  const blocks: Anthropic.Messages.ContentBlockParam[] = [];
+function sourceBlocks(src: SourcePayload): Part[] {
+  const blocks: Part[] = [];
   if (src.text.trim()) {
     blocks.push({ type: "text", text: `<material_de_estudo>\n${src.text}\n</material_de_estudo>` });
   }
   src.images.forEach((img, i) => {
     blocks.push({ type: "text", text: `Imagem ${i + 1} do material:` });
-    blocks.push({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.data } });
+    blocks.push({ type: "image_url", image_url: { url: `data:${img.mediaType};base64,${img.data}` } });
   });
   if (src.focus?.trim()) {
     blocks.push({ type: "text", text: `Foco pedido pelo estudante: ${src.focus.trim()}` });
@@ -69,37 +80,76 @@ function sourceBlocks(src: SourcePayload): Anthropic.Messages.ContentBlockParam[
   return blocks;
 }
 
-async function callTool<T>(opts: {
-  system: string;
-  content: Anthropic.Messages.ContentBlockParam[];
-  tool: Anthropic.Messages.Tool;
-  maxTokens: number;
-}): Promise<T> {
-  const anthropic = getClient();
-  try {
-    const res = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: opts.maxTokens,
-      system: opts.system,
-      tools: [opts.tool],
-      tool_choice: { type: "tool", name: opts.tool.name },
-      messages: [{ role: "user", content: opts.content }],
-    });
-    const block = res.content.find((b) => b.type === "tool_use");
-    if (!block || block.type !== "tool_use") throw new UserFacingError("A IA não devolveu uma resposta utilizável. Tente de novo.", 502);
-    return block.input as T;
-  } catch (err) {
-    if (err instanceof UserFacingError) throw err;
-    if (err instanceof Anthropic.APIError) {
-      console.error("Anthropic API error", err.status, err.message);
-      if (err.status === 401) throw new UserFacingError("A chave da API da Anthropic é inválida.", 500);
-      if (err.status === 429) throw new UserFacingError("A IA está sobrecarregada agora. Tente de novo em instantes.", 429);
-      if (err.status === 404) throw new UserFacingError(`O modelo "${MODEL}" não foi encontrado. Ajuste STUDY_IT_MODEL.`, 500);
-      throw new UserFacingError("Não consegui falar com a IA agora. Tente de novo.", 502);
-    }
-    console.error(err);
-    throw new UserFacingError("Algo deu errado ao gerar o conteúdo. Tente de novo.", 500);
+/** Modo estrito de JSON Schema exige additionalProperties:false em todo objeto. */
+function strictify(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(strictify);
+  if (schema && typeof schema === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(schema)) out[k] = strictify(v);
+    if (out.type === "object") out.additionalProperties = false;
+    return out;
   }
+  return schema;
+}
+
+function parseJson<T>(text: string): T {
+  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```$/, "").trim();
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    const a = cleaned.indexOf("{");
+    const b = cleaned.lastIndexOf("}");
+    if (a >= 0 && b > a) return JSON.parse(cleaned.slice(a, b + 1)) as T;
+    throw new UserFacingError("A IA devolveu algo fora do formato. Tente de novo.", 502);
+  }
+}
+
+async function callTool<T>(opts: { system: string; content: Part[]; tool: JsonTool; maxTokens: number }): Promise<T> {
+  const token = await getAuthToken();
+  const send = (withReasoning: boolean) =>
+    fetch(GATEWAY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: opts.maxTokens,
+        messages: [
+          { role: "system", content: opts.system },
+          { role: "user", content: opts.content },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: opts.tool.name, strict: true, schema: strictify(opts.tool.input_schema) },
+        },
+        ...(withReasoning && EFFORT !== "none" ? { reasoning: { effort: EFFORT } } : {}),
+      }),
+    });
+
+  let res: Response;
+  try {
+    res = await send(true);
+    if (res.status === 400) res = await send(false); // se o parâmetro de raciocínio não for aceito, tenta sem
+  } catch (err) {
+    console.error(err);
+    throw new UserFacingError("Não consegui falar com a IA agora. Tente de novo.", 502);
+  }
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    console.error("AI Gateway error", res.status, detail.slice(0, 500));
+    if (res.status === 401 || res.status === 403)
+      throw new UserFacingError("O AI Gateway recusou a autenticação. Confirme que ele está ativo no projeto da Vercel.", 500);
+    if (res.status === 402)
+      throw new UserFacingError("Os créditos do AI Gateway acabaram. Adicione créditos no painel da Vercel.", 402);
+    if (res.status === 404) throw new UserFacingError(`O modelo "${MODEL}" não foi encontrado. Ajuste STUDY_IT_MODEL.`, 500);
+    if (res.status === 429) throw new UserFacingError("A IA está sobrecarregada agora. Tente de novo em instantes.", 429);
+    throw new UserFacingError("Não consegui falar com a IA agora. Tente de novo.", 502);
+  }
+
+  const data = (await res.json()) as { choices?: { message?: { content?: string | null } }[] };
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new UserFacingError("A IA não devolveu uma resposta utilizável. Tente de novo.", 502);
+  return parseJson<T>(text);
 }
 
 /* ---------- resumo ---------- */
@@ -116,7 +166,7 @@ Regras:
 - key_terms: de 4 a 12 termos que o estudante precisa saber, com definição curta.
 - Se o estudante pediu um foco, priorize esse foco sem ignorar o resto.`;
 
-const SUMMARY_TOOL: Anthropic.Messages.Tool = {
+const SUMMARY_TOOL: JsonTool = {
   name: "submit_summary",
   description: "Entrega o resumo final do material.",
   input_schema: {
@@ -159,7 +209,7 @@ export async function generateSummary(src: SourcePayload): Promise<Summary> {
     system: SUMMARY_SYSTEM,
     content: [...sourceBlocks(src), { type: "text", text: "Gere o resumo chamando a ferramenta submit_summary." }],
     tool: SUMMARY_TOOL,
-    maxTokens: 4096,
+    maxTokens: 8000,
   });
   const summary: Summary = {
     title: (raw.title ?? "Resumo").trim(),
@@ -190,7 +240,7 @@ const LEVEL_RUBRIC: Record<LevelId, string> = {
     "DESAFIO: nível de prova final de concorrência. Casos complexos que combinam vários conceitos do material, raciocínio em múltiplas etapas, inferências não ditas literalmente, pegadinhas de negação e de generalização indevida. Todas as alternativas parecem plausíveis; só uma resiste a uma análise cuidadosa.",
 };
 
-const QUIZ_TOOL = (count: number): Anthropic.Messages.Tool => ({
+const QUIZ_TOOL = (count: number): JsonTool => ({
   name: "submit_quiz",
   description: "Entrega a prova final.",
   input_schema: {
@@ -256,7 +306,7 @@ export async function generateQuiz(args: {
     ...summary.keyTerms.map((t) => `${t.term}: ${t.definition}`),
   ].join("\n");
 
-  const content: Anthropic.Messages.ContentBlockParam[] = [
+  const content: Part[] = [
     { type: "text", text: `<resumo_ja_feito>\n${summaryText}\n</resumo_ja_feito>` },
     ...sourceBlocks(source),
   ];
@@ -269,7 +319,7 @@ export async function generateQuiz(args: {
     system: quizSystem(level, count),
     content,
     tool: QUIZ_TOOL(count),
-    maxTokens: Math.min(16000, 1200 + count * 450),
+    maxTokens: Math.min(24000, 4000 + count * 600),
   });
 
   const questions: Question[] = (raw.questions ?? [])
@@ -313,7 +363,7 @@ Regras:
 - tip: uma sugestão prática do que revisar primeiro.
 - Use só o material como fonte da verdade.`;
 
-const REVIEW_TOOL: Anthropic.Messages.Tool = {
+const REVIEW_TOOL: JsonTool = {
   name: "submit_review",
   description: "Entrega o feedback da escrita do estudante.",
   input_schema: {
@@ -368,7 +418,7 @@ export async function generateReview(args: { summary: Summary; source: SourcePay
       { type: "text", text: `<texto_do_estudante>\n${writing}\n</texto_do_estudante>\n\nCorrija chamando submit_review.` },
     ],
     tool: REVIEW_TOOL,
-    maxTokens: 2048,
+    maxTokens: 4096,
   });
   const clean = (a?: string[]) => (a ?? []).filter(Boolean).map((x) => x.trim());
   return {

@@ -57,8 +57,8 @@ export interface SourcePayload {
 }
 
 export const LIMITS = {
-  maxImages: 10,
-  maxTextChars: 150_000,
+  maxImages: 8,
+  maxTextChars: 100_000,
   maxImageBase64: 330_000,
   maxBodyBytes: 4_300_000,
   minWriteChars: 40,
