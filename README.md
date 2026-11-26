@@ -50,7 +50,7 @@ Sem chave? Use `STUDY_IT_MOCK=1 npm run dev` para ver a interface com dados de e
 
 ## Design
 
-Preto e branco, no estilo Apple: cinzas neutros, botões em pílula, cartões bem arredondados, menu translúcido e modo escuro
-automático. O único amarelo é o **marca-texto**, que destaca o título e os termos-chave do resumo. Certo e errado não dependem de
-cor: certo = contorno cheio com ✓, errado = contorno tracejado com ✕ e fundo listrado. Fonte do sistema (SF Pro no iPhone/Mac) com
-Inter como reserva. Movimento sem quique, respeitando `prefers-reduced-motion`.
+Preto e branco, no estilo Apple: cinzas neutros, botões em pílula, cartões bem arredondados e menu translúcido. Sempre claro
+(sem modo escuro). O amarelo é só o **marca-texto**, que destaca o título e os termos-chave do resumo; o verde (✓) e o vermelho (✕)
+aparecem só em certo e errado. Fonte do sistema (SF Pro no iPhone/Mac) com Inter como reserva. Movimento sem quique, respeitando
+`prefers-reduced-motion`.
