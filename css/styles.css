@@ -350,3 +350,7 @@ dialog .pwrow input { background: var(--paper); }
 .lock input:disabled { opacity: 0.6; }
 .lock input.bad { border-color: var(--danger); animation: shake 380ms var(--ease); }
 @keyframes shake { 20%, 60% { translate: -9px 0; } 40%, 80% { translate: 9px 0; } }
+
+/* salvamento automático: só uma linha de estado, sem barra fixa */
+@media (max-width: 899px) { .actions { position: static; background: none; padding: 22px 0 0; margin-top: 0; border-top: 1px solid var(--line); } }
+.actions .status { flex: 1 1 auto; }

@@ -80,7 +80,10 @@ import('./tide.js').then(({ createTide }) => { tide = createTide(); tide?.setMoo
 
 let viewDate = todayKey();
 let teardown = null; // libera o WebGL ao sair da tela Hoje
+let todayRendered = '';
+let flushSave = null; // grava na hora um salvamento que ainda estava esperando
 function route() {
+  flushSave?.(); flushSave = null;
   teardown?.(); teardown = null;
   const [name = 'hoje', arg] = location.hash.replace(/^#\/?/, '').split('/');
   const r = TABS[name] ? name : 'hoje';
@@ -104,6 +107,7 @@ function renderToday() {
     sleep: existing?.sleep ?? 8, sleepTouched: typeof existing?.sleep === 'number',
     energy: existing?.energy ?? null, tags: [...(existing?.tags ?? [])], note: existing?.note ?? '',
   };
+  todayRendered = todayKey();
   const isToday = date === todayKey();
   const dateObj = fromKey(date);
 
@@ -161,9 +165,8 @@ function renderToday() {
         </fieldset>
 
         <div class="actions">
-          <button class="btn main" id="save" type="submit" disabled>${existing ? 'Atualizar registro' : 'Salvar registro'}</button>
-          ${existing ? '<button class="btn danger" id="del" type="button">Apagar dia</button>' : ''}
-          <p class="status" id="status">${existing ? '' : 'Deslize a linha para poder salvar.'}</p>
+          <p class="status" id="status" role="status" aria-live="polite">${existing ? 'Salvo automaticamente. Pode mudar durante o dia.' : 'Escolha a nota do dia: o resto salva sozinho.'}</p>
+          <button class="btn danger small" id="del" type="button" ${existing ? '' : 'hidden'}>Apagar dia</button>
         </div>
       </form>
     </div>`;
@@ -271,34 +274,43 @@ function renderToday() {
   const count = $('#count'); const upd = () => { count.textContent = `${d.note.length}/280`; };
   $('#note').addEventListener('input', (e) => { d.note = e.target.value; upd(); refreshSave(true); }); upd();
 
-  /* salvar */
-  const save = $('#save'), status = $('#status');
-  let dirty = false;
-  function refreshSave(markDirty = false) {
-    if (markDirty) dirty = true;
-    save.disabled = !d.touched || (!!existing && !dirty);
-    if (!d.touched) status.textContent = 'Deslize a linha para poder salvar.';
-    else if (dirty) status.textContent = 'Alterações ainda não salvas.';
-  }
-  refreshSave();
-
-  $('#form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+  /* salvar sozinho: a cada mudança, depois de uma pausa curta; dá para ajustar o dia o dia todo */
+  const status = $('#status');
+  let timer = 0, wasNew = !existing, warned = false;
+  const clock = () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  async function doSave() {
+    timer = 0;
     if (!d.touched) return;
     if (store.hasDemo()) store.removeDemo();
     const entry = { date, mood: d.mood, sleep: d.sleepTouched ? d.sleep : null, energy: d.energy, tags: d.tags, note: d.note.trim(), updatedAt: Date.now() };
     const ok = await store.save(entry);
-    if (!ok) { toast('O navegador bloqueou o armazenamento. Exporte seus dados e tente fora do modo privado.'); return; }
+    if (!ok) {
+      status.textContent = 'Não consegui salvar: o navegador bloqueou o armazenamento.';
+      if (!warned) { warned = true; toast('O navegador bloqueou o armazenamento. Saia do modo privado e tente de novo.'); }
+      return;
+    }
     navigator.storage?.persist?.().catch(() => {});
-    dirty = false; save.disabled = true; save.textContent = 'Atualizar registro';
-    status.textContent = 'Salvo só neste aparelho.';
-    toast('Registro salvo!');
-    const n = Object.keys(store.entries()).length;
-    if (n === MIN_ENTRIES) toast('Você completou 3 semanas! Seus padrões já aparecem.');
-  });
+    if (status.isConnected) { // a tela pode já ter sido trocada (saiu logo depois de digitar)
+      status.textContent = `Salvo automaticamente às ${clock()}. Pode mudar durante o dia.`;
+      $('#del').hidden = false;
+    }
+    if (wasNew) {
+      wasNew = false;
+      if (Object.keys(store.entries()).length === MIN_ENTRIES) toast('Você completou 3 semanas! Seus padrões já aparecem.');
+    }
+  }
+  // chamado a cada mudança (o nome é antigo; agora agenda o salvamento)
+  function refreshSave() {
+    if (!d.touched) return;
+    status.textContent = 'Salvando…';
+    clearTimeout(timer);
+    timer = setTimeout(doSave, 500);
+  }
+  flushSave = () => { if (timer) { clearTimeout(timer); doSave(); } };
+  $('#form').addEventListener('submit', (e) => e.preventDefault());
   $('#del')?.addEventListener('click', async () => {
     if (await confirmDialog({ title: 'Apagar este dia?', text: `O registro de ${dateLong(dateObj)} será apagado deste aparelho.`, confirmLabel: 'Apagar dia', danger: true })) {
-      store.remove(date); toast('Dia apagado.'); renderToday();
+      clearTimeout(timer); timer = 0; store.remove(date); toast('Dia apagado.'); renderToday();
     }
   });
 
@@ -564,6 +576,7 @@ function showLock() {
 async function lockNow(reset = false) {
   if (locking || (!reset && store.status() !== 'open')) return;
   locking = true;
+  flushSave?.(); flushSave = null;
   teardown?.(); teardown = null;
   store.lock();
   await showLock();
@@ -599,7 +612,10 @@ async function changePasswordFlow() {
 let idleTimer = 0, hiddenAt = 0;
 const bumpIdle = () => { clearTimeout(idleTimer); idleTimer = setTimeout(() => lockNow(), 10 * 60 * 1000); };
 ['pointerdown', 'keydown', 'input', 'touchstart'].forEach((ev) => addEventListener(ev, bumpIdle, { passive: true }));
+addEventListener('pagehide', () => flushSave?.());
 document.addEventListener('visibilitychange', () => {
+  if (document.hidden) flushSave?.();
+  else if (todayRendered && todayRendered !== todayKey() && viewDate === todayRendered && store.status() === 'open' && /^#\/hoje|^$/.test(location.hash)) { viewDate = todayKey(); route(); } // virou o dia
   if (document.hidden) hiddenAt = Date.now();
   else if (hiddenAt && Date.now() - hiddenAt > 5 * 60 * 1000) lockNow();
 });
