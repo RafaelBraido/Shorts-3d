@@ -64,6 +64,17 @@ export const store = {
     salt = newSalt(); iter = ITER; key = await deriveKey(password, salt, iter);
     return persist();
   },
+  /** Relê o cofre (outra aba gravou). 'ok' = atualizado · 'relock' = senha trocada em outra aba · 'gone' = apagado. */
+  async reload() {
+    try {
+      const raw = rawVault();
+      if (!raw) return 'gone';
+      const v = JSON.parse(raw);
+      if (!salt || v.salt !== toB64(salt)) return 'relock';
+      state = normalize(await open(key, v));
+      return 'ok';
+    } catch { return 'relock'; }
+  },
   /** Fecha o diário: apaga os dados da memória. */
   lock() { key = null; salt = null; state = empty(); },
 

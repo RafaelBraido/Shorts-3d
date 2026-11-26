@@ -81,6 +81,7 @@ import('./tide.js').then(({ createTide }) => { tide = createTide(); tide?.setMoo
 let viewDate = todayKey();
 let teardown = null; // libera o WebGL ao sair da tela Hoje
 let todayRendered = '';
+const hhmm = (ts) => new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 let flushSave = null; // grava na hora um salvamento que ainda estava esperando
 function route() {
   flushSave?.(); flushSave = null;
@@ -123,7 +124,7 @@ function renderToday() {
         <p class="hero-q">Como foi o seu dia?</p>
         <div class="pebble idle" id="pebble" aria-hidden="true"><div class="orb" id="orb"><div class="feat" id="front">${face(d.mood, 150)}</div><div class="feat" id="rear" hidden><svg class="swirl" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 12c7 0 10.5 6 8 10.5S19.500 28 16.500 24 17 15.500 21 16.500s3 4.500 0.500 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><div class="shade"></div></div></div>
         <p class="hero-word" id="moodword" aria-live="polite">${d.touched ? MOOD_WORDS[d.mood] : ''}</p>
-        <p class="hero-hint" id="moodhint">Deslize a linha para escolher como foi o dia</p>
+        <p class="hero-hint" id="moodhint" role="status" aria-live="polite">${existing ? (existing.updatedAt ? 'Salvo às ' + hhmm(existing.updatedAt) + ' ✓' : 'Salvo ✓') : 'Deslize a linha para escolher como foi o dia'}</p>
         <div class="slider">
           <span class="end">${face(1, 30)}</span>
           <input id="mood" type="range" min="1" max="5" step="1" value="${d.mood}" aria-label="Nota do dia, de 1 a 5" aria-valuetext="${d.mood}, ${MOOD_WORDS[d.mood]}">
@@ -212,7 +213,7 @@ function renderToday() {
     pebble.classList.toggle('light-text', lightText(m));
     pebble.classList.toggle('idle', !d.touched);
     $('#moodword').textContent = d.touched ? MOOD_WORDS[m] : '';
-    $('#moodhint').textContent = d.touched ? '' : 'Deslize a linha para escolher como foi o dia';
+    if (!d.touched) $('#moodhint').textContent = 'Deslize a linha para escolher como foi o dia';
     tideMood = d.touched ? m : 3; tide?.setMood(tideMood);
     $('#front').innerHTML = face(m, 150);
     if (dir) spin();
@@ -220,7 +221,8 @@ function renderToday() {
   };
   range.addEventListener('input', () => { const prev = d.mood; d.mood = +range.value; d.touched = true; updateMood(Math.sign(d.mood - prev)); refreshSave(true); });
   range.addEventListener('pointerdown', () => hero.classList.add('dragging'));
-  range.addEventListener('pointerup', () => { if (!d.touched) { d.touched = true; updateMood(); refreshSave(true); } });
+  range.addEventListener('pointerup', () => { if (!d.touched) { d.touched = true; updateMood(); refreshSave(true); } flushSave?.(); }); // ao soltar, grava na hora
+  range.addEventListener('change', () => flushSave?.());
   addEventListener('pointerup', () => hero.classList.remove('dragging'));
   updateMood();
 
@@ -286,12 +288,14 @@ function renderToday() {
     const ok = await store.save(entry);
     if (!ok) {
       status.textContent = 'Não consegui salvar: o navegador bloqueou o armazenamento.';
+      if (status.isConnected) $('#moodhint').textContent = 'Não salvou ✗';
       if (!warned) { warned = true; toast('O navegador bloqueou o armazenamento. Saia do modo privado e tente de novo.'); }
       return;
     }
     navigator.storage?.persist?.().catch(() => {});
     if (status.isConnected) { // a tela pode já ter sido trocada (saiu logo depois de digitar)
       status.textContent = `Salvo automaticamente às ${clock()}. Pode mudar durante o dia.`;
+      $('#moodhint').textContent = `Salvo às ${clock()} ✓`; // confirmação bem perto da carinha
       $('#del').hidden = false;
     }
     if (wasNew) {
@@ -303,8 +307,9 @@ function renderToday() {
   function refreshSave() {
     if (!d.touched) return;
     status.textContent = 'Salvando…';
+    $('#moodhint').textContent = 'Salvando…';
     clearTimeout(timer);
-    timer = setTimeout(doSave, 500);
+    timer = setTimeout(doSave, 350);
   }
   flushSave = () => { if (timer) { clearTimeout(timer); doSave(); } };
   $('#form').addEventListener('submit', (e) => e.preventDefault());
@@ -613,6 +618,12 @@ let idleTimer = 0, hiddenAt = 0;
 const bumpIdle = () => { clearTimeout(idleTimer); idleTimer = setTimeout(() => lockNow(), 10 * 60 * 1000); };
 ['pointerdown', 'keydown', 'input', 'touchstart'].forEach((ev) => addEventListener(ev, bumpIdle, { passive: true }));
 addEventListener('pagehide', () => flushSave?.());
+// outra aba (ou o app instalado) gravou: atualiza esta aba para nunca mostrar nem sobrescrever com valor velho
+addEventListener('storage', async (e) => {
+  if (e.key !== 'mare:v2' || store.status() !== 'open' || locking) return;
+  const r = await store.reload();
+  if (r === 'ok') route(); else lockNow(r === 'gone');
+});
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) flushSave?.();
   else if (todayRendered && todayRendered !== todayKey() && viewDate === todayRendered && store.status() === 'open' && /^#\/hoje|^$/.test(location.hash)) { viewDate = todayKey(); route(); } // virou o dia
