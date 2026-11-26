@@ -14,18 +14,26 @@ No resultado, um clique em **Mais difícil** gera uma prova nova, sem repetir qu
 
 ## IA e custo (zero)
 
-Usa o **Gemini pela API gratuita do Google AI Studio**. Não precisa de cartão nem de conta paga: só de uma chave grátis.
-O plano gratuito tem limite diário por modelo (e o Google pode mudar esses limites). Se o modelo principal estourar o limite,
-o app tenta o modelo reserva (`GEMINI_FALLBACK_MODELS`); se os dois estourarem, mostra um aviso e volta no dia seguinte.
-No plano grátis, o Google pode usar o conteúdo enviado para melhorar os produtos dele.
+Só usa planos **gratuitos**, sem cartão. O site tenta, nesta ordem:
+1. a **chave pessoal** de quem está usando (botão "Chave", no topo), se a pessoa colou uma;
+2. o **Gemini** do site (`GEMINI_API_KEY`), que aceita imagens e textos grandes;
+3. o **Groq** (`GROQ_API_KEY`), só para textos curtos;
+4. o **OpenRouter** (`OPENROUTER_API_KEY`), modelos grátis.
+
+Cada provedor só entra na fila se a chave dele estiver configurada. Se um estoura o limite do dia, o site passa para o próximo.
+Todo plano grátis tem cota diária compartilhada por quem usa o site, e os limites mudam com o tempo. Para os amigos nunca ficarem
+sem IA, o botão **Chave** deixa cada um usar a própria chave grátis do Gemini (o uso sai da cota dele). Ela fica só no navegador da
+pessoa e passa pelo servidor apenas para pedir a resposta; não é guardada.
+Por IP: no máximo 15 pedidos em 10 minutos e 40 por dia. No plano grátis do Google, o conteúdo enviado pode ser usado para melhorar os produtos dele.
 
 O material enviado é limitado a cerca de 30 a 40 mil tokens (100 mil caracteres de texto + até 8 imagens).
 
-### Como conseguir a chave
-1. Entre em https://aistudio.google.com/apikey com a sua conta Google.
-2. Clique em **Create API key** e copie a chave.
-3. Na Vercel: projeto → **Settings → Environment Variables** → nome `GEMINI_API_KEY`, valor = a chave, ambientes: todos.
-4. Faça um **Redeploy** para a chave valer.
+### Como conseguir as chaves (grátis)
+- **Gemini (obrigatória):** https://aistudio.google.com/apikey → *Create API key*.
+- **Groq (opcional):** https://console.groq.com/keys → *Create API Key*.
+- **OpenRouter (opcional):** https://openrouter.ai/keys → *Create Key*.
+
+Na Vercel: projeto → **Settings → Environment Variables** → uma variável por chave (todos os ambientes) → **Redeploy**.
 
 ## Biblioteca e modo escrita
 
@@ -46,7 +54,7 @@ Sem chave? Use `STUDY_IT_MOCK=1 npm run dev` para ver a interface com dados de e
 ## Deploy na Vercel
 
 1. Importe este repositório na Vercel (projeto `study-it`, framework Next.js). Não use o projeto `mare-diario`, que é outro app.
-2. Adicione `GEMINI_API_KEY` (veja acima) e faça o deploy.
+2. Adicione `GEMINI_API_KEY` (veja acima; as outras são opcionais) e faça o deploy.
 
 ## Design
 

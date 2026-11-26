@@ -1,9 +1,62 @@
 import { LEVELS, LIMITS, type LevelId, type Question, type Review, type SourcePayload, type Summary } from "@/lib/types";
 
-/** Gemini pela API gratuita do Google AI Studio (endpoint compatível com OpenAI). */
-const PRIMARY_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-const FALLBACK_MODELS = (process.env.GEMINI_FALLBACK_MODELS ?? "gemini-2.5-flash-lite").split(",").map((m) => m.trim()).filter(Boolean);
-const API_URL = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+/**
+ * Provedores GRÁTIS, todos com endpoint compatível com a API da OpenAI.
+ * A ordem é: chave do próprio usuário (Gemini) -> Gemini do site -> Groq -> OpenRouter.
+ * Cada provedor só entra na fila se a chave dele estiver configurada.
+ */
+interface Provider {
+  name: string;
+  url: string;
+  key: string;
+  models: string[];
+  vision: boolean; // aceita imagens?
+  schema: boolean; // aceita json_schema (senão, json_object)
+  maxChars: number; // teto de texto por pedido (planos grátis têm limite de tokens por minuto)
+}
+
+const list = (v: string | undefined, d: string[]) => (v ? v.split(",").map((m) => m.trim()).filter(Boolean) : d);
+
+function geminiProvider(name: string, key: string): Provider {
+  return {
+    name,
+    url: process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    key,
+    models: [process.env.GEMINI_MODEL || "gemini-2.5-flash", ...list(process.env.GEMINI_FALLBACK_MODELS, ["gemini-2.5-flash-lite"])],
+    vision: true,
+    schema: true,
+    maxChars: 400_000,
+  };
+}
+
+function buildProviders(userKey?: string): Provider[] {
+  const out: Provider[] = [];
+  if (userKey) out.push(geminiProvider("gemini-usuario", userKey));
+  if (process.env.GEMINI_API_KEY) out.push(geminiProvider("gemini", process.env.GEMINI_API_KEY));
+  if (process.env.GROQ_API_KEY) {
+    out.push({
+      name: "groq",
+      url: process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1/chat/completions",
+      key: process.env.GROQ_API_KEY,
+      models: list(process.env.GROQ_MODELS, ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"]),
+      vision: false,
+      schema: false,
+      maxChars: 18_000,
+    });
+  }
+  if (process.env.OPENROUTER_API_KEY) {
+    out.push({
+      name: "openrouter",
+      url: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1/chat/completions",
+      key: process.env.OPENROUTER_API_KEY,
+      models: list(process.env.OPENROUTER_MODELS, ["openrouter/free"]),
+      vision: false,
+      schema: false,
+      maxChars: 60_000,
+    });
+  }
+  return out;
+}
 
 type Part = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
 
@@ -21,28 +74,27 @@ export class UserFacingError extends Error {
   }
 }
 
-function getApiKey(): string {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    throw new UserFacingError(
-      "A chave do Gemini não está configurada. Crie uma grátis em aistudio.google.com/apikey e adicione como GEMINI_API_KEY nas variáveis do projeto na Vercel.",
-      500,
-    );
-  }
-  return key;
-}
-
 /* ---------- limite simples por IP (melhor esforço, em memória) ---------- */
 const hits = new Map<string, number[]>();
-export function rateLimit(ip: string, max = 30, windowMs = 10 * 60_000) {
+/** Protege a cota grátis compartilhada: por IP, no máximo 15 pedidos em 10 min e 40 por dia (melhor esforço, em memória). */
+export function rateLimit(ip: string) {
   const now = Date.now();
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < windowMs);
-  if (recent.length >= max) {
-    throw new UserFacingError("Muitas requisições em pouco tempo. Espere alguns minutos e tente de novo.", 429);
+  const day = 24 * 60 * 60_000;
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < day);
+  if (recent.filter((t) => now - t < 10 * 60_000).length >= 15) {
+    throw new UserFacingError("Muitos pedidos em pouco tempo. Espere alguns minutos e tente de novo.", 429);
+  }
+  if (recent.length >= 40) {
+    throw new UserFacingError("Você usou bastante hoje. Para continuar agora, use a sua própria chave grátis (botão Chave, no topo) ou volte amanhã.", 429);
   }
   recent.push(now);
   hits.set(ip, recent);
   if (hits.size > 5000) hits.clear();
+}
+
+export function readUserKey(req: Request): string | undefined {
+  const k = req.headers.get("x-user-gemini-key")?.trim();
+  return k && /^[\w-]{20,120}$/.test(k) ? k : undefined;
 }
 
 /* ---------- entrada ---------- */
@@ -90,60 +142,96 @@ function parseJson<T>(text: string): T {
   }
 }
 
-async function callTool<T>(opts: { system: string; content: Part[]; tool: JsonTool; maxTokens: number }): Promise<T> {
-  const key = getApiKey();
-  const models = [PRIMARY_MODEL, ...FALLBACK_MODELS.filter((m) => m !== PRIMARY_MODEL)];
-  let lastStatus = 0;
+function textSize(parts: Part[]) {
+  return parts.reduce((n, p) => n + (p.type === "text" ? p.text.length : 0), 0);
+}
 
-  for (const model of models) {
-    // 1ª tentativa com esquema JSON; se o modelo recusar (400), 2ª pedindo JSON no texto.
-    for (const structured of [true, false]) {
-      let res: Response;
-      try {
-        res = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-          body: JSON.stringify({
-            model,
-            max_tokens: opts.maxTokens,
-            messages: [
-              {
-                role: "system",
-                content: structured
-                  ? opts.system
-                  : `${opts.system}\n\nResponda SOMENTE com um objeto JSON válido, sem texto fora dele, neste formato:\n${JSON.stringify(opts.tool.input_schema)}`,
-              },
-              { role: "user", content: opts.content },
-            ],
-            ...(structured
-              ? { response_format: { type: "json_schema", json_schema: { name: opts.tool.name, strict: true, schema: opts.tool.input_schema } } }
-              : {}),
-          }),
-        });
-      } catch (err) {
-        console.error(err);
-        throw new UserFacingError("Não consegui falar com a IA agora. Tente de novo.", 502);
+const QUOTA_MSG =
+  "O limite grátis do site acabou por agora (ele reinicia todo dia). Use a sua própria chave grátis do Gemini (botão Chave, no topo) ou tente de novo mais tarde.";
+
+async function callTool<T>(opts: { system: string; content: Part[]; tool: JsonTool; maxTokens: number; userKey?: string }): Promise<T> {
+  const hasImages = opts.content.some((p) => p.type === "image_url");
+  const size = textSize(opts.content);
+  const all = buildProviders(opts.userKey);
+  if (all.length === 0) {
+    throw new UserFacingError(
+      "Nenhuma IA está configurada. Crie uma chave grátis do Gemini em aistudio.google.com/apikey e adicione como GEMINI_API_KEY nas variáveis do projeto na Vercel.",
+      500,
+    );
+  }
+  const providers = all.filter((p) => (!hasImages || p.vision) && size <= p.maxChars);
+  if (providers.length === 0) {
+    throw new UserFacingError("Este material precisa de um provedor que aceite imagens ou textos grandes. Configure GEMINI_API_KEY.", 500);
+  }
+
+  const statuses: number[] = [];
+
+  for (const provider of providers) {
+    for (const model of provider.models) {
+      // modos: 1) esquema/objeto JSON da API; 2) só pedindo JSON no texto
+      for (const mode of ["api", "text"] as const) {
+        const plain = mode === "text";
+        let res: Response;
+        try {
+          res = await fetch(provider.url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.key}` },
+            body: JSON.stringify({
+              model,
+              max_tokens: opts.maxTokens,
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    plain || !provider.schema
+                      ? `${opts.system}\n\nResponda SOMENTE com um objeto JSON válido, sem texto fora dele, neste formato:\n${JSON.stringify(opts.tool.input_schema)}`
+                      : opts.system,
+                },
+                { role: "user", content: provider.vision ? opts.content : opts.content.filter((p) => p.type === "text").map((p) => (p as { text: string }).text).join("\n\n") },
+              ],
+              ...(plain
+                ? {}
+                : provider.schema
+                  ? { response_format: { type: "json_schema", json_schema: { name: opts.tool.name, strict: true, schema: opts.tool.input_schema } } }
+                  : { response_format: { type: "json_object" } }),
+            }),
+          });
+        } catch (err) {
+          console.error("AI fetch failed", provider.name, err instanceof Error ? err.message : "");
+          statuses.push(0);
+          break;
+        }
+
+        if (res.ok) {
+          const data = (await res.json()) as { choices?: { message?: { content?: string | null } }[] };
+          const text = data.choices?.[0]?.message?.content;
+          if (!text) {
+            statuses.push(502);
+            break;
+          }
+          try {
+            return parseJson<T>(text);
+          } catch {
+            statuses.push(502);
+            break; // JSON quebrado: tenta o próximo modelo/provedor
+          }
+        }
+
+        statuses.push(res.status);
+        const detail = await res.text().catch(() => "");
+        console.error("AI error", provider.name, model, res.status, detail.slice(0, 300));
+        if (res.status === 400 && !plain) continue; // tenta sem esquema
+        if (res.status === 401 || res.status === 403) {
+          if (provider.name === "gemini-usuario") throw new UserFacingError("A sua chave do Gemini foi recusada. Confira se copiou inteira.", 401);
+        }
+        break; // 404/429/5xx...: próximo modelo
       }
-
-      if (res.ok) {
-        const data = (await res.json()) as { choices?: { message?: { content?: string | null } }[] };
-        const text = data.choices?.[0]?.message?.content;
-        if (!text) throw new UserFacingError("A IA não devolveu uma resposta utilizável. Tente de novo.", 502);
-        return parseJson<T>(text);
-      }
-
-      lastStatus = res.status;
-      const detail = await res.text().catch(() => "");
-      console.error("Gemini error", model, res.status, detail.slice(0, 400));
-      if (res.status === 400 && structured) continue; // tenta sem esquema
-      break; // outro erro: tenta o próximo modelo (ex.: 404, 429)
     }
   }
 
-  if (lastStatus === 401 || lastStatus === 403)
-    throw new UserFacingError("A chave do Gemini foi recusada. Confira o valor de GEMINI_API_KEY.", 500);
-  if (lastStatus === 429)
-    throw new UserFacingError("O limite grátis do Gemini acabou por agora (ele reinicia todo dia). Tente de novo mais tarde.", 429);
+  if (statuses.includes(429)) throw new UserFacingError(QUOTA_MSG, 429);
+  if (statuses.some((s) => s === 401 || s === 403))
+    throw new UserFacingError("Uma chave de IA foi recusada. Confira as chaves nas variáveis do projeto.", 500);
   throw new UserFacingError("Não consegui falar com a IA agora. Tente de novo.", 502);
 }
 
@@ -199,12 +287,13 @@ interface RawSummary {
   key_terms?: { term?: string; definition?: string }[];
 }
 
-export async function generateSummary(src: SourcePayload): Promise<Summary> {
+export async function generateSummary(src: SourcePayload, userKey?: string): Promise<Summary> {
   const raw = await callTool<RawSummary>({
     system: SUMMARY_SYSTEM,
     content: [...sourceBlocks(src), { type: "text", text: "Gere o resumo chamando a ferramenta submit_summary." }],
     tool: SUMMARY_TOOL,
     maxTokens: 12000,
+    userKey,
   });
   const summary: Summary = {
     title: (raw.title ?? "Resumo").trim(),
@@ -291,8 +380,9 @@ export async function generateQuiz(args: {
   level: LevelId;
   count: number;
   avoid: string[];
+  userKey?: string;
 }): Promise<Question[]> {
-  const { summary, source, level, count, avoid } = args;
+  const { summary, source, level, count, avoid, userKey } = args;
   const summaryText = [
     `# ${summary.title}`,
     summary.tldr,
@@ -315,6 +405,7 @@ export async function generateQuiz(args: {
     content,
     tool: QUIZ_TOOL(count),
     maxTokens: Math.min(30000, 6000 + count * 700),
+    userKey,
   });
 
   const questions: Question[] = (raw.questions ?? [])
@@ -426,8 +517,9 @@ export async function generateReview(args: {
   summary?: Summary;
   source?: SourcePayload;
   references?: ReviewReference[];
+  userKey?: string;
 }): Promise<Review> {
-  const { writing, topic, summary, source, references = [] } = args;
+  const { writing, topic, summary, source, references = [], userKey } = args;
   const content: Part[] = [];
   if (summary) content.push({ type: "text", text: `<resumo_de_referencia>\n${flattenSummary(summary)}\n</resumo_de_referencia>` });
   if (source) content.push(...sourceBlocks(source));
@@ -445,7 +537,7 @@ export async function generateReview(args: {
     missing?: string[];
     mistakes?: { said?: string; correction?: string }[];
     tip?: string;
-  }>({ system: reviewSystem(hasMaterial), content, tool: REVIEW_TOOL, maxTokens: 6000 });
+  }>({ system: reviewSystem(hasMaterial), content, tool: REVIEW_TOOL, maxTokens: 6000, userKey });
 
   const clean = (a?: string[]) => (a ?? []).filter(Boolean).map((x) => x.trim());
   return {

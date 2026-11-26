@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateReview, rateLimit, UserFacingError, validateReferences, validateSource, validateWriting } from "@/lib/server/ai";
+import { generateReview, rateLimit, readUserKey, UserFacingError, validateReferences, validateSource, validateWriting } from "@/lib/server/ai";
 import { MOCK, mockReview } from "@/lib/server/mock";
 import { LIMITS, type Summary } from "@/lib/types";
 
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
       await new Promise((r) => setTimeout(r, 1000));
       return NextResponse.json({ review: mockReview });
     }
-    const review = await generateReview({ writing, topic: topic || undefined, summary, source, references });
+    const review = await generateReview({ writing, topic: topic || undefined, summary, source, references, userKey: readUserKey(req) });
     return NextResponse.json({ review });
   } catch (err) {
     const e = err instanceof UserFacingError ? err : new UserFacingError("Erro inesperado. Tente de novo.", 500);

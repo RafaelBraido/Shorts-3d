@@ -1552,3 +1552,81 @@ mark.hl {
   text-align: left;
   padding: 0;
 }
+
+/* ---------- chave pessoal ---------- */
+
+.top-inner {
+  justify-content: space-between;
+}
+.key-btn[data-on="true"] {
+  color: var(--good);
+}
+.dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-card);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-card), 0 24px 64px -12px oklch(0 0 0 / 0.35);
+  overflow: auto;
+}
+.dialog::backdrop {
+  background: oklch(0.15 0.03 270 / 0.5);
+  backdrop-filter: blur(3px);
+}
+.dialog[open] {
+  animation: stage-in 220ms var(--ease) backwards;
+}
+.dialog-body {
+  display: grid;
+  gap: 16px;
+  padding: 24px 20px 20px;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dialog-head h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+}
+.key-steps {
+  display: grid;
+  gap: 8px;
+  padding-left: 20px;
+}
+.key-steps li {
+  list-style: decimal;
+  padding-left: 4px;
+}
+.key-steps a {
+  color: var(--blue);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+.key-note {
+  text-align: left;
+  padding: 0;
+}
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+  .key-btn span {
+    max-width: 9.5em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

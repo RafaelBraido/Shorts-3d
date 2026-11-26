@@ -5,12 +5,14 @@ import { Highlighter } from "lucide-react";
 import { Loading } from "@/components/Loading";
 import { QuizRunner } from "@/components/QuizRunner";
 import { Results } from "@/components/Results";
+import { KeyButton } from "@/components/KeyDialog";
 import { Library } from "@/components/Library";
 import { ReviewView } from "@/components/ReviewView";
 import { WriteMode } from "@/components/WriteMode";
 import { SummaryView } from "@/components/SummaryView";
 import { Uploader } from "@/components/Uploader";
 import { combine, imageCount, newItem, processFile, type MaterialItem } from "@/lib/extract";
+import { getUserKey } from "@/lib/userkey";
 import { addHistory, entrySourceText, removeEntry, saveEntry, useLibrary } from "@/lib/library";
 import { LIMITS, type LevelId, type Question, type SourceImage, type Review, type Summary } from "@/lib/types";
 
@@ -39,7 +41,12 @@ function shuffleQuestion(q: Question): Question {
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const userKey = getUserKey();
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(userKey ? { "x-user-gemini-key": userKey } : {}) },
+      body: JSON.stringify(body),
+    });
   } catch {
     throw new Error("Sem conexão. Verifique a internet e tente de novo.");
   }
@@ -257,6 +264,7 @@ export function StudyApp() {
             </span>
             <span className="logo-word">Study It</span>
           </button>
+          <KeyButton />
         </div>
       </header>
 
