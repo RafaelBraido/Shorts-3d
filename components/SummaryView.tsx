@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, BookMarked, ListChecks, PenLine, Plus, RotateCcw } from "lucide-react";
+import { ArrowRight, BookMarked, ClipboardCheck, ListChecks, PenLine, Plus, RotateCcw } from "lucide-react";
 import { Marked } from "@/components/Marked";
 import { Segmented } from "@/components/Segmented";
+import type { HistoryItem } from "@/lib/library";
 import { LEVELS, QUESTION_COUNTS, type LevelId, type Summary } from "@/lib/types";
 
 export function SummaryView({
@@ -15,6 +16,8 @@ export function SummaryView({
   onCount,
   onStart,
   onWrite,
+  history,
+  onOpenHistory,
   onNew,
 }: {
   summary: Summary;
@@ -25,6 +28,8 @@ export function SummaryView({
   onCount: (n: number) => void;
   onStart: () => void;
   onWrite: () => void;
+  history: HistoryItem[];
+  onOpenHistory: (item: HistoryItem) => void;
   onNew: () => void;
 }) {
   const panelRef = useRef<HTMLElement>(null);
@@ -80,6 +85,30 @@ export function SummaryView({
             </ul>
           </section>
         ))}
+
+        {history.some((h) => (h.kind === "quiz" ? h.questions : h.review)) && (
+          <section className="block" style={{ "--s": 6 } as React.CSSProperties}>
+            <h2 className="block-title">
+              <ClipboardCheck size={18} strokeWidth={1.75} aria-hidden /> Suas revisões
+            </h2>
+            <ul className="lib-list">
+              {history.map((h, i) => {
+                const saved = h.kind === "quiz" ? Boolean(h.questions) : Boolean(h.review);
+                if (!saved) return null;
+                return (
+                  <li key={i} className="lib-item">
+                    <button type="button" className="lib-open" onClick={() => onOpenHistory(h)}>
+                      <span className="lib-title">
+                        {h.kind === "quiz" ? `Prova · ${h.score}/${h.total} · ${LEVELS.find((l) => l.id === h.level)?.label}` : `Escrita · ${h.score}%`}
+                      </span>
+                      <span className="lib-meta">{new Date(h.at).toLocaleString("pt-BR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
         {summary.keyTerms.length > 0 && (
           <section className="block" style={{ "--s": 6 } as React.CSSProperties}>

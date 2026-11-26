@@ -11,7 +11,7 @@ import { WriteMode } from "@/components/WriteMode";
 import { SummaryView } from "@/components/SummaryView";
 import { Uploader } from "@/components/Uploader";
 import { combine, imageCount, newItem, processFile, type MaterialItem } from "@/lib/extract";
-import { addHistory, entrySourceText, removeEntry, saveEntry, useLibrary } from "@/lib/library";
+import { addHistory, entrySourceText, removeEntry, removeFreeWrite, saveEntry, saveFreeWrite, useFreeWrites, useLibrary, type HistoryItem } from "@/lib/library";
 import { LIMITS, type LevelId, type Question, type SourceImage, type Review, type Summary } from "@/lib/types";
 
 type Stage = "upload" | "summarizing" | "summary" | "generating" | "quiz" | "results" | "write" | "reviewing" | "review";
@@ -65,6 +65,7 @@ export function StudyApp() {
   const [asked, setAsked] = useState<string[]>([]);
   const [quizKey, setQuizKey] = useState(0);
   const library = useLibrary();
+  const freeWrites = useFreeWrites();
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [freeWrite, setFreeWrite] = useState(false);
   const [topic, setTopic] = useState("");
@@ -185,6 +186,35 @@ export function StudyApp() {
     setStage("summary");
   };
 
+  const openHistory = (item: HistoryItem) => {
+    setError(null);
+    if (item.kind === "quiz" && item.questions && item.answers) {
+      setQuestions(item.questions);
+      setAnswers(item.answers);
+      setLevel(item.level);
+      setCount(item.questions.length);
+      setLoadingFrom("results");
+      setQuizKey((k) => k + 1);
+      setStage("results");
+    } else if (item.kind === "write" && item.review) {
+      setFreeWrite(false);
+      setDraft(item.writing ?? "");
+      setReview(item.review);
+      setStage("review");
+    }
+  };
+
+  const openFreeWrite = (id: string) => {
+    const w = freeWrites.find((x) => x.id === id);
+    if (!w) return;
+    setFreeWrite(true);
+    setTopic(w.topic);
+    setRefIds([]);
+    setDraft(w.writing);
+    setReview(w.review);
+    setStage("review");
+  };
+
   const startWrite = (free: boolean) => {
     setFreeWrite(free);
     setDraft("");
@@ -211,7 +241,8 @@ export function StudyApp() {
           }
         : { summary, source, writing: draft };
       const { review } = await postJson<{ review: Review }>("/api/review", payload);
-      if (!freeWrite) addHistory(currentId, { kind: "write", score: review.score, at: Date.now() });
+      if (freeWrite) saveFreeWrite({ topic, writing: draft, review });
+      else addHistory(currentId, { kind: "write", score: review.score, at: Date.now(), writing: draft, review });
       setReview(review);
       setStage("review");
     } catch (e) {
@@ -276,7 +307,15 @@ export function StudyApp() {
           )}
 
           {stage === "upload" && (
-            <Library entries={library} onOpen={openEntry} onDelete={removeEntry} onWriteFree={() => startWrite(true)} />
+            <Library
+              entries={library}
+              onOpen={openEntry}
+              onDelete={removeEntry}
+              onWriteFree={() => startWrite(true)}
+              freeWrites={freeWrites}
+              onOpenFree={openFreeWrite}
+              onDeleteFree={removeFreeWrite}
+            />
           )}
 
           {stage === "summarizing" && (
@@ -295,10 +334,9 @@ export function StudyApp() {
               onLevel={setLevel}
               onCount={setCount}
               onStart={() => startQuiz(level, "summary")}
-              onWrite={() => {
-                setError(null);
-                setStage("write");
-              }}
+              onWrite={() => startWrite(false)}
+              history={library.find((e) => e.id === currentId)?.history ?? []}
+              onOpenHistory={openHistory}
               onNew={reset}
             />
           )}
@@ -323,6 +361,8 @@ export function StudyApp() {
                   score: questions.filter((q, i) => a[i] === q.answerIndex).length,
                   total: questions.length,
                   at: Date.now(),
+                  questions,
+                  answers: a,
                 });
                 setStage("results");
               }}

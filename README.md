@@ -29,7 +29,7 @@ Por IP: no máximo 15 pedidos em 10 minutos e 40 por dia. O material enviado é 
 
 ## Biblioteca e modo escrita
 
-- Cada resumo é salvo **no navegador** (localStorage, até 20 matérias). Sem conta, sem banco, sem custo; não sincroniza entre aparelhos.
+- Cada resumo é salvo **no navegador** (localStorage, até 20 matérias), junto com as suas **revisões**: as 5 últimas provas (perguntas, suas respostas e explicações) e as 5 últimas escritas (seu texto e a correção) de cada matéria, que dá para reabrir. As escritas livres, sem matéria, ficam em "Suas escritas". Sem conta, sem banco, sem custo; não sincroniza entre aparelhos.
 - **Escrever sem arquivo**: escolha um tema, escreva o que lembra e receba a correção. Pode comparar com uma ou mais matérias salvas;
   sem nenhuma marcada, a IA corrige pelo que ela sabe do tema (e pode errar).
 
