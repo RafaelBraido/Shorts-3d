@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/bricolage-grotesque";
-import "@fontsource-variable/instrument-sans";
+import "@fontsource-variable/inter";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,8 +10,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F5F6FA" },
-    { media: "(prefers-color-scheme: dark)", color: "#0D0F1C" },
+    { media: "(prefers-color-scheme: light)", color: "#F5F5F7" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 };
 

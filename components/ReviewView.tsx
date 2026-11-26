@@ -44,11 +44,11 @@ export function ReviewView({
   return (
     <div className="results">
       <div className="score card">
-        <p className="score-label">Seu texto cobriu</p>
         <p className="score-num" tabIndex={-1} data-focus aria-label={`${review.score} de 100`}>
           <span className="score-big">{shown}</span>
           <span className="score-total">%</span>
         </p>
+        <p className="score-cap">do material coberto pelo seu texto</p>
         <div className="meter" aria-hidden>
           <span style={{ width: `${review.score}%` }} />
         </div>

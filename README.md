@@ -50,5 +50,7 @@ Sem chave? Use `STUDY_IT_MOCK=1 npm run dev` para ver a interface com dados de e
 
 ## Design
 
-Papel frio, tinta azul-marinho e marca-texto amarelo, que também marca os termos-chave do resumo.
-Tipografia: Bricolage Grotesque (títulos) e Instrument Sans (texto). Modo escuro automático.
+Preto e branco, no estilo Apple: cinzas neutros, botões em pílula, cartões bem arredondados, menu translúcido e modo escuro
+automático. O único amarelo é o **marca-texto**, que destaca o título e os termos-chave do resumo. Certo e errado não dependem de
+cor: certo = contorno cheio com ✓, errado = contorno tracejado com ✕ e fundo listrado. Fonte do sistema (SF Pro no iPhone/Mac) com
+Inter como reserva. Movimento sem quique, respeitando `prefers-reduced-motion`.

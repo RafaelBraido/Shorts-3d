@@ -70,11 +70,11 @@ export function Results({
   return (
     <div className="results">
       <div className="score card">
-        <p className="score-label">Seu resultado</p>
         <p className="score-num" tabIndex={-1} data-focus aria-label={`${score} de ${total} questões certas`}>
           <span className="score-big">{shown}</span>
           <span className="score-total">/{total}</span>
         </p>
+        <p className="score-cap">questões certas</p>
         <div className="progress progress-lg" aria-hidden>
           {questions.map((q, i) => (
             <span key={i} className="seg-bar" data-state={answers[i] === q.answerIndex ? "right" : "wrong"} style={{ "--k": i } as React.CSSProperties} />

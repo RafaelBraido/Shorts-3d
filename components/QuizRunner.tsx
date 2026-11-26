@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, Check, X } from "lucide-react";
+import { ArrowRight, Check, CircleCheck, CircleX, X } from "lucide-react";
 import { LEVELS, type LevelId, type Question } from "@/lib/types";
 
 const LETTERS = ["A", "B", "C", "D"];
@@ -90,7 +90,6 @@ export function QuizRunner({
       </div>
 
       <div className="q-card card" key={index}>
-        {q.topic && <p className="q-topic">{q.topic}</p>}
         <h2 className="q-text" tabIndex={-1} data-focus>
           {q.question}
         </h2>
@@ -125,8 +124,12 @@ export function QuizRunner({
 
         {answered && (
           <div className="feedback" data-correct={correct} role="status">
-            <p className="feedback-title">{correct ? "Acertou" : "Não foi dessa vez"}</p>
+            <p className="feedback-title">
+              {correct ? <CircleCheck size={22} strokeWidth={1.75} aria-hidden /> : <CircleX size={22} strokeWidth={1.75} aria-hidden />}
+              {correct ? "Acertou" : "Não foi dessa vez"}
+            </p>
             {q.explanation && <p className="feedback-text">{q.explanation}</p>}
+            {q.topic && <p className="feedback-topic">Tópico: {q.topic}</p>}
             <button ref={nextRef} type="button" className="btn btn-primary" onClick={next}>
               {last ? "Ver resultado" : "Próxima"} <ArrowRight size={17} strokeWidth={1.75} aria-hidden />
             </button>
