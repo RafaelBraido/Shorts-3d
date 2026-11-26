@@ -1,10 +1,9 @@
-import { getVercelOidcToken } from "@vercel/oidc";
 import { LEVELS, LIMITS, type LevelId, type Question, type Review, type SourcePayload, type Summary } from "@/lib/types";
 
-/** Modelo servido pelo Vercel AI Gateway (sem chave da Anthropic). */
-export const MODEL = process.env.STUDY_IT_MODEL || "anthropic/claude-haiku-5-5";
-const EFFORT = process.env.STUDY_IT_EFFORT || "medium";
-const GATEWAY_URL = "https://ai-gateway.vercel.sh/v1/chat/completions";
+/** Gemini pela API gratuita do Google AI Studio (endpoint compatível com OpenAI). */
+const PRIMARY_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const FALLBACK_MODELS = (process.env.GEMINI_FALLBACK_MODELS ?? "gemini-2.5-flash-lite").split(",").map((m) => m.trim()).filter(Boolean);
+const API_URL = process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
 type Part = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
 
@@ -22,16 +21,15 @@ export class UserFacingError extends Error {
   }
 }
 
-async function getAuthToken(): Promise<string> {
-  if (process.env.AI_GATEWAY_API_KEY) return process.env.AI_GATEWAY_API_KEY;
-  try {
-    return await getVercelOidcToken();
-  } catch {
+function getApiKey(): string {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) {
     throw new UserFacingError(
-      "A IA ainda não está autenticada. Na Vercel, abra o projeto, ative o AI Gateway e faça um novo deploy. Local: defina AI_GATEWAY_API_KEY.",
+      "A chave do Gemini não está configurada. Crie uma grátis em aistudio.google.com/apikey e adicione como GEMINI_API_KEY nas variáveis do projeto na Vercel.",
       500,
     );
   }
+  return key;
 }
 
 /* ---------- limite simples por IP (melhor esforço, em memória) ---------- */
@@ -80,18 +78,6 @@ function sourceBlocks(src: SourcePayload): Part[] {
   return blocks;
 }
 
-/** Modo estrito de JSON Schema exige additionalProperties:false em todo objeto. */
-function strictify(schema: unknown): unknown {
-  if (Array.isArray(schema)) return schema.map(strictify);
-  if (schema && typeof schema === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(schema)) out[k] = strictify(v);
-    if (out.type === "object") out.additionalProperties = false;
-    return out;
-  }
-  return schema;
-}
-
 function parseJson<T>(text: string): T {
   const cleaned = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/```$/, "").trim();
   try {
@@ -105,51 +91,60 @@ function parseJson<T>(text: string): T {
 }
 
 async function callTool<T>(opts: { system: string; content: Part[]; tool: JsonTool; maxTokens: number }): Promise<T> {
-  const token = await getAuthToken();
-  const send = (withReasoning: boolean) =>
-    fetch(GATEWAY_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: opts.maxTokens,
-        messages: [
-          { role: "system", content: opts.system },
-          { role: "user", content: opts.content },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: { name: opts.tool.name, strict: true, schema: strictify(opts.tool.input_schema) },
-        },
-        ...(withReasoning && EFFORT !== "none" ? { reasoning: { effort: EFFORT } } : {}),
-      }),
-    });
+  const key = getApiKey();
+  const models = [PRIMARY_MODEL, ...FALLBACK_MODELS.filter((m) => m !== PRIMARY_MODEL)];
+  let lastStatus = 0;
 
-  let res: Response;
-  try {
-    res = await send(true);
-    if (res.status === 400) res = await send(false); // se o parâmetro de raciocínio não for aceito, tenta sem
-  } catch (err) {
-    console.error(err);
-    throw new UserFacingError("Não consegui falar com a IA agora. Tente de novo.", 502);
+  for (const model of models) {
+    // 1ª tentativa com esquema JSON; se o modelo recusar (400), 2ª pedindo JSON no texto.
+    for (const structured of [true, false]) {
+      let res: Response;
+      try {
+        res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+          body: JSON.stringify({
+            model,
+            max_tokens: opts.maxTokens,
+            messages: [
+              {
+                role: "system",
+                content: structured
+                  ? opts.system
+                  : `${opts.system}\n\nResponda SOMENTE com um objeto JSON válido, sem texto fora dele, neste formato:\n${JSON.stringify(opts.tool.input_schema)}`,
+              },
+              { role: "user", content: opts.content },
+            ],
+            ...(structured
+              ? { response_format: { type: "json_schema", json_schema: { name: opts.tool.name, strict: true, schema: opts.tool.input_schema } } }
+              : {}),
+          }),
+        });
+      } catch (err) {
+        console.error(err);
+        throw new UserFacingError("Não consegui falar com a IA agora. Tente de novo.", 502);
+      }
+
+      if (res.ok) {
+        const data = (await res.json()) as { choices?: { message?: { content?: string | null } }[] };
+        const text = data.choices?.[0]?.message?.content;
+        if (!text) throw new UserFacingError("A IA não devolveu uma resposta utilizável. Tente de novo.", 502);
+        return parseJson<T>(text);
+      }
+
+      lastStatus = res.status;
+      const detail = await res.text().catch(() => "");
+      console.error("Gemini error", model, res.status, detail.slice(0, 400));
+      if (res.status === 400 && structured) continue; // tenta sem esquema
+      break; // outro erro: tenta o próximo modelo (ex.: 404, 429)
+    }
   }
 
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    console.error("AI Gateway error", res.status, detail.slice(0, 500));
-    if (res.status === 401 || res.status === 403)
-      throw new UserFacingError("O AI Gateway recusou a autenticação. Confirme que ele está ativo no projeto da Vercel.", 500);
-    if (res.status === 402)
-      throw new UserFacingError("Os créditos do AI Gateway acabaram. Adicione créditos no painel da Vercel.", 402);
-    if (res.status === 404) throw new UserFacingError(`O modelo "${MODEL}" não foi encontrado. Ajuste STUDY_IT_MODEL.`, 500);
-    if (res.status === 429) throw new UserFacingError("A IA está sobrecarregada agora. Tente de novo em instantes.", 429);
-    throw new UserFacingError("Não consegui falar com a IA agora. Tente de novo.", 502);
-  }
-
-  const data = (await res.json()) as { choices?: { message?: { content?: string | null } }[] };
-  const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new UserFacingError("A IA não devolveu uma resposta utilizável. Tente de novo.", 502);
-  return parseJson<T>(text);
+  if (lastStatus === 401 || lastStatus === 403)
+    throw new UserFacingError("A chave do Gemini foi recusada. Confira o valor de GEMINI_API_KEY.", 500);
+  if (lastStatus === 429)
+    throw new UserFacingError("O limite grátis do Gemini acabou por agora (ele reinicia todo dia). Tente de novo mais tarde.", 429);
+  throw new UserFacingError("Não consegui falar com a IA agora. Tente de novo.", 502);
 }
 
 /* ---------- resumo ---------- */
@@ -209,7 +204,7 @@ export async function generateSummary(src: SourcePayload): Promise<Summary> {
     system: SUMMARY_SYSTEM,
     content: [...sourceBlocks(src), { type: "text", text: "Gere o resumo chamando a ferramenta submit_summary." }],
     tool: SUMMARY_TOOL,
-    maxTokens: 8000,
+    maxTokens: 12000,
   });
   const summary: Summary = {
     title: (raw.title ?? "Resumo").trim(),
@@ -319,7 +314,7 @@ export async function generateQuiz(args: {
     system: quizSystem(level, count),
     content,
     tool: QUIZ_TOOL(count),
-    maxTokens: Math.min(24000, 4000 + count * 600),
+    maxTokens: Math.min(30000, 6000 + count * 700),
   });
 
   const questions: Question[] = (raw.questions ?? [])
@@ -349,19 +344,25 @@ export async function generateQuiz(args: {
 }
 
 /* ---------- modo escrita ---------- */
-const REVIEW_SYSTEM = `Você é o corretor do modo escrita do Study It. O estudante escreveu de memória o que lembra do material. Compare com o material e devolva um feedback honesto e útil.
+function reviewSystem(hasMaterial: boolean) {
+  return `Você é o corretor do modo escrita do Study It. O estudante escreveu de memória o que lembra sobre um assunto. Compare com a referência e devolva um feedback honesto e útil.
 
 Regras:
 - Escreva no mesmo idioma do texto do estudante.
 - Fale com o estudante em segunda pessoa ("você"), de forma direta e sem bajular.
 - Não penalize palavras diferentes quando a ideia está certa. Avalie ideias, não redação.
-- score (0 a 100): cobertura das ideias centrais do material (peso 60) e correção do que foi dito (peso 40). Texto curto que acerta pouco do material fica abaixo de 40; só passe de 90 se cobrir quase tudo sem erros.
+- score (0 a 100): cobertura das ideias centrais (peso 60) e correção do que foi dito (peso 40). Texto curto que acerta pouco fica abaixo de 40; só passe de 90 se cobrir quase tudo sem erros.
 - verdict: uma frase curta resumindo o desempenho.
 - covered: ideias importantes que o estudante acertou (até 6).
-- missing: ideias importantes do material que faltaram (até 6), em frases curtas e específicas.
-- mistakes: coisas que o estudante disse e estão erradas ou imprecisas, com a correção segundo o material. Se não houver, devolva lista vazia. Nunca invente erro.
+- missing: ideias importantes que faltaram (até 6), em frases curtas e específicas.
+- mistakes: coisas ditas pelo estudante que estão erradas ou imprecisas, com a correção. Se não houver, lista vazia. Nunca invente erro.
 - tip: uma sugestão prática do que revisar primeiro.
-- Use só o material como fonte da verdade.`;
+${
+    hasMaterial
+      ? "- Use só o material de referência como fonte da verdade."
+      : "- Não há material de referência: avalie com seu conhecimento geral sobre o tema. Só aponte erro quando tiver certeza, e diga no verdict que a correção não vem de um material do estudante."
+  }`;
+}
 
 const REVIEW_TOOL: JsonTool = {
   name: "submit_review",
@@ -395,14 +396,48 @@ export function validateWriting(text: unknown): string {
   return t.slice(0, LIMITS.maxWriteChars);
 }
 
-export async function generateReview(args: { summary: Summary; source: SourcePayload; writing: string }): Promise<Review> {
-  const { summary, source, writing } = args;
-  const summaryText = [
+export interface ReviewReference {
+  title: string;
+  text: string;
+}
+
+export function validateReferences(refs: unknown): ReviewReference[] {
+  if (!Array.isArray(refs)) return [];
+  return refs
+    .slice(0, 5)
+    .filter((r) => r && typeof r.title === "string" && typeof r.text === "string" && r.text.trim())
+    .map((r) => ({ title: r.title.slice(0, 120), text: r.text.slice(0, 20_000) }));
+}
+
+function flattenSummary(summary: Summary) {
+  return [
     `# ${summary.title}`,
     summary.tldr,
     ...summary.keyPoints.map((p) => `- ${p}`),
     ...summary.sections.flatMap((s) => [`## ${s.heading}`, ...s.bullets.map((b) => `- ${b}`)]),
   ].join("\n");
+}
+
+export { flattenSummary };
+
+export async function generateReview(args: {
+  writing: string;
+  topic?: string;
+  summary?: Summary;
+  source?: SourcePayload;
+  references?: ReviewReference[];
+}): Promise<Review> {
+  const { writing, topic, summary, source, references = [] } = args;
+  const content: Part[] = [];
+  if (summary) content.push({ type: "text", text: `<resumo_de_referencia>\n${flattenSummary(summary)}\n</resumo_de_referencia>` });
+  if (source) content.push(...sourceBlocks(source));
+  for (const r of references) {
+    content.push({ type: "text", text: `<material titulo="${r.title.replace(/"/g, "'")}">\n${r.text}\n</material>` });
+  }
+  if (topic) content.push({ type: "text", text: `Tema escolhido pelo estudante: ${topic}` });
+  const hasMaterial = Boolean(summary || references.length);
+  content.push({ type: "text", text: `<texto_do_estudante>\n${writing}\n</texto_do_estudante>\n\nCorrija gerando o JSON pedido.` });
+
   const raw = await callTool<{
     score?: number;
     verdict?: string;
@@ -410,16 +445,8 @@ export async function generateReview(args: { summary: Summary; source: SourcePay
     missing?: string[];
     mistakes?: { said?: string; correction?: string }[];
     tip?: string;
-  }>({
-    system: REVIEW_SYSTEM,
-    content: [
-      { type: "text", text: `<resumo_de_referencia>\n${summaryText}\n</resumo_de_referencia>` },
-      ...sourceBlocks(source),
-      { type: "text", text: `<texto_do_estudante>\n${writing}\n</texto_do_estudante>\n\nCorrija chamando submit_review.` },
-    ],
-    tool: REVIEW_TOOL,
-    maxTokens: 4096,
-  });
+  }>({ system: reviewSystem(hasMaterial), content, tool: REVIEW_TOOL, maxTokens: 6000 });
+
   const clean = (a?: string[]) => (a ?? []).filter(Boolean).map((x) => x.trim());
   return {
     score: Math.max(0, Math.min(100, Math.round(Number(raw.score) || 0))),

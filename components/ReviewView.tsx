@@ -26,6 +26,7 @@ function useCountUp(target: number, ms = 700) {
 export function ReviewView({
   review,
   writing,
+  hasMaterial,
   onRetry,
   onSummary,
   onQuiz,
@@ -33,6 +34,7 @@ export function ReviewView({
 }: {
   review: Review;
   writing: string;
+  hasMaterial: boolean;
   onRetry: () => void;
   onSummary: () => void;
   onQuiz: () => void;
@@ -116,16 +118,20 @@ export function ReviewView({
           <button type="button" className="btn btn-primary btn-lg" onClick={onRetry}>
             Escrever de novo
           </button>
-          <button type="button" className="btn btn-soft btn-lg" onClick={onQuiz}>
-            Fazer prova
-          </button>
+          {hasMaterial && (
+            <button type="button" className="btn btn-soft btn-lg" onClick={onQuiz}>
+              Fazer prova
+            </button>
+          )}
         </div>
         <div className="next-links">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onSummary}>
-            Ver o resumo
-          </button>
+          {hasMaterial && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onSummary}>
+              Ver o resumo
+            </button>
+          )}
           <button type="button" className="btn btn-ghost btn-sm" onClick={onNew}>
-            Novo material
+            {hasMaterial ? "Novo material" : "Voltar ao início"}
           </button>
         </div>
       </div>

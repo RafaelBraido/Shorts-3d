@@ -2,26 +2,39 @@
 
 import { useRef } from "react";
 import { ArrowRight, X } from "lucide-react";
+import type { LibraryEntry } from "@/lib/library";
 import { LIMITS } from "@/lib/types";
 
 export function WriteMode({
   title,
+  free,
+  topic,
+  library,
+  refIds,
   value,
   error,
+  onTopic,
+  onToggleRef,
   onChange,
   onSubmit,
   onExit,
 }: {
   title: string;
+  free: boolean;
+  topic: string;
+  library: LibraryEntry[];
+  refIds: string[];
   value: string;
   error: string | null;
+  onTopic: (v: string) => void;
+  onToggleRef: (id: string) => void;
   onChange: (v: string) => void;
   onSubmit: () => void;
   onExit: () => void;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const words = value.trim() ? value.trim().split(/\s+/).length : 0;
-  const ready = value.trim().length >= LIMITS.minWriteChars;
+  const ready = value.trim().length >= LIMITS.minWriteChars && (!free || topic.trim().length >= 2);
 
   return (
     <div className="write">
@@ -37,10 +50,50 @@ export function WriteMode({
           Escreva o que você lembra
         </h1>
         <p className="hero-sub">
-          Sem olhar o resumo, explique <b>{title}</b> com suas palavras. Pode ser incompleto: a IA mostra o que você cobriu, o que
-          faltou e o que está errado.
+          {free ? (
+            <>Escolha um tema e explique com suas palavras. A IA mostra o que você cobriu, o que faltou e o que está errado.</>
+          ) : (
+            <>
+              Sem olhar o resumo, explique <b>{title}</b> com suas palavras. Pode ser incompleto: a IA mostra o que você cobriu, o que
+              faltou e o que está errado.
+            </>
+          )}
         </p>
       </div>
+
+      {free && (
+        <div className="card write-setup">
+          <div className="field">
+            <label htmlFor="topic">Sobre qual tema você vai escrever?</label>
+            <input
+              id="topic"
+              type="text"
+              maxLength={120}
+              value={topic}
+              onChange={(e) => onTopic(e.target.value)}
+              placeholder="Ex.: Revolução Francesa, mitose, juros compostos"
+            />
+          </div>
+          {library.length > 0 ? (
+            <fieldset className="refs">
+              <legend>Comparar com minhas matérias (opcional)</legend>
+              {library.map((m) => (
+                <label key={m.id} className="ref" data-on={refIds.includes(m.id)}>
+                  <input type="checkbox" checked={refIds.includes(m.id)} onChange={() => onToggleRef(m.id)} />
+                  <span>{m.title}</span>
+                </label>
+              ))}
+              <p className="fine refs-note">
+                {refIds.length > 0
+                  ? "A correção usa só as matérias marcadas."
+                  : "Sem nenhuma marcada, a IA corrige pelo que ela sabe do tema e pode errar."}
+              </p>
+            </fieldset>
+          ) : (
+            <p className="fine refs-note">Sem matérias salvas ainda: a IA corrige pelo que ela sabe do tema e pode errar.</p>
+          )}
+        </div>
+      )}
 
       <div className="card write-card">
         <label htmlFor="writing" className="sr-only">

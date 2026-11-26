@@ -5,11 +5,13 @@ import { Highlighter } from "lucide-react";
 import { Loading } from "@/components/Loading";
 import { QuizRunner } from "@/components/QuizRunner";
 import { Results } from "@/components/Results";
+import { Library } from "@/components/Library";
 import { ReviewView } from "@/components/ReviewView";
 import { WriteMode } from "@/components/WriteMode";
 import { SummaryView } from "@/components/SummaryView";
 import { Uploader } from "@/components/Uploader";
 import { combine, imageCount, newItem, processFile, type MaterialItem } from "@/lib/extract";
+import { addHistory, entrySourceText, removeEntry, saveEntry, useLibrary } from "@/lib/library";
 import { LIMITS, type LevelId, type Question, type SourceImage, type Review, type Summary } from "@/lib/types";
 
 type Stage = "upload" | "summarizing" | "summary" | "generating" | "quiz" | "results" | "write" | "reviewing" | "review";
@@ -62,6 +64,11 @@ export function StudyApp() {
   const [answers, setAnswers] = useState<number[]>([]);
   const [asked, setAsked] = useState<string[]>([]);
   const [quizKey, setQuizKey] = useState(0);
+  const library = useLibrary();
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [freeWrite, setFreeWrite] = useState(false);
+  const [topic, setTopic] = useState("");
+  const [refIds, setRefIds] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
   const [review, setReview] = useState<Review | null>(null);
   const [loadingFrom, setLoadingFrom] = useState<"summary" | "results">("summary");
@@ -130,6 +137,7 @@ export function StudyApp() {
       const { summary } = await postJson<{ summary: Summary }>("/api/summarize", { text, images, focus });
       setSummary(summary);
       setSource({ text, images, focus });
+      setCurrentId(saveEntry({ title: summary.title, summary, text, focus }));
       setAsked([]);
       setStage("summary");
     } catch (e) {
@@ -164,12 +172,46 @@ export function StudyApp() {
     }
   };
 
+  const openEntry = (id: string) => {
+    const entry = library.find((e) => e.id === id);
+    if (!entry) return;
+    setSummary(entry.summary);
+    setSource({ text: entrySourceText(entry), images: [], focus: entry.focus ?? "" });
+    setCurrentId(entry.id);
+    setAsked([]);
+    setQuestions([]);
+    setAnswers([]);
+    setError(null);
+    setStage("summary");
+  };
+
+  const startWrite = (free: boolean) => {
+    setFreeWrite(free);
+    setDraft("");
+    setError(null);
+    if (free) {
+      setTopic("");
+      setRefIds([]);
+    }
+    setStage("write");
+  };
+
   const submitWriting = async () => {
-    if (!summary || !source) return;
+    if (!freeWrite && (!summary || !source)) return;
     setError(null);
     setStage("reviewing");
     try {
-      const { review } = await postJson<{ review: Review }>("/api/review", { summary, source, writing: draft });
+      const payload = freeWrite
+        ? {
+            writing: draft,
+            topic,
+            references: library
+              .filter((e) => refIds.includes(e.id))
+              .map((e) => ({ title: e.title, text: entrySourceText(e) })),
+          }
+        : { summary, source, writing: draft };
+      const { review } = await postJson<{ review: Review }>("/api/review", payload);
+      if (!freeWrite) addHistory(currentId, { kind: "write", score: review.score, at: Date.now() });
       setReview(review);
       setStage("review");
     } catch (e) {
@@ -198,6 +240,8 @@ export function StudyApp() {
     setAsked([]);
     setDraft("");
     setReview(null);
+    setCurrentId(null);
+    setFreeWrite(false);
     setError(null);
     setNotice(null);
     setStage("upload");
@@ -229,6 +273,10 @@ export function StudyApp() {
               onRemove={removeItem}
               onSubmit={summarize}
             />
+          )}
+
+          {stage === "upload" && (
+            <Library entries={library} onOpen={openEntry} onDelete={removeEntry} onWriteFree={() => startWrite(true)} />
           )}
 
           {stage === "summarizing" && (
@@ -269,20 +317,33 @@ export function StudyApp() {
               level={level}
               onFinish={(a) => {
                 setAnswers(a);
+                addHistory(currentId, {
+                  kind: "quiz",
+                  level,
+                  score: questions.filter((q, i) => a[i] === q.answerIndex).length,
+                  total: questions.length,
+                  at: Date.now(),
+                });
                 setStage("results");
               }}
               onExit={() => setStage("summary")}
             />
           )}
 
-          {stage === "write" && summary && (
+          {stage === "write" && (freeWrite || summary) && (
             <WriteMode
-              title={summary.title}
+              title={summary?.title ?? topic}
+              free={freeWrite}
+              topic={topic}
+              library={library}
+              refIds={refIds}
               value={draft}
               error={error}
+              onTopic={setTopic}
+              onToggleRef={(id) => setRefIds((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))}
               onChange={setDraft}
               onSubmit={submitWriting}
-              onExit={() => setStage("summary")}
+              onExit={() => (freeWrite ? reset() : setStage("summary"))}
             />
           )}
 
@@ -297,6 +358,7 @@ export function StudyApp() {
             <ReviewView
               review={review}
               writing={draft}
+              hasMaterial={!freeWrite}
               onRetry={() => {
                 setDraft("");
                 setStage("write");
@@ -315,10 +377,7 @@ export function StudyApp() {
               error={loadingFrom === "results" ? error : null}
               onLevel={(l) => startQuiz(l, "results")}
               onRetryWrong={retryWrong}
-              onWrite={() => {
-                setError(null);
-                setStage("write");
-              }}
+              onWrite={() => startWrite(false)}
               onSummary={() => setStage("summary")}
               onNew={reset}
             />
