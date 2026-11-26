@@ -1,0 +1,9 @@
+{
+  "name": "mare-diario-de-emocoes",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "dev": "npx --yes serve -l 4173 ."
+  }
+}
