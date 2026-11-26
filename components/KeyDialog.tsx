@@ -17,7 +17,7 @@ export function KeyButton() {
     if (!open && d.open) d.close();
   }, [open]);
 
-  const valid = /^[\w-]{20,120}$/.test(value.trim());
+  const valid = /^[\w.-]{20,160}$/.test(value.trim());
 
   return (
     <>
@@ -69,7 +69,7 @@ export function KeyButton() {
               spellCheck={false}
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder={saved ? "Chave salva (cole outra para trocar)" : "AIza…"}
+              placeholder={saved ? "Chave salva (cole outra para trocar)" : "Cole a chave aqui"}
             />
           </div>
 

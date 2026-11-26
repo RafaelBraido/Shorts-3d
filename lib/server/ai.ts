@@ -22,7 +22,7 @@ function geminiProvider(name: string, key: string): Provider {
     name,
     url: process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
     key,
-    models: [process.env.GEMINI_MODEL || "gemini-2.5-flash", ...list(process.env.GEMINI_FALLBACK_MODELS, ["gemini-2.5-flash-lite"])],
+    models: [process.env.GEMINI_MODEL || "gemini-flash-latest", ...list(process.env.GEMINI_FALLBACK_MODELS, ["gemini-2.5-flash", "gemini-flash-lite-latest"])],
     vision: true,
     schema: true,
     maxChars: 400_000,
@@ -94,7 +94,7 @@ export function rateLimit(ip: string) {
 
 export function readUserKey(req: Request): string | undefined {
   const k = req.headers.get("x-user-gemini-key")?.trim();
-  return k && /^[\w-]{20,120}$/.test(k) ? k : undefined;
+  return k && /^[\w.-]{20,160}$/.test(k) ? k : undefined;
 }
 
 /* ---------- entrada ---------- */
